@@ -1,0 +1,6 @@
+framework module Pods_PoReaderTests {
+  umbrella header "Pods-PoReaderTests-umbrella.h"
+
+  export *
+  module * { export * }
+}

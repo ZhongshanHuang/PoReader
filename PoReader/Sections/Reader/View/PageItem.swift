@@ -28,6 +28,18 @@ class PageItem: UIViewController {
         return label
     }()
     
+    private static let dateFormatter: DateFormatter = {
+        let dateFormatter = DateFormatter()
+        dateFormatter.dateFormat = "H:mm"
+        return dateFormatter
+    }()
+    private lazy var timeLabel: UILabel = {
+        let label = UILabel()
+        label.font = .systemFont(ofSize: 10)
+        label.textColor = Appearance.readerOtherColor
+        return label
+    }()
+    
     private lazy var progressLabel: UILabel = {
         let label = UILabel()
         label.font = .systemFont(ofSize: 10)
@@ -68,6 +80,14 @@ class PageItem: UIViewController {
             make.left.equalToSuperview().offset(Appearance.displayRect.minX)
             make.bottom.equalToSuperview().offset(-Appearance.displayRect.minY + 8)
             make.size.equalTo(CGSize(width: 25, height: 12))
+        }
+        
+        
+        timeLabel.text = PageItem.dateFormatter.string(from: Date())
+        view.addSubview(timeLabel)
+        timeLabel.snp.makeConstraints { (make) in
+            make.left.equalTo(powerView.snp.right).offset(5)
+            make.centerY.equalTo(powerView)
         }
         
         progressLabel.text = String(format: "%.1f%%", progress * 100)

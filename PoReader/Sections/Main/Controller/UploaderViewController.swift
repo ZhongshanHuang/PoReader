@@ -48,7 +48,7 @@ class UploaderViewController: BaseViewController {
     
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
-        hostLabel.text = "请确保手机和电脑在同一Wifi下，在电脑浏览器上打开如下地址：\n\(webUploader?.serverURL?.absoluteString ?? "无效地址")"
+        hostLabel.text = "请确保手机和电脑在同一wifi下，在电脑浏览器上打开如下地址：\n\(webUploader?.serverURL?.absoluteString ?? "无效地址")"
     }
     
     deinit {

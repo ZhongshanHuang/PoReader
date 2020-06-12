@@ -56,9 +56,9 @@ struct Appearance {
     /// 文本显示范围
     static let displayRect: CGRect = {
         if UIDevice.isNotch {
-            return CGRect(x: 20, y: 34, width: UIScreen.main.bounds.width - 40, height: UIScreen.main.bounds.height - 34 - 64)
+            return CGRect(x: 20, y: 50, width: UIScreen.main.bounds.width - 40, height: UIScreen.main.bounds.height - 55 - 64)
         }
-        return CGRect(x: 20, y: 20, width: UIScreen.main.bounds.width - 40, height: UIScreen.main.bounds.height - 20 - 40)
+        return CGRect(x: 20, y: 30, width: UIScreen.main.bounds.width - 40, height: UIScreen.main.bounds.height - 30 - 40)
     }()
     
     // MARK: - 阅读页 bottom bar

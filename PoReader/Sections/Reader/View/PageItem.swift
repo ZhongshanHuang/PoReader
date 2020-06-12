@@ -73,12 +73,19 @@ class PageItem: UIViewController {
             make.right.equalToSuperview().offset(-margin)
         }
         
+        let bottomMargin: CGFloat
+        if UIDevice.isNotch {
+            bottomMargin = 30
+        } else {
+            bottomMargin = 10
+        }
+        
         let powerView = PowerDisplayView()
         powerView.backgroundColor = .clear
         view.addSubview(powerView)
         powerView.snp.makeConstraints { (make) in
             make.left.equalToSuperview().offset(Appearance.displayRect.minX)
-            make.bottom.equalToSuperview().offset(-Appearance.displayRect.minY + 8)
+            make.bottom.equalToSuperview().offset(-bottomMargin)
             make.size.equalTo(CGSize(width: 25, height: 12))
         }
         
@@ -94,7 +101,7 @@ class PageItem: UIViewController {
         view.addSubview(progressLabel)
         progressLabel.snp.makeConstraints { (make) in
             make.right.equalToSuperview().offset(-Appearance.displayRect.minX)
-            make.bottom.equalToSuperview().offset(-Appearance.displayRect.minY + 8)
+            make.bottom.equalToSuperview().offset(-bottomMargin)
         }
     }
     

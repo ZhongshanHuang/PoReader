@@ -9,20 +9,20 @@
 #####首页
 支持的功能
 1.展示本地txt文件的书名、进度，最新看过的排在最前.长按进入编辑模式，可以删除不喜欢的书籍，支持多选
-![image.png](https://upload-images.jianshu.io/upload_images/811044-9b8b91815519f70e.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240)
-![image.png](https://upload-images.jianshu.io/upload_images/811044-50f23c5a9ea0f83b.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240)
+<img src="https://github.com/ZhongshanHuang/PoReader/raw/master/Snapshots/list.webp" width="80%" height="80%">
+<img src="https://github.com/ZhongshanHuang/PoReader/raw/master/Snapshots/edition.webp" width="80%" height="80%">
 
 #####Wifi传书
 支持的功能
 在电脑浏览器打开提示的地址，可以上传或删除txt文件
-![image.png](https://upload-images.jianshu.io/upload_images/811044-18bf1978bc9b653e.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240)
+<img src="https://github.com/ZhongshanHuang/PoReader/raw/master/Snapshots/upload.webp" width="80%" height="80%">
 
 #####阅读
 支持的功能
 打开时跳转到之前页码，仿真翻页，调整字体大小，进度跳转，退出页面或者app关闭页面时保存当前页码
 PS：没有实现背景颜色自由更改是因为被我删掉了，背景颜色更改对我来说使用频率太低，暗黑模式对我来说体验更好
-![image.png](https://upload-images.jianshu.io/upload_images/811044-18191ceacec0c204.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240)
-![image.png](https://upload-images.jianshu.io/upload_images/811044-92da30323059840a.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240)
+<img src="https://github.com/ZhongshanHuang/PoReader/raw/master/Snapshots/reader.webp" width="80%" height="80%">
+<img src="https://github.com/ZhongshanHuang/PoReader/raw/master/Snapshots/scheme.webp" width="80%" height="80%">
 
 每个小说阅读器可能有不同的显示样式，但是都无法避免最核心的部分---分页计算，一个txt文件可能会有几M或者十几M，如果直接将分页全部计算出来可能需要耗费十几秒甚至更多，不管你是将分页计算放在主线程还是子线程，都会导致用户等待很长时间才能看到文字显示。
     文字要被一页页地展示给用户，分页计算是无可避免的。既要进行分页计算，又要降低分页计算的耗时，只有采用懒加载，推迟不必要的计算，只计算马上需要展示给用户的分页。这儿的思想其实与计算机的虚拟内存管理类似

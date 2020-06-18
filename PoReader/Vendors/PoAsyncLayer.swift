@@ -80,9 +80,6 @@ final class PoAsyncLayer: CALayer {
         
         task.willDisplay?(self)
         let size = bounds.size
-        let opaque = isOpaque
-        let scale = contentsScale
-        let backColor = backgroundColor
         if size.width < 1 || size.height < 1 {
             contents = nil
             task.didDisplay?(self, true)
@@ -98,28 +95,16 @@ final class PoAsyncLayer: CALayer {
             PoAsyncLayerGetDisplayQueue().async {
                 if isCancelled() { return }
                 
-                var format: UIGraphicsImageRendererFormat
+                let format: UIGraphicsImageRendererFormat
                 if #available(iOS 11, *) {
                     format = UIGraphicsImageRendererFormat.preferred()
                 } else {
                     format = UIGraphicsImageRendererFormat.default()
                 }
-                format.opaque = opaque
+                format.opaque = false
                 let renderer = UIGraphicsImageRenderer(size: size, format: format)
                 let image = renderer.image { (rendererCtx) in
                     let context = rendererCtx.cgContext
-                    if opaque {
-                        context.saveGState()
-                        defer { context.restoreGState()}
-                        if let color = backColor, color.alpha == 1 {
-                            context.setFillColor(color)
-                        } else {
-                            context.setFillColor(UIColor.white.cgColor)
-                        }
-                        context.addRect(CGRect(origin: .zero, size: CGSize(width: size.width * scale, height: size.height * scale)))
-                        context.fillPath()
-                    }
-                    
                     task.display?(context, size, isCancelled)
                 }
                 
@@ -141,28 +126,16 @@ final class PoAsyncLayer: CALayer {
         } else {
             _sentinel.increase()
             
-            var format: UIGraphicsImageRendererFormat
+            let format: UIGraphicsImageRendererFormat
             if #available(iOS 11, *) {
                 format = UIGraphicsImageRendererFormat.preferred()
             } else {
                 format = UIGraphicsImageRendererFormat.default()
             }
-            format.opaque = opaque
+            format.opaque = false
             let renderer = UIGraphicsImageRenderer(size: size, format: format)
             let image = renderer.image { (rendererCtx) in
                 let context = rendererCtx.cgContext
-                if opaque {
-                    context.saveGState()
-                    defer { context.restoreGState()}
-                    if let color = backColor, color.alpha == 1 {
-                        context.setFillColor(color)
-                    } else {
-                        context.setFillColor(UIColor.white.cgColor)
-                    }
-                    context.addRect(CGRect(origin: .zero, size: CGSize(width: size.width * scale, height: size.height * scale)))
-                    context.fillPath()
-                }
-                
                 task.display?(context, size, { return false })
             }
             contents = image.cgImage

@@ -21,12 +21,13 @@ class MainViewController: BaseViewController {
     }()
         
     private lazy var deleteButon: UIBarButtonItem = {
-        let button = UIBarButtonItem(title: "删除", style: .plain, target: self, action: #selector(handleDeleteAction(_:)))
+        let button = UIBarButtonItem(title: "删除", style: .plain, target: self, action: #selector(handleConfirmDeleteAction(_:)))
+        button.setTitleTextAttributes([.foregroundColor: UIColor.systemRed], for: .normal)
         return button
     }()
     
     private lazy var cancelButon: UIBarButtonItem = {
-        let button = UIBarButtonItem(title: "取消", style: .plain, target: self, action: #selector(handleCancelAction(_:)))
+        let button = UIBarButtonItem(title: "完成", style: .plain, target: self, action: #selector(handleCancelAction))
         return button
     }()
     
@@ -97,11 +98,28 @@ class MainViewController: BaseViewController {
     }
     
     @objc
-    private func handleDeleteAction(_ sender: UIBarButtonItem) {
+    private func handleConfirmDeleteAction(_ sender: UIBarButtonItem) {
+        let alert = UIAlertController(title: nil, message: "删除选中的\(selectedIndices.count)本书", preferredStyle: .actionSheet)
+        let confirm = UIAlertAction(title: "删除所选书籍", style: .destructive) { (_) in
+            self.handleDeleteAction()
+        }
+        alert.addAction(confirm)
+        let cancel = UIAlertAction(title: "取消", style: .cancel)
+        alert.addAction(cancel)
+    
+        present(alert, animated: true, completion: nil)
+    }
+    
+    private func handleDeleteAction() {
         isEditing = false
         collectionView.allowsMultipleSelection = false
         navigationItem.rightBarButtonItem = uploadButon
         navigationItem.leftBarButtonItem = nil
+        
+        if selectedIndices.isEmpty {
+            collectionView.reloadData()
+            return
+        }
         
         var toDeleteBooks: Set<BookModel> = []
         toDeleteBooks.reserveCapacity(selectedIndices.count)
@@ -126,11 +144,12 @@ class MainViewController: BaseViewController {
     }
     
     @objc
-    private func handleCancelAction(_ sender: UIBarButtonItem) {
+    private func handleCancelAction() {
         selectedIndices.removeAll()
         isEditing = false
         collectionView.reloadData()
         
+        deleteButon.isEnabled = true
         navigationItem.leftBarButtonItem = nil
         navigationItem.rightBarButtonItem = uploadButon
     }
@@ -173,6 +192,7 @@ extension MainViewController: UICollectionViewDelegate {
     func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
         if isEditing {
             selectedIndices.insert(indexPath)
+            deleteButon.isEnabled = true
             return
         }
         
@@ -192,6 +212,7 @@ extension MainViewController: UICollectionViewDelegate {
     func collectionView(_ collectionView: UICollectionView, didDeselectItemAt indexPath: IndexPath) {
         if isEditing {
             selectedIndices.remove(indexPath)
+            deleteButon.isEnabled = !selectedIndices.isEmpty
         }
     }
 }

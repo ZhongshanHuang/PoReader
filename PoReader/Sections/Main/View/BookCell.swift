@@ -14,9 +14,20 @@ class BookCell: UICollectionViewCell {
     
     private lazy var imageView: UIImageView = {
         let imageView = UIImageView()
-        imageView.backgroundColor = .dynamicColor(light: UIColor(red: 0, green: 0.48, blue: 1, alpha: 1),
-                                                  dark: UIColor(red: 0.04, green: 0.52, blue: 1, alpha: 1))
+        imageView.backgroundColor = .dynamicColor(light: UIColor(red: 0, green: 0.48, blue: 0.8, alpha: 1),
+                                                  dark: UIColor(red: 0.04, green: 0.52, blue: 0.8, alpha: 1))
         return imageView
+    }()
+    
+    private lazy var typeIndicator: UILabel = {
+        let indicator = UILabel()
+        indicator.text = "TXT"
+        indicator.textColor = .dynamicColor(light: UIColor(red: 0, green: 0.48, blue: 0.8, alpha: 1),
+                                            dark: UIColor(red: 0.04, green: 0.52, blue: 0.8, alpha: 1))
+        indicator.font = .systemFont(ofSize: 15)
+        indicator.textAlignment = .center
+        indicator.backgroundColor = .white
+        return indicator
     }()
     
     private lazy var selectView: UIImageView = {
@@ -84,6 +95,13 @@ class BookCell: UICollectionViewCell {
         contentView.addSubview(imageView)
         imageView.snp.makeConstraints { (make) in
             make.top.left.right.equalToSuperview()
+        }
+        
+        imageView.addSubview(typeIndicator)
+        typeIndicator.snp.makeConstraints { (make) in
+            make.left.equalToSuperview()
+            make.bottom.equalToSuperview().multipliedBy(0.8)
+            make.size.equalTo(CGSize(width: 60, height: 20))
         }
         
         contentView.addSubview(selectView)

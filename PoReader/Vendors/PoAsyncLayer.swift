@@ -101,7 +101,6 @@ final class PoAsyncLayer: CALayer {
                 } else {
                     format = UIGraphicsImageRendererFormat.default()
                 }
-                format.opaque = false
                 let renderer = UIGraphicsImageRenderer(size: size, format: format)
                 let image = renderer.image { (rendererCtx) in
                     let context = rendererCtx.cgContext
@@ -132,7 +131,6 @@ final class PoAsyncLayer: CALayer {
             } else {
                 format = UIGraphicsImageRendererFormat.default()
             }
-            format.opaque = false
             let renderer = UIGraphicsImageRenderer(size: size, format: format)
             let image = renderer.image { (rendererCtx) in
                 let context = rendererCtx.cgContext

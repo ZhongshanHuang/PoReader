@@ -45,7 +45,6 @@ class PageViewControllerDataSource: NSObject {
             var lastRange = NSRange()
             for (idx, value) in matchResults.enumerated() {
                 let range = value.range
-//                debugPrint(text.substring(with: range))
                 if idx == 0 {
                     if range.location - lastRange.upperBound > 100 {
                         let aRange = NSRange(location: 0, length: range.location)
@@ -78,7 +77,6 @@ class PageViewControllerDataSource: NSObject {
             while currentLocal < totalCount {
                 let length = min(totalCount - currentLocal, 10000)
                 let range = NSRange(location: currentLocal, length: length)
-                debugPrint(range)
                 let chapter = ChapterModel(content: text.substring(with: range), range: range)
                 chapterArr.append(chapter)
                 currentLocal += range.length

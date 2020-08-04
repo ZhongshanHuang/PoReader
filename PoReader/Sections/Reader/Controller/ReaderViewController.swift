@@ -43,6 +43,10 @@ class ReaderViewController: BaseViewController {
             let pageLocation = Database.shared.pageLocation(forBook: book.name)
             showPageItem(atChapter: pageLocation.chapterIndex, subrangeIndex: pageLocation.subrangeIndex)
         }
+        
+        NotificationCenter.default.addObserver(forName: UIApplication.didEnterBackgroundNotification, object: nil, queue: nil) { [weak self] (_) in
+            self?.savePageLocation()
+        }
     }
     
     override func viewWillDisappear(_ animated: Bool) {

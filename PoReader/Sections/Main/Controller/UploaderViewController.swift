@@ -40,7 +40,6 @@ class UploaderViewController: BaseViewController {
     
     private func startUploadServer() {
         webUploader = PoReaderWebUploader(uploadDirectory: Constants.localBookDirectory)
-        webUploader?.allowedFileExtensions = ["txt"] // 只支持上传txt
         webUploader?.prologue = "请将书本拖至下方方框，或者点击上传按钮，目前只支持txt格式"
         webUploader?.delegate = self
         webUploader?.start(withPort: 8866, bonjourName: "Reader Uploader Server")
@@ -86,10 +85,10 @@ class PoReaderWebUploader: GCDWebUploader {
      *
      *  The default implementation returns YES.
      */
-//    /// 只允许上传txt格式文件
-//    override func shouldUploadFile(atPath path: String, withTemporaryFile tempPath: String) -> Bool {
-//        return (path as NSString).pathExtension == "txt"
-//    }
+    /// 只允许上传txt格式文件
+    override func shouldUploadFile(atPath path: String, withTemporaryFile tempPath: String) -> Bool {
+        return (path as NSString).pathExtension == "txt"
+    }
 
     /**
      *  This method is called to check if a file or directory is allowed to be moved.

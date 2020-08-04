@@ -179,9 +179,30 @@ class ReaderViewController: BaseViewController {
 
 extension ReaderViewController: ReaderBottomBarDelegate {
     
-    func readerBottomBar(_ bottomBar: ReaderBottomBar, didChangedFontSizeTo result: ReaderBottomBar.FontChangeResult) {
+    func readerBottomBar(_ bottomBar: ReaderBottomBar, didClickProgressButton type: ReaderBottomBar.ProgressButtonType) {
+        var currentProgress = bottomBar.progress
+        switch type {
+        case .forward:
+            if currentProgress < 0.001 { return }
+            currentProgress -= 0.001
+        case .backward:
+            if currentProgress > 0.999 { return }
+            currentProgress += 0.001
+        }
+        bottomBar.progress = currentProgress
+        
+        if let chapter = dataSource.chapters?.last {
+            let totalLength = chapter.range.upperBound - 1
+            let location = currentProgress * Float(totalLength)
+            if let (chapterIndex, subrangeIndex) = dataSource.searchPageLocation(location: Int(location)) {
+                showPageItem(atChapter: chapterIndex, subrangeIndex: subrangeIndex)
+            }
+        }
+    }
+    
+    func readerBottomBar(_ bottomBar: ReaderBottomBar, didClickFontButton type: ReaderBottomBar.FontButtonType) {
         var currentSize = Appearance.fontSize
-        switch result {
+        switch type {
         case .smaller:
             if currentSize < 10 { return }
             currentSize -= 1

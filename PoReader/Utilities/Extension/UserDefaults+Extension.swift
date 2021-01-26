@@ -15,7 +15,7 @@ extension UserDefaults {
     ///   - object: 对象
     ///   - key: key
     func saveCustomObject(customObject object: NSSecureCoding, forKey key: String) {
-        if #available(iOS 13, *) {
+        if #available(iOS 11, *) {
             let encodedObject = try! NSKeyedArchiver.archivedData(withRootObject: object, requiringSecureCoding: true)
             set(encodedObject, forKey: key)
         } else {
@@ -33,7 +33,7 @@ extension UserDefaults {
         let decodedObject = object(forKey: key) as? Data
         
         if let decoded = decodedObject {
-            if #available(iOS 13, *) {
+            if #available(iOS 11, *) {
                 let object = try? NSKeyedUnarchiver.unarchivedObject(ofClass: classType, from: decoded)
                 return object as AnyObject
             } else {

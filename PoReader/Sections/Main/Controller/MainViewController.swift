@@ -14,6 +14,7 @@ class MainViewController: BaseViewController {
     // MARK: - Properties
     private lazy var viewModel = MainViewModel()
     private var collectionView: UICollectionView!
+    private var openFirstBook: Bool = true
     
     private lazy var uploadButon: UIBarButtonItem = {
         let button = UIBarButtonItem(title: "传书", style: .plain, target: self, action: #selector(handleUploadAction(_:)))
@@ -84,9 +85,30 @@ class MainViewController: BaseViewController {
             switch result {
             case .success:
                 self.collectionView.reloadData()
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) {
+                    if self.openFirstBook {
+                        self.openFirstBook = false
+                        self.openBook(at: 0)
+                    }
+                }
             case .failure:
                 debugPrint("加载出错")
             }
+        }
+    }
+    
+    private func openBook(at index: Int) {
+        guard viewModel.dataList != nil, viewModel.dataList!.count > index else { return }
+        let vc = ReaderViewController()
+        vc.book = viewModel.dataList?[index]
+        navigationController?.pushViewController(vc, animated: true)
+        
+        // 保存打开时间
+        let accessDate = Date().timeIntervalSince1970
+        viewModel.dataList?[index].lastAccessDate = accessDate
+        let name = viewModel.dataList![index].name
+        DispatchQueue.global(qos: .userInitiated).async {
+            Database.shared.save(accessDate, forBook: name)
         }
     }
     
@@ -195,18 +217,7 @@ extension MainViewController: UICollectionViewDelegate {
             deleteButon.isEnabled = true
             return
         }
-        
-        let vc = ReaderViewController()
-        vc.book = viewModel.dataList?[indexPath.item]
-        navigationController?.pushViewController(vc, animated: true)
-        
-        // 保存打开时间
-        let accessDate = Date().timeIntervalSince1970
-        viewModel.dataList?[indexPath.item].lastAccessDate = accessDate
-        let name = viewModel.dataList![indexPath.item].name
-        DispatchQueue.global(qos: .userInitiated).async {
-            Database.shared.save(accessDate, forBook: name)
-        }
+        openBook(at: indexPath.item)
     }
     
     func collectionView(_ collectionView: UICollectionView, didDeselectItemAt indexPath: IndexPath) {

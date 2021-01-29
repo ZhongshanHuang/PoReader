@@ -44,6 +44,7 @@ struct Appearance {
                 let paragraphStyle = NSMutableParagraphStyle()
                 paragraphStyle.lineSpacing = 7
                 paragraphStyle.paragraphSpacing = 10
+                paragraphStyle.alignment = .justified
                 _attributes = [NSAttributedString.Key.font: UIFont.systemFont(ofSize: fontSize),
                                NSAttributedString.Key.paragraphStyle: paragraphStyle]
             }

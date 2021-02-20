@@ -8,7 +8,7 @@
 
 import UIKit
 
-protocol ReaderBottomBarDelegate: class {
+protocol ReaderBottomBarDelegate: AnyObject {
     /// click button
     func readerBottomBar(_ bottomBar: ReaderBottomBar, didClickProgressButton type: ReaderBottomBar.ProgressButtonType)
     /// click button

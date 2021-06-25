@@ -33,9 +33,8 @@ class PageViewControllerDataSource: NSObject {
             return
         }
 
-//        let pattern1 = #"`^.{0,6}(第[0-9一两二三四五六七八九十零百千]{1,6}(章|节|集|卷|部|篇|回)|楔子|前言|引子)([ \s\:]{0,2}|：)([^\s]{0,36})$"#
 //        let pattern2 = #"(?<=\s)[第]{0,1}[0-9零一二三四五六七八九十百千万]+[章节集卷部篇回](?: |　|：){0,4}(?:\S)*"#
-        let pattern = #"\s{1}第(.{1,7})(章|节|集|回|卷|部|篇)"#
+        let pattern = #"\s{1}第(.{1,8})(章|节|集|回|卷|部|篇)"#
         let expression = try! NSRegularExpression(pattern: pattern, options: .caseInsensitive)
         let matchResults = expression.matches(in: text as String, options: .reportCompletion, range: NSRange(location: 0, length: text.length))
         

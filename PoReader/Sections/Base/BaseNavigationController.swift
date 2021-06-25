@@ -27,8 +27,6 @@ class BaseNavigationController: PoNavigationController {
         popViewController(animated: true)
     }
     
-//    override var traitCollection: UITraitCollection
-    
     /// Push
     override func pushViewController(_ viewController: UIViewController, animated: Bool) {
         if children.count > 0 {

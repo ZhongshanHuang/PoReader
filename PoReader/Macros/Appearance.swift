@@ -13,7 +13,7 @@ struct Appearance {
     // MARK: - 全局
     
     /// 背景色
-    static let backgroundColor: UIColor = .dynamicColor(light: UIColor.groupTableViewBackground,
+    static let backgroundColor: UIColor = .dynamicColor(light: UIColor(red: 0.95, green: 0.95, blue: 0.97, alpha: 1),
                                                       dark: UIColor(red: 0.17, green: 0.17, blue: 0.18, alpha: 1))
     
     

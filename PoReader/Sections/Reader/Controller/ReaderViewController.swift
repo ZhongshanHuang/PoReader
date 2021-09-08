@@ -43,10 +43,6 @@ class ReaderViewController: BaseViewController {
             let pageLocation = Database.shared.pageLocation(forBook: book.name)
             showPageItem(atChapter: pageLocation.chapterIndex, subrangeIndex: pageLocation.subrangeIndex)
         }
-        
-        NotificationCenter.default.addObserver(forName: UIApplication.didEnterBackgroundNotification, object: nil, queue: nil) { [weak self] (_) in
-            self?.savePageLocation()
-        }
     }
     
     override func viewWillDisappear(_ animated: Bool) {
@@ -67,14 +63,20 @@ class ReaderViewController: BaseViewController {
         view.addSubview(bottomBar)
         bottomBar.snp.makeConstraints { (make) in
             make.left.bottom.right.equalToSuperview()
-            let height: CGFloat = UIDevice.isNotch ? 120 : 100
+            let height: CGFloat = UIDevice.isNotch ? 144 : 110
             make.height.equalTo(height)
         }
         
         navigationBarConfigure.isHidden = true
         
-        // 观察应用退出事件，保存当前文章页码
-        NotificationCenter.default.addObserver(self, selector: #selector(savePageLocation), name: UIApplication.willTerminateNotification, object: nil)
+        // 观察应用事件，保存当前文章页码
+        NotificationCenter.default.addObserver(forName: UIApplication.willResignActiveNotification, object: nil, queue: nil) { [weak self] (_) in
+            self?.savePageLocation()
+        }
+        
+        NotificationCenter.default.addObserver(forName: UIApplication.willTerminateNotification, object: nil, queue: nil) { [weak self] (_) in
+            self?.savePageLocation()
+        }
     }
     
     private func setupDataSource() {
@@ -179,47 +181,48 @@ class ReaderViewController: BaseViewController {
 
 extension ReaderViewController: ReaderBottomBarDelegate {
     
-    func readerBottomBar(_ bottomBar: ReaderBottomBar, didClickProgressButton type: ReaderBottomBar.ProgressButtonType) {
-        var currentProgress = bottomBar.progress
-        switch type {
-        case .forward:
-            if currentProgress < 0.001 { return }
-            currentProgress -= 0.001
-        case .backward:
-            if currentProgress > 0.999 { return }
-            currentProgress += 0.001
-        }
-        bottomBar.progress = currentProgress
-        
-        if let chapter = dataSource.chapters?.last {
-            let totalLength = chapter.range.upperBound - 1
-            let location = currentProgress * Float(totalLength)
-            if let (chapterIndex, subrangeIndex) = dataSource.searchPageLocation(location: Int(location)) {
-                showPageItem(atChapter: chapterIndex, subrangeIndex: subrangeIndex)
+    func readerBottomBar(_ bottomBar: ReaderBottomBar, didClickButton type: ReaderBottomBar.TouchEventType) {
+        if (type == .progressForward || type == .progressBackward) {
+            var currentProgress = bottomBar.progress
+            if (type == .progressForward) {
+                if currentProgress < 0.001 { return }
+                currentProgress -= 0.001
+            } else {
+                if currentProgress > 0.999 { return }
+                currentProgress += 0.001
             }
+            bottomBar.progress = currentProgress
+            
+            if let chapter = dataSource.chapters?.last {
+                let totalLength = chapter.range.upperBound - 1
+                let location = currentProgress * Float(totalLength)
+                if let (chapterIndex, subrangeIndex) = dataSource.searchPageLocation(location: Int(location)) {
+                    showPageItem(atChapter: chapterIndex, subrangeIndex: subrangeIndex)
+                }
+            }
+            return;
+        }
+        
+        if (type == .fontDecrease || type == .fontIncrease) {
+            var currentSize = Appearance.fontSize
+            if (type == .fontDecrease) {
+                if currentSize < 10 { return }
+                currentSize -= 1
+            } else if (type == .fontIncrease) {
+                if currentSize > 28 { return }
+                currentSize += 1
+            }
+            Appearance.fontSize = currentSize
+            guard let currentPage = pageViewController.viewControllers?.first as? PageItem,
+                let sublocation = dataSource.chapterSublocation(atChapter: currentPage.chapterIndex, subrangeIndex: currentPage.subrangeIndex) else { return }
+            
+            dataSource.updateChapterSubrange()
+            guard let subrangeIndex = dataSource.chapterSubrangeIndex(atChapter: currentPage.chapterIndex, sublocation: sublocation) else { return }
+            
+            showPageItem(atChapter: currentPage.chapterIndex, subrangeIndex: subrangeIndex)
         }
     }
-    
-    func readerBottomBar(_ bottomBar: ReaderBottomBar, didClickFontButton type: ReaderBottomBar.FontButtonType) {
-        var currentSize = Appearance.fontSize
-        switch type {
-        case .smaller:
-            if currentSize < 10 { return }
-            currentSize -= 1
-        case .bigger:
-            if currentSize > 28 { return }
-            currentSize += 1
-        }
-        Appearance.fontSize = currentSize
-        guard let currentPage = pageViewController.viewControllers?.first as? PageItem,
-            let sublocation = dataSource.chapterSublocation(atChapter: currentPage.chapterIndex, subrangeIndex: currentPage.subrangeIndex) else { return }
         
-        dataSource.updateChapterSubrange()
-        guard let subrangeIndex = dataSource.chapterSubrangeIndex(atChapter: currentPage.chapterIndex, sublocation: sublocation) else { return }
-        
-        showPageItem(atChapter: currentPage.chapterIndex, subrangeIndex: subrangeIndex)
-    }
-    
     func readerBottomBar(_ bottomBar: ReaderBottomBar, didChangeProgressTo value: Float) {
         if let chapter = dataSource.chapters?.last {
             let totalLength = chapter.range.upperBound - 1

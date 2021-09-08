@@ -10,21 +10,17 @@ import UIKit
 
 protocol ReaderBottomBarDelegate: AnyObject {
     /// click button
-    func readerBottomBar(_ bottomBar: ReaderBottomBar, didClickProgressButton type: ReaderBottomBar.ProgressButtonType)
-    /// click button
-    func readerBottomBar(_ bottomBar: ReaderBottomBar, didClickFontButton type: ReaderBottomBar.FontButtonType)
+    func readerBottomBar(_ bottomBar: ReaderBottomBar, didClickButton type: ReaderBottomBar.TouchEventType)
     /// touch slider
     func readerBottomBar(_ bottomBar: ReaderBottomBar, didChangeProgressTo value: Float)
 }
 
 extension ReaderBottomBar {
-    enum FontButtonType {
-        case smaller
-        case bigger
-    }
-    enum ProgressButtonType {
-        case forward
-        case backward
+    enum TouchEventType: Int {
+        case fontDecrease = 1
+        case fontIncrease
+        case progressForward
+        case progressBackward
     }
 }
 
@@ -79,23 +75,25 @@ class ReaderBottomBar: UIView {
         // forwardBtn
         let forwardBtn = UIButton(type: .custom)
         forwardBtn.setImage(UIImage(named: "btn_forward"), for: .normal)
-        forwardBtn.addTarget(self, action: #selector(handleProgressButtonClick(_:)), for: .touchUpInside)
-        forwardBtn.tag = 888
+        forwardBtn.addTarget(self, action: #selector(handleButtonClick(_:)), for: .touchUpInside)
+        forwardBtn.tag = TouchEventType.progressForward.rawValue
         addSubview(forwardBtn)
         forwardBtn.snp.makeConstraints { (make) in
             make.top.equalTo(progressLabel.snp.bottom).offset(5)
             make.left.equalToSuperview().offset(8)
+            make.width.height.equalTo(30)
         }
         
         // backwardBtn
         let backwardBtn = UIButton(type: .custom)
         backwardBtn.setImage(UIImage(named: "btn_backward"), for: .normal)
-        backwardBtn.addTarget(self, action: #selector(handleProgressButtonClick(_:)), for: .touchUpInside)
-        backwardBtn.tag = 889
+        backwardBtn.addTarget(self, action: #selector(handleButtonClick(_:)), for: .touchUpInside)
+        backwardBtn.tag = TouchEventType.progressBackward.rawValue
         addSubview(backwardBtn)
         backwardBtn.snp.makeConstraints { (make) in
             make.top.equalTo(progressLabel.snp.bottom).offset(5)
             make.right.equalToSuperview().offset(-8)
+            make.width.height.equalTo(30)
         }
         
         // processView
@@ -108,12 +106,12 @@ class ReaderBottomBar: UIView {
         
         // font
         let decreaseFonBtn = UIButton(type: .custom)
-        decreaseFonBtn.tag = 666
+        decreaseFonBtn.tag = TouchEventType.fontDecrease.rawValue
         decreaseFonBtn.titleLabel?.font = .systemFont(ofSize: 24)
         decreaseFonBtn.setTitle("A-", for: .normal)
         decreaseFonBtn.setTitleColor(UIColor(red: 0, green: 0.48, blue: 1, alpha: 1), for: .normal)
         decreaseFonBtn.setBackgroundImage(UIImage(named: "btn_font_bg"), for: .normal)
-        decreaseFonBtn.addTarget(self, action: #selector(handleFontButtonClick), for: .touchUpInside)
+        decreaseFonBtn.addTarget(self, action: #selector(handleButtonClick), for: .touchUpInside)
         addSubview(decreaseFonBtn)
         decreaseFonBtn.snp.makeConstraints { (make) in
             make.top.equalTo(progressView.snp.bottom).offset(4)
@@ -121,12 +119,12 @@ class ReaderBottomBar: UIView {
         }
         
         let increaseFonBtn = UIButton(type: .custom)
-        increaseFonBtn.tag = 667
+        increaseFonBtn.tag = TouchEventType.fontIncrease.rawValue
         increaseFonBtn.titleLabel?.font = .systemFont(ofSize: 24)
         increaseFonBtn.setTitle("A+", for: .normal)
         increaseFonBtn.setTitleColor(UIColor(red: 0, green: 0.48, blue: 1, alpha: 1), for: .normal)
         increaseFonBtn.setBackgroundImage(UIImage(named: "btn_font_bg"), for: .normal)
-        increaseFonBtn.addTarget(self, action: #selector(handleFontButtonClick), for: .touchUpInside)
+        increaseFonBtn.addTarget(self, action: #selector(handleButtonClick), for: .touchUpInside)
         addSubview(increaseFonBtn)
         increaseFonBtn.snp.makeConstraints { (make) in
             make.top.equalTo(decreaseFonBtn)
@@ -151,25 +149,10 @@ class ReaderBottomBar: UIView {
     }
     
     @objc
-    private func handleFontButtonClick(_ sender: UIButton) {
-        let type: FontButtonType
-        if sender.tag == 666 {
-            type = .smaller
-        } else {
-            type = .bigger
+    private func handleButtonClick(_ sender: UIButton) {
+        if let type = TouchEventType(rawValue: sender.tag) {
+            delegate?.readerBottomBar(self, didClickButton: type)
         }
-        delegate?.readerBottomBar(self, didClickFontButton: type)
-    }
-    
-    @objc
-    private func handleProgressButtonClick(_ sender: UIButton) {
-        let type: ProgressButtonType
-        if sender.tag == 888 {
-            type = .forward
-        } else {
-            type = .backward
-        }
-        delegate?.readerBottomBar(self, didClickProgressButton: type)
     }
 }
 

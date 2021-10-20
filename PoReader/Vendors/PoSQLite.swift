@@ -45,7 +45,7 @@ class SQLiteQueue {
         }
     }
     
-    func inDatabase(_ exec: @escaping (SQLiteDatabase) -> Void) {
+    func inDatabase(_ exec: (SQLiteDatabase) -> Void) {
         #if NDEBUG
             let currentQueue = serialQueue.getSpecific(key: kSQLiteQueuekey)
             assert(currentQueue !== self, "inDatabase: was called reentrantly on the same queue, which would lead to a deadlock")
@@ -56,7 +56,7 @@ class SQLiteQueue {
         }
     }
     
-    func inTransaction(_ transaction: SQLiteTransaction = .exclusive, _ exec: @escaping (_ db: SQLiteDatabase, _ rollback: UnsafeMutablePointer<Bool>) throws -> Void) {
+    func inTransaction(_ transaction: SQLiteTransaction = .exclusive, _ exec: (_ db: SQLiteDatabase, _ rollback: UnsafeMutablePointer<Bool>) throws -> Void) {
         #if NDEBUG
             let currentQueue = serialQueue.getSpecific(key: kSQLiteQueuekey)
             assert(currentQueue !== self, "inDatabase: was called reentrantly on the same queue, which would lead to a deadlock")

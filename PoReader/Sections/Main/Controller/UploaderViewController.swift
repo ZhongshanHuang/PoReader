@@ -42,14 +42,14 @@ class UploaderViewController: BaseViewController {
         webUploader = PoReaderWebUploader(uploadDirectory: Constants.localBookDirectory)
         webUploader?.prologue = "请将书本拖至下方方框，或者点击上传按钮，目前只支持txt格式"
         webUploader?.delegate = self
-        webUploader?.start(withPort: 8866, bonjourName: "Reader Uploader Server")
+        webUploader?.start(withPort: 80, bonjourName: "Reader Uploader Server")
     }
     
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
         
         let attributedStr = NSMutableAttributedString(string: "请确保手机和电脑在同一wifi下，在电脑浏览器上打开如下地址: \n", attributes: [.font: UIFont.systemFont(ofSize: 17)])
-        let ipStr = NSAttributedString(string: "\(webUploader?.serverURL?.absoluteString ?? "无效地址")", attributes: [.font: UIFont.systemFont(ofSize: 20), .foregroundColor: UIColor.systemBlue])
+        let ipStr = NSAttributedString(string: "\(webUploader?.serverURL?.host ?? "无效地址")", attributes: [.font: UIFont.systemFont(ofSize: 20), .foregroundColor: UIColor.systemBlue])
         attributedStr.append(ipStr)
         hostLabel.attributedText = attributedStr
     }

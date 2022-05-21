@@ -37,12 +37,6 @@ class ReaderViewController: BaseViewController {
         // Do any additional setup after loading the view.
         setupUI()
         setupDataSource()
-        dataSource.parseChapter()
-        
-        if let book = book {
-            let pageLocation = Database.shared.pageLocation(forBook: book.name)
-            showPageItem(atChapter: pageLocation.chapterIndex, subrangeIndex: pageLocation.subrangeIndex)
-        }
     }
     
     override func viewWillDisappear(_ animated: Bool) {
@@ -82,6 +76,12 @@ class ReaderViewController: BaseViewController {
     private func setupDataSource() {
         dataSource.name = book?.name
         dataSource.sourcePath = book?.localPath
+        
+        dataSource.parseChapter()
+        if let book = self.book {
+            let pageLocation = Database.shared.pageLocation(forBook: book.name)
+            self.showPageItem(atChapter: pageLocation.chapterIndex, subrangeIndex: pageLocation.subrangeIndex)
+        }
     }
     
     @objc

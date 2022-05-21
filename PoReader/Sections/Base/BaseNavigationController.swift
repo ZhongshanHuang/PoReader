@@ -13,7 +13,7 @@ class BaseNavigationController: PoNavigationController {
     // 返回按钮
     private lazy var backBtn: UIButton = {
         // 设置返回按钮属性
-        let backBtn = UIButton(type: .custom)
+        let backBtn = UIButton(type: .system)
         backBtn.setImage(UIImage(named: "navigation_back_white"), for: .normal)
         backBtn.titleLabel?.isHidden = true
         backBtn.addTarget(self, action: #selector(BaseNavigationController.backBtnClick), for: .touchUpInside)
@@ -31,7 +31,9 @@ class BaseNavigationController: PoNavigationController {
     override func pushViewController(_ viewController: UIViewController, animated: Bool) {
         if children.count > 0 {
             viewController.hidesBottomBarWhenPushed = true
-            viewController.navigationItem.leftBarButtonItem = UIBarButtonItem(customView: backBtn)
+            let backBarButtonItem = UIBarButtonItem(image: UIImage(named: "navigation_back_white"), style: .plain, target: self, action: #selector(backBtnClick))
+            backBarButtonItem.imageInsets = UIEdgeInsets(top: 0, left: -5, bottom: 0, right: 0)
+            viewController.navigationItem.leftBarButtonItem = backBarButtonItem
         }
         super.pushViewController(viewController, animated: true)
     }

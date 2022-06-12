@@ -54,7 +54,8 @@ class UploaderViewController: BaseViewController {
         hostLabel.attributedText = attributedStr
     }
     
-    deinit {
+    override func viewDidDisappear(_ animated: Bool) {
+        super.viewDidDisappear(animated)
         webUploader?.stop()
     }
     

@@ -26,7 +26,7 @@ extension UIViewController {
     }
     
     // lazy load
-    open var navigationBarConfigure: PoNavigationBarConfigure {
+    public var navigationBarConfigure: PoNavigationBarConfigure {
         get {
             if let configure = _navigationBarConfigure { return configure }
             let configure = PoNavigationBarConfigure()
@@ -38,9 +38,18 @@ extension UIViewController {
         }
     }
     
+    /// copy default standard appearance
+    @available(iOS 13.0, *)
+    public var copyNavigationBarStandardAppearance: UINavigationBarAppearance? {
+        if let appearance = (navigationController as? PoNavigationController)?.defaultNavigationBarConfigure.standardAppearance {
+            return UINavigationBarAppearance(barAppearance: appearance)
+        }
+        return nil
+    }
+    
     /// 将navigationBarConfigure设置到navigationBar
     /// 除非在viewWillAppear之后设置了navigationBarConfigure，否则不需要手动调用
-    open func flushBarConfigure(_ animated: Bool = false) {
+    public func flushBarConfigure(_ animated: Bool = false) {
         guard let navigationBar = navigationController?.navigationBar else { return }
         navigationBarConfigure.apply(to: navigationBar)
         navigationController?.setNavigationBarHidden(navigationBarConfigure.isHidden ?? false, animated: animated)

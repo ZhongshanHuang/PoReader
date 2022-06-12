@@ -10,18 +10,46 @@ import UIKit
 
 open class PoNavigationBarConfigure {
     
-    var isHidden: Bool?
-    var barStyle: UIBarStyle?
-    var isTranslucent: Bool?
-    var tintColor: UIColor?
-    var barTintColor: UIColor?
-    var backgroundColor: UIColor?
-    var backgroundImage: UIImage?
-    var shadowImage: UIImage?
-    var titleTextAttributes: [NSAttributedString.Key: Any]?
+    open var isHidden: Bool?
+    open var barStyle: UIBarStyle?
+    open var isTranslucent: Bool?
+    open var tintColor: UIColor?
+    open var barTintColor: UIColor?
+    open var backgroundColor: UIColor?
+    open var backgroundImage: UIImage?
+    open var shadowImage: UIImage?
+    open var titleTextAttributes: [NSAttributedString.Key: Any]?
     
-    func apply(to navigationBar: UINavigationBar) {
-//        navigationBar.isHidden = isHidden ?? false
+    private var _standardAppearance: AnyObject?
+    @available(iOS 13.0, *)
+    open var standardAppearance: UINavigationBarAppearance? {
+        get { _standardAppearance as? UINavigationBarAppearance }
+        set { _standardAppearance = newValue }
+    }
+    
+    private var _compactAppearance: AnyObject?
+    @available(iOS 13.0, *)
+    open var compactAppearance: UINavigationBarAppearance? {
+        get { _compactAppearance as? UINavigationBarAppearance }
+        set { _compactAppearance = newValue }
+    }
+    
+    private var _scrollEdgeAppearance: AnyObject?
+    @available(iOS 13.0, *)
+    open var scrollEdgeAppearance: UINavigationBarAppearance? {
+        get { _scrollEdgeAppearance as? UINavigationBarAppearance }
+        set { _scrollEdgeAppearance = newValue }
+    }
+    
+    private var _compactScrollEdgeAppearance: AnyObject?
+    @available(iOS 15.0, *)
+    open var compactScrollEdgeAppearance: UINavigationBarAppearance? {
+        get { _compactScrollEdgeAppearance as? UINavigationBarAppearance }
+        set { _compactScrollEdgeAppearance = newValue }
+    }
+    
+    internal func apply(to navigationBar: UINavigationBar) {
+//        navigationBar.isHidden = isHidden ?? false // 在别处设置的此属性
         navigationBar.barStyle = barStyle ?? .default
         navigationBar.tintColor = tintColor
         navigationBar.isTranslucent = isTranslucent ?? true
@@ -30,9 +58,17 @@ open class PoNavigationBarConfigure {
         navigationBar.setBackgroundImage(backgroundImage, for: .default)
         navigationBar.shadowImage = shadowImage
         navigationBar.titleTextAttributes = titleTextAttributes
+        if #available(iOS 13.0, *) {
+            navigationBar.standardAppearance = standardAppearance ?? UINavigationBarAppearance()
+            navigationBar.compactAppearance = compactAppearance
+            navigationBar.scrollEdgeAppearance = scrollEdgeAppearance
+        }
+        if #available(iOS 15.0, *) {
+            navigationBar.compactScrollEdgeAppearance = compactScrollEdgeAppearance
+        }
     }
     
-    func apply(to toolBar: UIToolbar) {
+    internal func apply(to toolBar: UIToolbar) {
         toolBar.isHidden = isHidden ?? false
         toolBar.barStyle = barStyle ?? .default
         toolBar.isTranslucent = isTranslucent ?? true
@@ -40,11 +76,15 @@ open class PoNavigationBarConfigure {
         toolBar.backgroundColor = backgroundColor
         toolBar.setBackgroundImage(backgroundImage, forToolbarPosition: .bottom, barMetrics: .default)
         toolBar.setShadowImage(shadowImage, forToolbarPosition: .bottom)
+        if #available(iOS 13.0, *) {
+            toolBar.standardAppearance = standardAppearance?.toToolbarAppearance ?? UIToolbarAppearance()
+            toolBar.compactAppearance = compactAppearance?.toToolbarAppearance
+        }
     }
     
     /// 如果自身的属性是nil， 就用另外的配置对应属性来填充（主要是用来区分是否对应的UIViewController特别设置的，
     /// 不是的话就用defaultNavigationBarConfigure）
-    func fillSelfEmptyValue(with anotherConfigure: PoNavigationBarConfigure) {
+    internal func fillSelfEmptyValue(with anotherConfigure: PoNavigationBarConfigure) {
         if isHidden == nil {
             isHidden = anotherConfigure.isHidden
         }
@@ -72,5 +112,30 @@ open class PoNavigationBarConfigure {
         if titleTextAttributes == nil {
             titleTextAttributes = anotherConfigure.titleTextAttributes
         }
+        if #available(iOS 13.0, *) {
+            if standardAppearance == nil {
+                standardAppearance = anotherConfigure.standardAppearance
+            }
+            if compactAppearance == nil {
+                compactAppearance = anotherConfigure.compactAppearance
+            }
+            if scrollEdgeAppearance == nil {
+                scrollEdgeAppearance = anotherConfigure.scrollEdgeAppearance
+            }
+        }
+        if #available(iOS 15.0, *) {
+            if compactScrollEdgeAppearance == nil {
+                compactScrollEdgeAppearance = anotherConfigure.compactScrollEdgeAppearance
+            }
+        }
     }
 }
+
+@available(iOS 13.0, *)
+private extension UINavigationBarAppearance {
+    
+    var toToolbarAppearance: UIToolbarAppearance {
+        return UIToolbarAppearance(barAppearance: self)
+    }
+}
+

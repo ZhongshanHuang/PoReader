@@ -19,9 +19,6 @@
 		6C2C574824725F5D00265AAE /* ChapterModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6C2C574724725F5D00265AAE /* ChapterModel.swift */; };
 		6C2C574A2472605E00265AAE /* String+Extension.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6C2C57492472605E00265AAE /* String+Extension.swift */; };
 		6C2C574E24726E3600265AAE /* PageItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6C2C574D24726E3600265AAE /* PageItem.swift */; };
-		6C464281247CEDB400D8E70B /* UIViewController+Extension.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6C46427E247CEDB400D8E70B /* UIViewController+Extension.swift */; };
-		6C464282247CEDB400D8E70B /* PoNavigationController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6C46427F247CEDB400D8E70B /* PoNavigationController.swift */; };
-		6C464283247CEDB400D8E70B /* PoNavigationBarConfigure.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6C464280247CEDB400D8E70B /* PoNavigationBarConfigure.swift */; };
 		6C464285247CEE2C00D8E70B /* BaseNavigationController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6C464284247CEE2C00D8E70B /* BaseNavigationController.swift */; };
 		6C464289247E162300D8E70B /* UIColor+Extension.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6C464288247E162300D8E70B /* UIColor+Extension.swift */; };
 		6C46428C247E4A8D00D8E70B /* Database.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6C46428B247E4A8D00D8E70B /* Database.swift */; };
@@ -37,6 +34,9 @@
 		6C60067324777D1E00896604 /* PoSQLite.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6C60067224777D1E00896604 /* PoSQLite.swift */; };
 		6C6006752479290900896604 /* choose_uncheck@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = 6C6006742479290900896604 /* choose_uncheck@2x.png */; };
 		6C6006772479291900896604 /* choose_check@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = 6C6006762479291900896604 /* choose_check@2x.png */; };
+		6C8A75532855F380003DDBFA /* PoNavigationController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6C8A75502855F380003DDBFA /* PoNavigationController.swift */; };
+		6C8A75542855F380003DDBFA /* UIViewController+extension.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6C8A75512855F380003DDBFA /* UIViewController+extension.swift */; };
+		6C8A75552855F380003DDBFA /* PoNavigationBarConfigure.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6C8A75522855F380003DDBFA /* PoNavigationBarConfigure.swift */; };
 		6CC98B552473C3410051135E /* BookCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6CC98B542473C3410051135E /* BookCell.swift */; };
 		6CD342FE2473C9000011AD46 /* MainViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6CD342FD2473C9000011AD46 /* MainViewModel.swift */; };
 		6CD343002473C95C0011AD46 /* BookModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6CD342FF2473C95C0011AD46 /* BookModel.swift */; };
@@ -90,9 +90,6 @@
 		6C2C574724725F5D00265AAE /* ChapterModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChapterModel.swift; sourceTree = "<group>"; };
 		6C2C57492472605E00265AAE /* String+Extension.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "String+Extension.swift"; sourceTree = "<group>"; };
 		6C2C574D24726E3600265AAE /* PageItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PageItem.swift; sourceTree = "<group>"; };
-		6C46427E247CEDB400D8E70B /* UIViewController+Extension.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = "UIViewController+Extension.swift"; sourceTree = "<group>"; };
-		6C46427F247CEDB400D8E70B /* PoNavigationController.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = PoNavigationController.swift; sourceTree = "<group>"; };
-		6C464280247CEDB400D8E70B /* PoNavigationBarConfigure.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = PoNavigationBarConfigure.swift; sourceTree = "<group>"; };
 		6C464284247CEE2C00D8E70B /* BaseNavigationController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BaseNavigationController.swift; sourceTree = "<group>"; };
 		6C464288247E162300D8E70B /* UIColor+Extension.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UIColor+Extension.swift"; sourceTree = "<group>"; };
 		6C46428B247E4A8D00D8E70B /* Database.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Database.swift; sourceTree = "<group>"; };
@@ -108,6 +105,9 @@
 		6C60067224777D1E00896604 /* PoSQLite.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = PoSQLite.swift; sourceTree = "<group>"; };
 		6C6006742479290900896604 /* choose_uncheck@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "choose_uncheck@2x.png"; sourceTree = "<group>"; };
 		6C6006762479291900896604 /* choose_check@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "choose_check@2x.png"; sourceTree = "<group>"; };
+		6C8A75502855F380003DDBFA /* PoNavigationController.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = PoNavigationController.swift; sourceTree = "<group>"; };
+		6C8A75512855F380003DDBFA /* UIViewController+extension.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = "UIViewController+extension.swift"; sourceTree = "<group>"; };
+		6C8A75522855F380003DDBFA /* PoNavigationBarConfigure.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = PoNavigationBarConfigure.swift; sourceTree = "<group>"; };
 		6CC98B542473C3410051135E /* BookCell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BookCell.swift; sourceTree = "<group>"; };
 		6CD342FD2473C9000011AD46 /* MainViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainViewModel.swift; sourceTree = "<group>"; };
 		6CD342FF2473C95C0011AD46 /* BookModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BookModel.swift; sourceTree = "<group>"; };
@@ -313,9 +313,9 @@
 		6C46427D247CEDB400D8E70B /* PoNavigationBar */ = {
 			isa = PBXGroup;
 			children = (
-				6C46427E247CEDB400D8E70B /* UIViewController+Extension.swift */,
-				6C46427F247CEDB400D8E70B /* PoNavigationController.swift */,
-				6C464280247CEDB400D8E70B /* PoNavigationBarConfigure.swift */,
+				6C8A75522855F380003DDBFA /* PoNavigationBarConfigure.swift */,
+				6C8A75502855F380003DDBFA /* PoNavigationController.swift */,
+				6C8A75512855F380003DDBFA /* UIViewController+extension.swift */,
 			);
 			path = PoNavigationBar;
 			sourceTree = "<group>";
@@ -654,28 +654,28 @@
 				6CC98B552473C3410051135E /* BookCell.swift in Sources */,
 				6C2C574624725CF600265AAE /* PageViewControllerDataSource.swift in Sources */,
 				6C60066B24766F4B00896604 /* UploaderViewController.swift in Sources */,
-				6C464282247CEDB400D8E70B /* PoNavigationController.swift in Sources */,
 				6C60066924761D7100896604 /* PoSentinel.swift in Sources */,
 				6C2C571724725B1B00265AAE /* MainViewController.swift in Sources */,
-				6C464283247CEDB400D8E70B /* PoNavigationBarConfigure.swift in Sources */,
 				6CD343002473C95C0011AD46 /* BookModel.swift in Sources */,
 				6C4642B0247F912A00D8E70B /* Appearance.swift in Sources */,
 				6CD343032473CA040011AD46 /* BaseViewController.swift in Sources */,
 				6C60066F24776BAB00896604 /* PropertyWrapper.swift in Sources */,
 				6C4642AE247F4E8400D8E70B /* Constants.swift in Sources */,
+				6C8A75552855F380003DDBFA /* PoNavigationBarConfigure.swift in Sources */,
 				6C2C571324725B1B00265AAE /* AppDelegate.swift in Sources */,
 				6C60067324777D1E00896604 /* PoSQLite.swift in Sources */,
 				6C60066724761D4300896604 /* PoAsyncLayer.swift in Sources */,
-				6C464281247CEDB400D8E70B /* UIViewController+Extension.swift in Sources */,
 				6CD343172474D99A0011AD46 /* ReaderBottomBar.swift in Sources */,
 				6C60067124776EDA00896604 /* UserDefaults+Extension.swift in Sources */,
 				6CD343052473CA880011AD46 /* BaseViewModel.swift in Sources */,
+				6C8A75542855F380003DDBFA /* UIViewController+extension.swift in Sources */,
 				6CD342FE2473C9000011AD46 /* MainViewModel.swift in Sources */,
 				6C2C574424725BD600265AAE /* ReaderViewController.swift in Sources */,
 				6C2C574E24726E3600265AAE /* PageItem.swift in Sources */,
 				6C2C574A2472605E00265AAE /* String+Extension.swift in Sources */,
 				6C600663247617DE00896604 /* UIDevice+Extension.swift in Sources */,
 				6C464289247E162300D8E70B /* UIColor+Extension.swift in Sources */,
+				6C8A75532855F380003DDBFA /* PoNavigationController.swift in Sources */,
 				6C46428C247E4A8D00D8E70B /* Database.swift in Sources */,
 				6C464285247CEE2C00D8E70B /* BaseNavigationController.swift in Sources */,
 				6C4642B72480F1C100D8E70B /* ReversePageItem.swift in Sources */,

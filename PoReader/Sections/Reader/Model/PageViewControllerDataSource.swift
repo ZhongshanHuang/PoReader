@@ -22,18 +22,35 @@ class PageViewControllerDataSource: NSObject {
     private var isReversePage = true
     
     func parseChapter() {
-        guard let sourcePath = sourcePath else { return }
-        text = try? NSString(contentsOf: sourcePath, encoding: String.Encoding.utf8.rawValue)
-
+        guard let sourcePath = sourcePath, let data = try? Data(contentsOf: sourcePath) else { return }
+        
+        text = NSString(data: data, encoding: String.Encoding.utf8.rawValue)
         if text == nil {
-            text = try? NSString(contentsOf: sourcePath, encoding: 0x80000632) // GB18030
+            text = NSString(data: data, encoding: 0x80000632) // GB18030
         }
+        if text == nil {
+            text = NSString(data: data, encoding: 0x80000421) // Helvetica
+        }
+        
+        // 如果用如下方式进行解码探测，会耗费特别长时间，尽量不用
+//        let encodings = [String.Encoding.utf8.rawValue,
+//                         0x80000632,
+//                         0x80000631,
+//                         CFStringConvertEncodingToNSStringEncoding(CFStringEncoding(CFStringEncodings.GB_18030_2000.rawValue)),
+//                         CFStringConvertEncodingToNSStringEncoding(CFStringEncoding(CFStringEncodings.GB_2312_80.rawValue)),
+//                         CFStringConvertEncodingToNSStringEncoding(CFStringEncoding(CFStringEncodings.HZ_GB_2312.rawValue)),
+//                         CFStringConvertEncodingToNSStringEncoding(CFStringEncoding(CFStringEncodings.macChineseSimp.rawValue)),
+//                         CFStringConvertEncodingToNSStringEncoding(CFStringEncoding(CFStringEncodings.macChineseTrad.rawValue))
+//                        ]
+//
+//        print(NSString.stringEncoding(for: data, encodingOptions: [.suggestedEncodingsKey: encodings], convertedString: &text, usedLossyConversion: nil))
+
         guard let text = text else {
             debugPrint("load file faile")
             return
         }
 
-//        let pattern2 = #"(?<=\s)[第]{0,1}[0-9零一二三四五六七八九十百千万]+[章节集卷部篇回](?: |　|：){0,4}(?:\S)*"#
+//        let pattern = #"(?<=\s)[第]{0,1}[0-9零一二三四五六七八九十百千万]+[章节集卷部篇回](?: |　|：){0,4}(?:\S)*"#
         let pattern = #"\s{1}第(.{1,8})(章|节|集|回|卷|部|篇)"#
         let expression = try! NSRegularExpression(pattern: pattern, options: .caseInsensitive)
         let matchResults = expression.matches(in: text as String, options: .reportCompletion, range: NSRange(location: 0, length: text.length))

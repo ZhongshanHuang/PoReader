@@ -76,10 +76,11 @@ struct Appearance {
     
     static let lineSpacing: CGFloat = 7
     
+    static var safeAreaInsets: UIEdgeInsets = .zero
+    
     /// 文本显示范围(左下原点)
     static let displayRect: CGRect = {
-        let safeArea = UIApplication.shared.currentKeyWindow?.safeAreaInsets ?? .zero
-        return CGRect(x: 20, y: safeArea.bottom + 25, width: UIScreen.main.bounds.width - 40, height: UIScreen.main.bounds.height - safeArea.bottom - 25 - safeArea.top)
+        return CGRect(x: 20, y: safeAreaInsets.bottom + 25, width: UIScreen.main.bounds.width - 40, height: UIScreen.main.bounds.height - safeAreaInsets.bottom - 25 - safeAreaInsets.top)
     }()
     
     // MARK: - 阅读页 bottom bar

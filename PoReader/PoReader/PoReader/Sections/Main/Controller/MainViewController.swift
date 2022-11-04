@@ -42,11 +42,17 @@ class MainViewController: BaseViewController {
         title = "土豆阅读"
         setupUI()
     }
+        
+    override func viewSafeAreaInsetsDidChange() {
+        super.viewSafeAreaInsetsDidChange()
+        
+        var insets = view.safeAreaInsets
+        insets.top -= (navigationController?.navigationBar.frame.height ?? 0)
+        Appearance.safeAreaInsets = insets
+    }
     
     override func viewDidAppear(_ animated: Bool) {
         super.viewDidAppear(animated)
-        // 触发获取safeInset，这个时候有数据
-        _ = Appearance.displayRect
         loadData()
     }
     

@@ -1,64 +1,165 @@
 //
-//  PropertyWrapper.swift
-//  PoReader
+//  UserDefault.swift
+//  KitDemo
 //
-//  Created by 黄中山 on 2020/5/22.
-//  Copyright © 2020 potato. All rights reserved.
+//  Created by HzS on 2023/7/26.
+//  Copyright © 2023 黄中山. All rights reserved.
 //
 
 import Foundation
 
-@propertyWrapper
-struct UserDefaultValue<T: Codable> {
+/*
+class MyUUUU {
+    @UserDefault(key: "") var iii = 3
+    @UserDefault(key: "", defaultValue: 3) var iiii
+}
+ */
 
-    struct Wrapper<T>: Codable where T: Codable {
-        let wrapped: T
+/// 普通属性用这个，不可空
+@propertyWrapper
+struct UserDefault<T> {
+    let key: String
+    let defaultValue: T
+    
+    var wrappedValue: T {
+        get {
+            return UserDefaults.standard.object(forKey: key) as? T ?? defaultValue
+        }
+        set {
+            UserDefaults.standard.set(newValue, forKey: key)
+        }
+    }
+    
+    init(key: String, defaultValue: T) {
+        self.key = key
+        self.defaultValue = defaultValue
+    }
+    
+    init(wrappedValue: T, key: String) {
+        self.key = key
+        self.defaultValue = wrappedValue
+    }
+}
+
+/// 普通属性用这个，可空
+@propertyWrapper
+struct UserDefaultOptional<T> {
+    let key: String
+    let defaultValue: T?
+    
+    var wrappedValue: T? {
+        get {
+            return UserDefaults.standard.object(forKey: key) as? T ?? defaultValue
+        }
+        set {
+            switch newValue {
+            case .some(let value):
+                UserDefaults.standard.set(value, forKey: key)
+            case .none:
+                UserDefaults.standard.removeObject(forKey: key)
+            }
+        }
+    }
+    
+    init(key: String, defaultValue: T?) {
+        self.key = key
+        self.defaultValue = defaultValue
+    }
+    
+    init(wrappedValue: T?, key: String) {
+        self.key = key
+        self.defaultValue = wrappedValue
+    }
+}
+
+/// 自定义属性用这个，必须遵循Codable
+@propertyWrapper
+struct UserDefaultCustom<T: Codable> {
+
+    struct Wrapper<Value>: Codable where Value: Codable {
+        let wrapped: Value
     }
 
     let key: String
     let defaultValue: T
+    private var memoryValue: T?
 
     var wrappedValue: T {
-        get {
+        mutating get {
+            if memoryValue != nil { return memoryValue! }
+            
             guard let data = UserDefaults.standard.object(forKey: key) as? Data
                 else { return defaultValue }
-            let value = try? JSONDecoder().decode(Wrapper<T>.self, from: data)
-            return value?.wrapped ?? defaultValue
+            
+            do {
+                let value = try JSONDecoder().decode(Wrapper<T>.self, from: data)
+                memoryValue = value.wrapped
+                return value.wrapped
+            } catch {
+                debugPrint(error.localizedDescription)
+            }
+            return defaultValue
         }
         set {
+            memoryValue = newValue
             do {
                 let data = try JSONEncoder().encode(Wrapper(wrapped:newValue))
                 UserDefaults.standard.set(data, forKey: key)
             } catch {
-                print(error.localizedDescription)
+                memoryValue = nil
+                UserDefaults.standard.removeObject(forKey: key)
+                debugPrint(error.localizedDescription)
             }
         }
     }
+    
+    init(key: String, defaultValue: T) {
+        self.key = key
+        self.defaultValue = defaultValue
+    }
+    
+    init(wrappedValue: T, key: String) {
+        self.key = key
+        self.defaultValue = wrappedValue
+    }
 }
 
+/// 自定义属性用这个，必须遵循Codable
 @propertyWrapper
-struct UserDefaultOptionalValue<T: Codable> {
+struct UserDefaultCustomOptional<T: Codable> {
 
-    struct Wrapper<T>: Codable where T: Codable {
-        let wrapped: T
+    struct Wrapper<Value>: Codable where Value: Codable {
+        let wrapped: Value
     }
 
     let key: String
     let defaultValue: T?
+    private var memoryValue: T?
 
     var wrappedValue: T? {
-        get {
+        mutating get {
+            if memoryValue != nil { return memoryValue }
+            
             guard let data = UserDefaults.standard.object(forKey: key) as? Data
                 else { return defaultValue }
-            let value = try? JSONDecoder().decode(Wrapper<T>.self, from: data)
-            return value?.wrapped ?? defaultValue
+            
+            do {
+                let value = try JSONDecoder().decode(Wrapper<T>.self, from: data)
+                memoryValue = value.wrapped
+                return value.wrapped
+            } catch {
+                debugPrint(error.localizedDescription)
+            }
+            return nil
         }
         set {
+            memoryValue = newValue
             if let value = newValue {
                 do {
                     let data = try JSONEncoder().encode(Wrapper(wrapped:value))
                     UserDefaults.standard.set(data, forKey: key)
                 } catch {
+                    memoryValue = nil
                     debugPrint(error.localizedDescription)
                 }
             } else {
@@ -66,35 +167,14 @@ struct UserDefaultOptionalValue<T: Codable> {
             }
         }
     }
-}
-
-
-@propertyWrapper
-enum Lazy<Value> {
-    case uninitialized(() -> Value)
-    case initialized(Value)
     
-    init(wrappedValue: @autoclosure @escaping () -> Value) {
-        self = .uninitialized(wrappedValue)
+    init(key: String, defaultValue: T?) {
+        self.key = key
+        self.defaultValue = defaultValue
     }
     
-    init(body: @escaping () -> Value) {
-        self = .uninitialized(body)
-    }
-    
-    var wrappedValue: Value {
-        mutating get {
-            switch self {
-            case .uninitialized(let initializer):
-                let value = initializer()
-                self = .initialized(value)
-                return value
-            case .initialized(let value):
-                return value
-            }
-        }
-        set {
-            self = .initialized(newValue)
-        }
+    init(wrappedValue: T?, key: String) {
+        self.key = key
+        self.defaultValue = wrappedValue
     }
 }

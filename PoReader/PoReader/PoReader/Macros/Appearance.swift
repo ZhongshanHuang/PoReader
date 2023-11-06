@@ -47,13 +47,13 @@ struct Appearance {
     static let readerTextColor: UIColor = .dynamicColor(light: .black, dark: UIColor(white: 0.7, alpha: 0.8))
     
     /// 字体
-    @UserDefaultValue(key: "fontSize", defaultValue: 18)
+    @UserDefault(key: "fontSize", defaultValue: 18)
     static var fontSize: CGFloat {
         didSet { attributes[.font] = UIFont.systemFont(ofSize: fontSize) }
     }
     
     /// 翻页效果
-    @UserDefaultValue(key: "readStyle", defaultValue: .scroll)
+    @UserDefault(key: "readStyle", defaultValue: .scroll)
     static var readStyle: ReadStyle
     
     /// 文字整体属性

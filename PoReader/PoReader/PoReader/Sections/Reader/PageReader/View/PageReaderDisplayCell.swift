@@ -90,43 +90,38 @@ class PageReaderDisplayCell: UIViewController {
         }
     }
     
+    override func viewWillTransition(to size: CGSize, with coordinator: UIViewControllerTransitionCoordinator) {
+        self.view.layer.setNeedsDisplay()
+    }
+    
 }
 
 // MARK: - TextDisplayView
 
 private final class TextDisplayView: UIView {
     
+    private lazy var textLabel = UILabel()
+    
     var attributedString: NSAttributedString? {
-        didSet {
-            layer.setNeedsDisplay()
+        get { textLabel.attributedText }
+        set { textLabel.attributedText = newValue }
+    }
+    
+    override init(frame: CGRect) {
+        super.init(frame: frame)
+        
+        textLabel.numberOfLines = 0
+        addSubview(textLabel)
+        textLabel.snp.makeConstraints { make in
+            let horizenPadding = Appearance.displayRect.origin.x
+            make.edges.equalToSuperview().inset(UIEdgeInsets(top: 0, left: horizenPadding, bottom: 0, right: horizenPadding))
         }
     }
     
-    override class var layerClass: AnyClass {
-        return PoAsyncLayer.self
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
     }
-}
-
-// MARK: - PoAsyncLayerDelegate
-
-extension TextDisplayView: PoAsyncLayerDelegate {
     
-    /// 将文本的宽高计算、渲染移到后台线程
-    func newAsyncDisplayTask() -> PoAsyncLayerDisplayTask {
-        let displayTask = PoAsyncLayerDisplayTask()
-        displayTask.display = { (context, size, isCancelled) in
-            context.textMatrix = .identity
-            context.translateBy(x: 0, y: size.height)
-            context.scaleBy(x: 1, y: -1)
-            
-            let frameSetter = CTFramesetterCreateWithAttributedString(self.attributedString ?? NSAttributedString())
-            // 这儿的坐标系原点在左下方
-            let path = CGPath(rect: Appearance.displayRect, transform: nil)
-            let frame = CTFramesetterCreateFrame(frameSetter, CFRangeMake(0, 0), path, nil)
-            CTFrameDraw(frame, context)
-        }
-        return displayTask
-    }
 }
 
 // MARK: - PowerDisplayView

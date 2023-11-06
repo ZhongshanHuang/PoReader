@@ -34,9 +34,9 @@ final class ReaderDataSource {
             return
         }
 
-//        let pattern = #"(?<=\s)[第]{0,1}[0-9零一二三四五六七八九十百千万]+[章节集卷部篇回](?: |　|：){0,4}(?:\S)*"#
-        let pattern = #"\s{1}第(.{1,8})(章|节|集|回|卷|部|篇)"#
-        let expression = try! NSRegularExpression(pattern: pattern, options: .caseInsensitive)
+        let pattern = #"(?<=\s)[第]?[0-9零一二三四五六七八九十百千万]+[章节集卷部篇回](?: |　|：){0,4}(?:\S)*"#
+//        let pattern = #"\s{1}[第]{0,1}(?:.{1,8})(章|节|集|回|卷|部|篇)"#
+        let expression = try! NSRegularExpression(pattern: pattern, options: .anchorsMatchLines)
         let matchResults = expression.matches(in: text as String, options: .reportCompletion, range: NSRange(location: 0, length: text.length))
         
         var chapterArr = [ChapterModel]()

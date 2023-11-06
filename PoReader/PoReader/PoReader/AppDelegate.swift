@@ -18,6 +18,11 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         window?.backgroundColor = Appearance.backgroundColor
         window?.rootViewController = BaseNavigationController(rootViewController: MainViewController())
         window?.makeKeyAndVisible()
+        
+        // 发起一个网络请求，弹出权限申请弹窗
+        let task = URLSession.shared.dataTask(with: URLRequest(url: URL(string: "https://www.baidu.com/")!))
+        task.resume()
+        
         return true
     }
 

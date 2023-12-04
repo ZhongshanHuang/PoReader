@@ -41,6 +41,8 @@ class MainViewController: BaseViewController {
         // Do any additional setup after loading the view.
         title = "土豆阅读"
         setupUI()
+        
+        triggerLocalNetworkPrivacyAlert()
     }
         
     override func viewSafeAreaInsetsDidChange() {

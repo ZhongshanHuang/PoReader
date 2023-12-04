@@ -11,8 +11,6 @@ let package = Package(
         .library(
             name: "PoSQLite",
             targets: ["PoSQLite"]),
-        .library(name: "SQLiteBridging",
-                 targets: ["SQLiteBridging"]),
     ],
     dependencies: [
         // Dependencies declare other packages that this package depends on.

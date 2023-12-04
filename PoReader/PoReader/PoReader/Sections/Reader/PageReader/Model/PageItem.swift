@@ -7,7 +7,7 @@
 
 import Foundation
 
-final class PageItem {
+struct PageItem {
     /// 章节索引
     let chapterIndex: Int
     /// 章节内部分页索引

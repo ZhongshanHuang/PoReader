@@ -53,7 +53,7 @@ struct Appearance {
     }
     
     /// 翻页效果
-    @UserDefault(key: "readStyle", defaultValue: .scroll)
+    @UserDefaultCustom(key: "readStyle", defaultValue: .pageCurl)
     static var readStyle: ReadStyle
     
     /// 文字整体属性

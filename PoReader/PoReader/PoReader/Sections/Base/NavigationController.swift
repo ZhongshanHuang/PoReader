@@ -1,5 +1,5 @@
 //
-//  BaseNavigationController.swift
+//  NavigationController.swift
 //  PoReader
 //
 //  Created by 黄中山 on 2020/5/26.
@@ -9,7 +9,7 @@
 import UIKit
 import PoNavigationBar
 
-class BaseNavigationController: PoNavigationController {
+class NavigationController: UINavigationController, PoNavigationBarConfigurable {
 
     // 返回按钮
     private lazy var backBtn: UIButton = {
@@ -17,7 +17,7 @@ class BaseNavigationController: PoNavigationController {
         let backBtn = UIButton(type: .system)
         backBtn.setImage(UIImage(named: "navigation_back_white"), for: .normal)
         backBtn.titleLabel?.isHidden = true
-        backBtn.addTarget(self, action: #selector(BaseNavigationController.backBtnClick), for: .touchUpInside)
+        backBtn.addTarget(self, action: #selector(NavigationController.backBtnClick), for: .touchUpInside)
         backBtn.contentHorizontalAlignment = .left
         backBtn.frame = CGRect(x: 0, y: 0, width: 44, height: 44)
         return backBtn

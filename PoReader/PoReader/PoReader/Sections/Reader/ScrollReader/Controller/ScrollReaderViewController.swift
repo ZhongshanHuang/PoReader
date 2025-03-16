@@ -21,8 +21,8 @@ class ScrollReaderViewController: BaseViewController {
     // MARK: - Properties
     var book: (any BookResourceProtocal)?
 
-    private lazy var dataSource = ReaderDataSource()
-    private lazy var bottomBar = ReaderBottomBar()
+    private let dataSource = ReaderDataSource()
+    private let bottomBar = ReaderBottomBar()
     private var hideStatusBar = true
     private var dataList: [ChapterModel] = []
     private var nextLoadState: LoadState = .idle
@@ -30,7 +30,7 @@ class ScrollReaderViewController: BaseViewController {
     private var isDragUp: Bool = true
     private var isFirstDidAppear: Bool = true
     
-    private lazy var flowLayout: UICollectionViewFlowLayout = {
+    private let flowLayout: UICollectionViewFlowLayout = {
         let flowLayout = UICollectionViewFlowLayout()
         flowLayout.scrollDirection = .vertical
         flowLayout.minimumInteritemSpacing = 0
@@ -96,7 +96,7 @@ class ScrollReaderViewController: BaseViewController {
             make.height.equalTo(height)
         }
         
-        navigationBarConfigure.isHidden = true
+        poNavigationBarConfig.isHidden = true
     }
     
     private func setupDataSource() {
@@ -148,7 +148,7 @@ class ScrollReaderViewController: BaseViewController {
     
     @objc
     private func showOrHideBar() {
-        let hidden = navigationBarConfigure.isHidden ?? false
+        let hidden = poNavigationBarConfig.isHidden ?? false
         let duration = TimeInterval(UINavigationController.hideShowBarDuration)
 
         if hidden { // 当前隐藏状态
@@ -179,7 +179,7 @@ class ScrollReaderViewController: BaseViewController {
 
         hideStatusBar = !hidden
         setNeedsStatusBarAppearanceUpdate()
-        navigationBarConfigure.isHidden = !hidden
+        poNavigationBarConfig.isHidden = !hidden
         flushBarConfigure(true)
     }
 

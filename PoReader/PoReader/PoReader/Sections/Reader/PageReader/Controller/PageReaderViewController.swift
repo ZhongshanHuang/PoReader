@@ -27,8 +27,8 @@ class PageReaderViewController: BaseViewController {
         }
         return page
     }()
-    private lazy var dataSource = ReaderDataSource()
-    private lazy var bottomBar = ReaderBottomBar()
+    private let dataSource = ReaderDataSource()
+    private let bottomBar = ReaderBottomBar()
     private var hideStatusBar = true
     
     // MARK: - View life cycle
@@ -66,7 +66,7 @@ class PageReaderViewController: BaseViewController {
             make.height.equalTo(height)
         }
         
-        navigationBarConfigure.isHidden = true
+        poNavigationBarConfig.isHidden = true
     }
     
     // 观察应用事件，保存当前文章页码
@@ -116,7 +116,7 @@ class PageReaderViewController: BaseViewController {
     
     @objc
     private func showOrHideBar() {
-        let hidden = navigationBarConfigure.isHidden ?? false
+        let hidden = poNavigationBarConfig.isHidden ?? false
         let duration = TimeInterval(UINavigationController.hideShowBarDuration)
         
         if hidden { // 当前隐藏状态
@@ -148,7 +148,7 @@ class PageReaderViewController: BaseViewController {
 
         hideStatusBar = !hidden
         setNeedsStatusBarAppearanceUpdate()
-        navigationBarConfigure.isHidden = !hidden
+        poNavigationBarConfig.isHidden = !hidden
         flushBarConfigure(true)
     }
     

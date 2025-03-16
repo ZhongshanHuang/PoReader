@@ -12,7 +12,7 @@ import GCDWebServerSPM
 class UploaderViewController: BaseViewController {
     
     private var webUploader: PoReaderWebUploader?
-    private lazy var hostLabel: UILabel = {
+    private let hostLabel: UILabel = {
         let label = UILabel()
         label.textAlignment = .center
         label.numberOfLines = 0

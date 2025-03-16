@@ -36,7 +36,7 @@ class ReaderBottomBar: UIView {
         }
     }
     
-    private lazy var progressLabel: UILabel = {
+    private let progressLabel: UILabel = {
         let label = UILabel()
         label.font = .systemFont(ofSize: 13)
         label.textColor = .dynamicColor(light: UIColor(red: 0.24, green: 0.24, blue: 0.26, alpha: 0.6),

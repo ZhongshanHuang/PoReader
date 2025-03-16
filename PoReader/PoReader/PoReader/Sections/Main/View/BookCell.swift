@@ -13,14 +13,14 @@ class BookCell: UICollectionViewCell {
     
     static let identifier = "BookCell"
     
-    private lazy var imageView: UIImageView = {
+    private let imageView: UIImageView = {
         let imageView = UIImageView()
         imageView.backgroundColor = .dynamicColor(light: UIColor(red: 0, green: 0.48, blue: 0.8, alpha: 1),
                                                   dark: UIColor(red: 0.04, green: 0.52, blue: 0.8, alpha: 1))
         return imageView
     }()
     
-    private lazy var typeIndicator: UILabel = {
+    private let typeIndicator: UILabel = {
         let indicator = UILabel()
         indicator.text = "TXT"
         indicator.textColor = .dynamicColor(light: UIColor(red: 0, green: 0.48, blue: 0.8, alpha: 1),
@@ -31,7 +31,7 @@ class BookCell: UICollectionViewCell {
         return indicator
     }()
     
-    private lazy var selectView: UIImageView = {
+    private let selectView: UIImageView = {
         let imageView = UIImageView()
         imageView.isHidden = true
         imageView.image = UIImage(named: "choose_uncheck")
@@ -39,7 +39,7 @@ class BookCell: UICollectionViewCell {
     }()
 
     
-    private lazy var titleLabel: UILabel = {
+    private let titleLabel: UILabel = {
         let label = UILabel()
         label.font = .systemFont(ofSize: 14)
         label.textColor = .dynamicColor(light: .black,
@@ -47,7 +47,7 @@ class BookCell: UICollectionViewCell {
         return label
     }()
     
-    private lazy var processLabel: UILabel = {
+    private let processLabel: UILabel = {
         let label = UILabel()
         label.font = .systemFont(ofSize: 12)
         label.textColor = .dynamicColor(light: UIColor(red: 0.24, green: 0.24, blue: 0.26, alpha: 0.6),

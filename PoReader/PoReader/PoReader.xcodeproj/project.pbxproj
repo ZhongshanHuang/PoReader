@@ -31,7 +31,7 @@
 		6C96E1E928FD648400C887F0 /* BookCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6C96E1C128FD648300C887F0 /* BookCell.swift */; };
 		6C96E1EA28FD648400C887F0 /* BaseViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6C96E1C328FD648300C887F0 /* BaseViewController.swift */; };
 		6C96E1EB28FD648400C887F0 /* BaseViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6C96E1C428FD648300C887F0 /* BaseViewModel.swift */; };
-		6C96E1EC28FD648400C887F0 /* BaseNavigationController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6C96E1C528FD648400C887F0 /* BaseNavigationController.swift */; };
+		6C96E1EC28FD648400C887F0 /* NavigationController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6C96E1C528FD648400C887F0 /* NavigationController.swift */; };
 		6C96E1ED28FD648400C887F0 /* Database.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6C96E1C728FD648400C887F0 /* Database.swift */; };
 		6C96E1F428FD648400C887F0 /* PropertyWrapper.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6C96E1D128FD648400C887F0 /* PropertyWrapper.swift */; };
 		6C96E1F528FD648400C887F0 /* UIDevice+Ext.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6C96E1D328FD648400C887F0 /* UIDevice+Ext.swift */; };
@@ -93,7 +93,7 @@
 		6C96E1C128FD648300C887F0 /* BookCell.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = BookCell.swift; sourceTree = "<group>"; };
 		6C96E1C328FD648300C887F0 /* BaseViewController.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = BaseViewController.swift; sourceTree = "<group>"; };
 		6C96E1C428FD648300C887F0 /* BaseViewModel.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = BaseViewModel.swift; sourceTree = "<group>"; };
-		6C96E1C528FD648400C887F0 /* BaseNavigationController.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = BaseNavigationController.swift; sourceTree = "<group>"; };
+		6C96E1C528FD648400C887F0 /* NavigationController.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = NavigationController.swift; sourceTree = "<group>"; };
 		6C96E1C728FD648400C887F0 /* Database.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Database.swift; sourceTree = "<group>"; };
 		6C96E1D128FD648400C887F0 /* PropertyWrapper.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = PropertyWrapper.swift; sourceTree = "<group>"; };
 		6C96E1D328FD648400C887F0 /* UIDevice+Ext.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = "UIDevice+Ext.swift"; sourceTree = "<group>"; };
@@ -349,7 +349,7 @@
 			children = (
 				6C96E1C328FD648300C887F0 /* BaseViewController.swift */,
 				6C96E1C428FD648300C887F0 /* BaseViewModel.swift */,
-				6C96E1C528FD648400C887F0 /* BaseNavigationController.swift */,
+				6C96E1C528FD648400C887F0 /* NavigationController.swift */,
 			);
 			path = Base;
 			sourceTree = "<group>";
@@ -480,7 +480,7 @@
 			attributes = {
 				BuildIndependentTargetsInParallel = 1;
 				LastSwiftUpdateCheck = 1400;
-				LastUpgradeCheck = 1400;
+				LastUpgradeCheck = 1600;
 				TargetAttributes = {
 					6C96E17928FD62EB00C887F0 = {
 						CreatedOnToolsVersion = 14.0.1;
@@ -566,7 +566,7 @@
 				6C4D4BAA2B19F15F004CD7BB /* LocalNetworkAuthorization.swift in Sources */,
 				6C4FAB4A2913BDE20045981D /* UIApplication+Ext.swift in Sources */,
 				6C96E1E828FD648400C887F0 /* BookModel.swift in Sources */,
-				6C96E1EC28FD648400C887F0 /* BaseNavigationController.swift in Sources */,
+				6C96E1EC28FD648400C887F0 /* NavigationController.swift in Sources */,
 				6C96E17E28FD62EB00C887F0 /* AppDelegate.swift in Sources */,
 				6C96E1E428FD648400C887F0 /* PageReaderDisplayCell.swift in Sources */,
 				6C96E1E328FD648400C887F0 /* ReversePageReaderDisplayItem.swift in Sources */,
@@ -666,6 +666,7 @@
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
 				GCC_C_LANGUAGE_STANDARD = gnu11;
 				GCC_DYNAMIC_NO_PIC = NO;
 				GCC_NO_COMMON_BLOCKS = YES;
@@ -726,6 +727,7 @@
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
 				GCC_C_LANGUAGE_STANDARD = gnu11;
 				GCC_NO_COMMON_BLOCKS = YES;
 				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
@@ -755,7 +757,7 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = PoReader/Info.plist;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
-				INFOPLIST_KEY_NSLocalNetworkUsageDescription = "app需要此权限进行wifi传书";
+				INFOPLIST_KEY_NSLocalNetworkUsageDescription = "wifi传书需要允许访问本地网络";
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchStoryboardName = LaunchScreen.storyboard;
 				INFOPLIST_KEY_UIMainStoryboardFile = Main;
@@ -767,7 +769,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.po.poreader2;
+				PRODUCT_BUNDLE_IDENTIFIER = com.potato.poreader;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
 				SUPPORTS_MACCATALYST = NO;
@@ -789,7 +791,7 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = PoReader/Info.plist;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
-				INFOPLIST_KEY_NSLocalNetworkUsageDescription = "app需要此权限进行wifi传书";
+				INFOPLIST_KEY_NSLocalNetworkUsageDescription = "wifi传书需要允许访问本地网络";
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchStoryboardName = LaunchScreen.storyboard;
 				INFOPLIST_KEY_UIMainStoryboardFile = Main;
@@ -801,7 +803,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.po.poreader2;
+				PRODUCT_BUNDLE_IDENTIFIER = com.potato.poreader;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
 				SUPPORTS_MACCATALYST = NO;
@@ -815,7 +817,6 @@
 		6C96E1A828FD62EC00C887F0 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
@@ -835,7 +836,6 @@
 		6C96E1A928FD62EC00C887F0 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
@@ -855,7 +855,6 @@
 		6C96E1AB28FD62EC00C887F0 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = HTCFQ79HMN;
@@ -873,7 +872,6 @@
 		6C96E1AC28FD62EC00C887F0 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = HTCFQ79HMN;

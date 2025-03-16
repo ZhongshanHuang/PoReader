@@ -20,12 +20,15 @@ final class ScrollReaderDisplayCell: UICollectionViewCell {
         }
     }
         
-    private lazy var textLabel = UILabel()
+    private let textLabel: UILabel = {
+        let label = UILabel()
+        label.numberOfLines = 0
+        return label
+    }()
     
     override init(frame: CGRect) {
         super.init(frame: frame)
         
-        textLabel.numberOfLines = 0
         contentView.addSubview(textLabel)
         textLabel.snp.makeConstraints { make in
             let horizenPadding = Appearance.displayRect.origin.x

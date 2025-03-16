@@ -76,11 +76,27 @@ struct Appearance {
     
     static let lineSpacing: CGFloat = 7
     
-    static var safeAreaInsets: UIEdgeInsets = .zero
+    //注意:以下方法均不考虑iOS11以下情况
+    static func configDeviceSafeAreaInsets(insets: UIEdgeInsets?) {
+        _deviceSafeAreaInsets = insets
+    }
+    private static var _deviceSafeAreaInsets: UIEdgeInsets?
+    static var deviceSafeAreaInsets: UIEdgeInsets {
+        if let insets = _deviceSafeAreaInsets {
+            return insets
+        }
+        if let window = UIApplication.shared.currentKeyWindow {
+            _deviceSafeAreaInsets = window.safeAreaInsets
+            return window.safeAreaInsets
+        }
+        return .zero
+    }
+    
+    static let displayInsets: UIEdgeInsets = UIEdgeInsets(top: deviceSafeAreaInsets.top, left: 20, bottom: 30, right: 20)
     
     /// 文本显示范围(左下原点)
     static let displayRect: CGRect = {
-        return CGRect(x: 20, y: safeAreaInsets.bottom + 25, width: UIScreen.main.bounds.width - 40, height: UIScreen.main.bounds.height - safeAreaInsets.bottom - 25 - safeAreaInsets.top)
+        return CGRect(x: displayInsets.left, y: displayInsets.top, width: UIScreen.main.bounds.width - displayInsets.left - displayInsets.right, height: UIScreen.main.bounds.height - displayInsets.bottom - displayInsets.top)
     }()
     
     // MARK: - 阅读页 bottom bar

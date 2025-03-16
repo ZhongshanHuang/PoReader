@@ -12,7 +12,7 @@ import SnapKit
 class MainViewController: BaseViewController {
 
     // MARK: - Properties
-    private lazy var viewModel = MainViewModel()
+    private let viewModel = MainViewModel()
     private var collectionView: UICollectionView!
     private var openFirstBook: Bool = true
     
@@ -43,14 +43,6 @@ class MainViewController: BaseViewController {
         setupUI()
         
         triggerLocalNetworkPrivacyAlert()
-    }
-        
-    override func viewSafeAreaInsetsDidChange() {
-        super.viewSafeAreaInsetsDidChange()
-        
-        var insets = view.safeAreaInsets
-        insets.top -= (navigationController?.navigationBar.frame.height ?? 0)
-        Appearance.safeAreaInsets = insets
     }
     
     override func viewDidAppear(_ animated: Bool) {

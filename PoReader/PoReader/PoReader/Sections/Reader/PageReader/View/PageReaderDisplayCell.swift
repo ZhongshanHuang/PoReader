@@ -17,14 +17,14 @@ class PageReaderDisplayCell: UIViewController {
         dateFormatter.dateFormat = "H:mm"
         return dateFormatter
     }()
-    private lazy var timeLabel: UILabel = {
+    private let timeLabel: UILabel = {
         let label = UILabel()
         label.font = .systemFont(ofSize: 10)
         label.textColor = Appearance.readerOtherColor
         return label
     }()
     
-    private lazy var progressLabel: UILabel = {
+    private let progressLabel: UILabel = {
         let label = UILabel()
         label.font = .systemFont(ofSize: 10)
         label.textColor = Appearance.readerOtherColor
@@ -52,10 +52,7 @@ class PageReaderDisplayCell: UIViewController {
         (view as! TextDisplayView).attributedString = NSAttributedString(string: pageItem.content, attributes: Appearance.attributes)
         
         
-        var bottomMargin: CGFloat = UIApplication.shared.currentKeyWindow?.safeAreaInsets.bottom ?? 0
-        if bottomMargin == 0 {
-            bottomMargin = 10
-        }
+        let bottomMargin: CGFloat = Appearance.displayInsets.bottom - 10
         
         let powerView = PowerDisplayView()
         powerView.backgroundColor = .clear
@@ -65,7 +62,6 @@ class PageReaderDisplayCell: UIViewController {
             make.bottom.equalToSuperview().offset(-bottomMargin)
             make.size.equalTo(CGSize(width: 25, height: 12))
         }
-        
         
         timeLabel.text = PageReaderDisplayCell.dateFormatter.string(from: Date())
         view.addSubview(timeLabel)
@@ -90,17 +86,17 @@ class PageReaderDisplayCell: UIViewController {
         }
     }
     
-    override func viewWillTransition(to size: CGSize, with coordinator: UIViewControllerTransitionCoordinator) {
-        self.view.layer.setNeedsDisplay()
-    }
-    
 }
 
 // MARK: - TextDisplayView
 
 private final class TextDisplayView: UIView {
     
-    private lazy var textLabel = UILabel()
+    private let textLabel: UILabel = {
+        let label = UILabel()
+        label.numberOfLines = 0
+        return label
+    }()
     
     var attributedString: NSAttributedString? {
         get { textLabel.attributedText }
@@ -110,11 +106,14 @@ private final class TextDisplayView: UIView {
     override init(frame: CGRect) {
         super.init(frame: frame)
         
-        textLabel.numberOfLines = 0
         addSubview(textLabel)
         textLabel.snp.makeConstraints { make in
             let horizenPadding = Appearance.displayRect.origin.x
-            make.edges.equalToSuperview().inset(UIEdgeInsets(top: 0, left: horizenPadding, bottom: 0, right: horizenPadding))
+            let insets = UIEdgeInsets(top: Appearance.displayRect.origin.y,
+                                      left: horizenPadding,
+                                      bottom: Appearance.deviceSafeAreaInsets.bottom,
+                                      right: horizenPadding)
+            make.edges.equalToSuperview().inset(insets)
         }
     }
     

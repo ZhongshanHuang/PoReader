@@ -31,8 +31,7 @@ final class ScrollReaderDisplayCell: UICollectionViewCell {
         
         contentView.addSubview(textLabel)
         textLabel.snp.makeConstraints { make in
-            let horizenPadding = Appearance.displayRect.origin.x
-            make.edges.equalToSuperview().inset(UIEdgeInsets(top: 0, left: horizenPadding, bottom: 0, right: horizenPadding))
+            make.edges.equalToSuperview().inset(UIEdgeInsets(top: 0, left: Appearance.displayInsets.left, bottom: 0, right: Appearance.displayInsets.right))
         }
     }
     

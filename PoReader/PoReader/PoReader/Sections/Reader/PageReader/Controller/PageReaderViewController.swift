@@ -162,9 +162,9 @@ class PageReaderViewController: BaseViewController {
         }
         
         let centerX = view.frame.width / 2
-        let centerXEnable = view.frame.width / 6
+        let centerXEnable = view.frame.width / 4
         let centerY = view.frame.height / 2
-        let centerYEnable = view.frame.height / 6
+        let centerYEnable = view.frame.height / 4
         let local = touches.first!.location(in: view)
         
         if local.x < centerX - centerXEnable || local.x > centerX + centerXEnable ||

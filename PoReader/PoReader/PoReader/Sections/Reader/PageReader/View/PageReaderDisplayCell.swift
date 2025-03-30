@@ -108,12 +108,7 @@ private final class TextDisplayView: UIView {
         
         addSubview(textLabel)
         textLabel.snp.makeConstraints { make in
-            let horizenPadding = Appearance.displayRect.origin.x
-            let insets = UIEdgeInsets(top: Appearance.displayRect.origin.y,
-                                      left: horizenPadding,
-                                      bottom: Appearance.deviceSafeAreaInsets.bottom,
-                                      right: horizenPadding)
-            make.edges.equalToSuperview().inset(insets)
+            make.edges.equalToSuperview().inset(Appearance.displayInsets)
         }
     }
     

@@ -62,10 +62,11 @@ struct Appearance {
         get {
             if _attributes == nil {
                 let paragraphStyle = NSMutableParagraphStyle()
+                paragraphStyle.lineBreakMode = .byCharWrapping
                 paragraphStyle.lineSpacing = Appearance.lineSpacing
                 paragraphStyle.paragraphSpacing = 10
                 paragraphStyle.alignment = .left
-                _attributes = [NSAttributedString.Key.font: UIFont.systemFont(ofSize: fontSize),
+                _attributes = [NSAttributedString.Key.font: UIFont.pingfang(ofSize: fontSize),
                                NSAttributedString.Key.paragraphStyle: paragraphStyle]
             }
             _attributes![.foregroundColor] = Appearance.readerTextColor

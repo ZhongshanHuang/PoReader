@@ -10,24 +10,51 @@ import UIKit
 
 extension NSString {
     
+//    func parseToPage(attributes: [NSAttributedString.Key: Any], constraintSize: CGSize) -> [NSRange] {
+//        var ranges = [NSRange]()
+//
+//        let attributedStr = NSAttributedString(string: self as String, attributes: attributes)
+//        
+//        let date = Date()
+//        var local = 0
+//        repeat {
+//            let length = min(999, attributedStr.length - local)
+//            let subStr = attributedStr.attributedSubstring(from: NSRange(location: local, length: length))
+//            let frameSetter = CTFramesetterCreateWithAttributedString(subStr)
+//            let path = UIBezierPath(rect: CGRect(origin: .zero, size: constraintSize))
+//            let frame = CTFramesetterCreateFrame(frameSetter, CFRangeMake(0, 0), path.cgPath, nil)
+//            let realRange = CTFrameGetVisibleStringRange(frame)
+//            let range = NSRange(location: local, length: realRange.length)
+//            ranges.append(range)
+//            print(range)
+//            local += range.length
+//        } while local < attributedStr.length
+//        debugPrint("page cost seconds: \(Date().timeIntervalSince(date))")
+//        return ranges
+//    }
+    
     func parseToPage(attributes: [NSAttributedString.Key: Any], constraintSize: CGSize) -> [NSRange] {
         var ranges = [NSRange]()
-
-        let attributedStr = NSAttributedString(string: self as String, attributes: attributes)
-        
-//        let date = Date()
+//        print(self)
+        let date = Date()
         var local = 0
+        let storage = NSTextStorage(string: self as String, attributes: attributes)
+        let layoutManager = NSLayoutManager()
+        layoutManager.usesFontLeading = false
+        storage.addLayoutManager(layoutManager)
         repeat {
-            let length = min(999, attributedStr.length - local)
-            let subStr = attributedStr.attributedSubstring(from: NSRange(location: local, length: length))
-            let frameSetter = CTFramesetterCreateWithAttributedString(subStr)
-            let path = UIBezierPath(rect: CGRect(origin: .zero, size: constraintSize))
-            let frame = CTFramesetterCreateFrame(frameSetter, CFRangeMake(0, 0), path.cgPath, nil)
-            let realRange = CTFrameGetVisibleStringRange(frame)
-            let range = NSRange(location: local, length: realRange.length)
+            let textContainer = NSTextContainer(size: constraintSize)
+            textContainer.lineBreakMode = .byCharWrapping
+            textContainer.lineFragmentPadding = 0
+            layoutManager.addTextContainer(textContainer)
+            layoutManager.ensureLayout(for: textContainer)
+            let glyphRange = layoutManager.glyphRange(for: textContainer)
+            let range = layoutManager.characterRange(forGlyphRange: glyphRange, actualGlyphRange: nil)
             ranges.append(range)
             local += range.length
-        } while local < attributedStr.length
+            print(range)
+            print(substring(with: range))
+        } while local < storage.length
 //        debugPrint("page cost seconds: \(Date().timeIntervalSince(date))")
         return ranges
     }

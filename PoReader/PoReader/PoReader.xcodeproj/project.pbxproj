@@ -34,7 +34,6 @@
 		6C96E1EC28FD648400C887F0 /* NavigationController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6C96E1C528FD648400C887F0 /* NavigationController.swift */; };
 		6C96E1ED28FD648400C887F0 /* Database.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6C96E1C728FD648400C887F0 /* Database.swift */; };
 		6C96E1F428FD648400C887F0 /* PropertyWrapper.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6C96E1D128FD648400C887F0 /* PropertyWrapper.swift */; };
-		6C96E1F528FD648400C887F0 /* UIDevice+Ext.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6C96E1D328FD648400C887F0 /* UIDevice+Ext.swift */; };
 		6C96E1F628FD648400C887F0 /* UIColor+Ext.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6C96E1D428FD648400C887F0 /* UIColor+Ext.swift */; };
 		6C96E1F728FD648400C887F0 /* String+Ext.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6C96E1D528FD648400C887F0 /* String+Ext.swift */; };
 		6C96E1F928FD648400C887F0 /* Constants.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6C96E1D828FD648400C887F0 /* Constants.swift */; };
@@ -45,6 +44,7 @@
 		6CF2BA2829014310005408BF /* ScrollReaderViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6CF2BA2729014310005408BF /* ScrollReaderViewController.swift */; };
 		6CF2BA2A29014355005408BF /* ScrollReaderDisplayCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6CF2BA2929014355005408BF /* ScrollReaderDisplayCell.swift */; };
 		6CF2BA2C29014A09005408BF /* PageItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6CF2BA2B29014A09005408BF /* PageItem.swift */; };
+		CF1680FB2DBB2ED6006076A0 /* PoText in Frameworks */ = {isa = PBXBuildFile; productRef = CF1680FA2DBB2ED6006076A0 /* PoText */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -96,7 +96,6 @@
 		6C96E1C528FD648400C887F0 /* NavigationController.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = NavigationController.swift; sourceTree = "<group>"; };
 		6C96E1C728FD648400C887F0 /* Database.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Database.swift; sourceTree = "<group>"; };
 		6C96E1D128FD648400C887F0 /* PropertyWrapper.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = PropertyWrapper.swift; sourceTree = "<group>"; };
-		6C96E1D328FD648400C887F0 /* UIDevice+Ext.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = "UIDevice+Ext.swift"; sourceTree = "<group>"; };
 		6C96E1D428FD648400C887F0 /* UIColor+Ext.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = "UIColor+Ext.swift"; sourceTree = "<group>"; };
 		6C96E1D528FD648400C887F0 /* String+Ext.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = "String+Ext.swift"; sourceTree = "<group>"; };
 		6C96E1D828FD648400C887F0 /* Constants.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Constants.swift; sourceTree = "<group>"; };
@@ -107,6 +106,7 @@
 		6CF2BA2729014310005408BF /* ScrollReaderViewController.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ScrollReaderViewController.swift; sourceTree = "<group>"; };
 		6CF2BA2929014355005408BF /* ScrollReaderDisplayCell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScrollReaderDisplayCell.swift; sourceTree = "<group>"; };
 		6CF2BA2B29014A09005408BF /* PageItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PageItem.swift; sourceTree = "<group>"; };
+		CF1680F92DBB2ECA006076A0 /* PoText */ = {isa = PBXFileReference; lastKnownFileType = wrapper; name = PoText; path = ../packages/PoText; sourceTree = SOURCE_ROOT; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -114,6 +114,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				CF1680FB2DBB2ED6006076A0 /* PoText in Frameworks */,
 				6C96E20A28FD7BA800C887F0 /* PoSQLite in Frameworks */,
 				6C928E2028FD7EE300903640 /* GCDWebServerSPM in Frameworks */,
 				6C96E20528FD679D00C887F0 /* SnapKit in Frameworks */,
@@ -375,7 +376,6 @@
 		6C96E1D228FD648400C887F0 /* Extension */ = {
 			isa = PBXGroup;
 			children = (
-				6C96E1D328FD648400C887F0 /* UIDevice+Ext.swift */,
 				6C96E1D428FD648400C887F0 /* UIColor+Ext.swift */,
 				6C96E1D528FD648400C887F0 /* String+Ext.swift */,
 				6C4FAB492913BDE20045981D /* UIApplication+Ext.swift */,
@@ -395,6 +395,7 @@
 		6C96E1FE28FD65B200C887F0 /* Packages */ = {
 			isa = PBXGroup;
 			children = (
+				CF1680F92DBB2ECA006076A0 /* PoText */,
 				6C96E20328FD678700C887F0 /* SnapKit */,
 				6C96E20828FD7B9300C887F0 /* PoSQLite */,
 				6C928E1E28FD7ECB00903640 /* GCDWebServerSPM */,
@@ -431,6 +432,7 @@
 				6C96E20928FD7BA800C887F0 /* PoSQLite */,
 				6C928E1F28FD7EE300903640 /* GCDWebServerSPM */,
 				6C928E2228FDAE1E00903640 /* PoNavigationBar */,
+				CF1680FA2DBB2ED6006076A0 /* PoText */,
 			);
 			productName = PoReader;
 			productReference = 6C96E17A28FD62EB00C887F0 /* PoReader.app */;
@@ -549,7 +551,6 @@
 			files = (
 				6C96E20728FD77CD00C887F0 /* ViewController.swift in Sources */,
 				6C96E1EA28FD648400C887F0 /* BaseViewController.swift in Sources */,
-				6C96E1F528FD648400C887F0 /* UIDevice+Ext.swift in Sources */,
 				6C96E1E928FD648400C887F0 /* BookCell.swift in Sources */,
 				6C96E1E228FD648400C887F0 /* ReaderBottomBar.swift in Sources */,
 				6C96E1EB28FD648400C887F0 /* BaseViewModel.swift in Sources */,
@@ -753,7 +754,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = HTCFQ79HMN;
+				DEVELOPMENT_TEAM = 2UJF96QFVH;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = PoReader/Info.plist;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
@@ -787,7 +788,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = HTCFQ79HMN;
+				DEVELOPMENT_TEAM = 2UJF96QFVH;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = PoReader/Info.plist;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
@@ -943,6 +944,10 @@
 		6C96E20928FD7BA800C887F0 /* PoSQLite */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = PoSQLite;
+		};
+		CF1680FA2DBB2ED6006076A0 /* PoText */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = PoText;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

@@ -7,6 +7,7 @@
 //
 
 import UIKit
+import PoText
 
 class PageReaderDisplayCell: UIViewController {
 
@@ -92,9 +93,13 @@ class PageReaderDisplayCell: UIViewController {
 
 private final class TextDisplayView: UIView {
     
-    private let textLabel: UILabel = {
-        let label = UILabel()
+    private let textLabel: PoLabel = {
+        let label = PoLabel()
         label.numberOfLines = 0
+        label.isDisplayedAsynchronously = false
+        label.preferredMaxLayoutWidth = Appearance.displayRect.width
+        label.textVerticalAlignment = .top
+        label.lineBreakMode = .byCharWrapping
         return label
     }()
     

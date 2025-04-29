@@ -7,7 +7,6 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		6C4D4BAA2B19F15F004CD7BB /* LocalNetworkAuthorization.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6C4D4BA92B19F15F004CD7BB /* LocalNetworkAuthorization.swift */; };
 		6C4FAB4A2913BDE20045981D /* UIApplication+Ext.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6C4FAB492913BDE20045981D /* UIApplication+Ext.swift */; };
 		6C928E2028FD7EE300903640 /* GCDWebServerSPM in Frameworks */ = {isa = PBXBuildFile; productRef = 6C928E1F28FD7EE300903640 /* GCDWebServerSPM */; };
 		6C928E2328FDAE1E00903640 /* PoNavigationBar in Frameworks */ = {isa = PBXBuildFile; productRef = 6C928E2228FDAE1E00903640 /* PoNavigationBar */; };
@@ -45,10 +44,6 @@
 		6CF2BA2A29014355005408BF /* ScrollReaderDisplayCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6CF2BA2929014355005408BF /* ScrollReaderDisplayCell.swift */; };
 		6CF2BA2C29014A09005408BF /* PageItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6CF2BA2B29014A09005408BF /* PageItem.swift */; };
 		CF1680FB2DBB2ED6006076A0 /* PoText in Frameworks */ = {isa = PBXBuildFile; productRef = CF1680FA2DBB2ED6006076A0 /* PoText */; };
-		CFAE555E2DBF7F9D002E9F69 /* ToastLabelContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CFAE555B2DBF7F9D002E9F69 /* ToastLabelContentView.swift */; };
-		CFAE555F2DBF7F9D002E9F69 /* ToastConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = CFAE555A2DBF7F9D002E9F69 /* ToastConfig.swift */; };
-		CFAE55602DBF7F9D002E9F69 /* Toast.swift in Sources */ = {isa = PBXBuildFile; fileRef = CFAE55592DBF7F9D002E9F69 /* Toast.swift */; };
-		CFAE55612DBF7F9D002E9F69 /* UIView+Toast.swift in Sources */ = {isa = PBXBuildFile; fileRef = CFAE555C2DBF7F9D002E9F69 /* UIView+Toast.swift */; };
 		CFAE55672DBF809D002E9F69 /* SettingsViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = CFAE55662DBF809D002E9F69 /* SettingsViewController.swift */; };
 		CFAE55692DBF82DF002E9F69 /* SettingsCellProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = CFAE55682DBF82DF002E9F69 /* SettingsCellProtocol.swift */; };
 		CFAE556B2DBF8326002E9F69 /* SettingsSwitchCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = CFAE556A2DBF8326002E9F69 /* SettingsSwitchCell.swift */; };
@@ -76,7 +71,6 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
-		6C4D4BA92B19F15F004CD7BB /* LocalNetworkAuthorization.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalNetworkAuthorization.swift; sourceTree = "<group>"; };
 		6C4FAB492913BDE20045981D /* UIApplication+Ext.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UIApplication+Ext.swift"; sourceTree = "<group>"; };
 		6C928E1E28FD7ECB00903640 /* GCDWebServerSPM */ = {isa = PBXFileReference; lastKnownFileType = wrapper; name = GCDWebServerSPM; path = ../packages/GCDWebServerSPM; sourceTree = "<group>"; };
 		6C928E2128FDAE1100903640 /* PoNavigationBar */ = {isa = PBXFileReference; lastKnownFileType = wrapper; name = PoNavigationBar; path = ../packages/PoNavigationBar; sourceTree = "<group>"; };
@@ -118,10 +112,6 @@
 		6CF2BA2929014355005408BF /* ScrollReaderDisplayCell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScrollReaderDisplayCell.swift; sourceTree = "<group>"; };
 		6CF2BA2B29014A09005408BF /* PageItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PageItem.swift; sourceTree = "<group>"; };
 		CF1680F92DBB2ECA006076A0 /* PoText */ = {isa = PBXFileReference; lastKnownFileType = wrapper; name = PoText; path = ../packages/PoText; sourceTree = SOURCE_ROOT; };
-		CFAE55592DBF7F9D002E9F69 /* Toast.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Toast.swift; sourceTree = "<group>"; };
-		CFAE555A2DBF7F9D002E9F69 /* ToastConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToastConfig.swift; sourceTree = "<group>"; };
-		CFAE555B2DBF7F9D002E9F69 /* ToastLabelContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToastLabelContentView.swift; sourceTree = "<group>"; };
-		CFAE555C2DBF7F9D002E9F69 /* UIView+Toast.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UIView+Toast.swift"; sourceTree = "<group>"; };
 		CFAE55662DBF809D002E9F69 /* SettingsViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsViewController.swift; sourceTree = "<group>"; };
 		CFAE55682DBF82DF002E9F69 /* SettingsCellProtocol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsCellProtocol.swift; sourceTree = "<group>"; };
 		CFAE556A2DBF8326002E9F69 /* SettingsSwitchCell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsSwitchCell.swift; sourceTree = "<group>"; };
@@ -251,7 +241,6 @@
 				6C96E1AD28FD648300C887F0 /* Sections */,
 				6C96E1D228FD648400C887F0 /* Extension */,
 				6C96E1D028FD648400C887F0 /* Utilities */,
-				CFAE55582DBF7F7B002E9F69 /* Common */,
 				6C96E18328FD62EB00C887F0 /* Main.storyboard */,
 				6C96E20628FD77CD00C887F0 /* ViewController.swift */,
 				6C96E18628FD62EC00C887F0 /* Assets.xcassets */,
@@ -391,7 +380,6 @@
 		6C96E1D028FD648400C887F0 /* Utilities */ = {
 			isa = PBXGroup;
 			children = (
-				6C4D4BA92B19F15F004CD7BB /* LocalNetworkAuthorization.swift */,
 				6C96E1D128FD648400C887F0 /* PropertyWrapper.swift */,
 				CFAE55702DC06F0A002E9F69 /* ReuseIdentifier.swift */,
 			);
@@ -434,25 +422,6 @@
 			children = (
 			);
 			name = Frameworks;
-			sourceTree = "<group>";
-		};
-		CFAE55582DBF7F7B002E9F69 /* Common */ = {
-			isa = PBXGroup;
-			children = (
-				CFAE555D2DBF7F9D002E9F69 /* Toast */,
-			);
-			path = Common;
-			sourceTree = "<group>";
-		};
-		CFAE555D2DBF7F9D002E9F69 /* Toast */ = {
-			isa = PBXGroup;
-			children = (
-				CFAE55592DBF7F9D002E9F69 /* Toast.swift */,
-				CFAE555A2DBF7F9D002E9F69 /* ToastConfig.swift */,
-				CFAE555B2DBF7F9D002E9F69 /* ToastLabelContentView.swift */,
-				CFAE555C2DBF7F9D002E9F69 /* UIView+Toast.swift */,
-			);
-			path = Toast;
 			sourceTree = "<group>";
 		};
 		CFAE55622DBF8057002E9F69 /* Settings */ = {
@@ -649,14 +618,9 @@
 				6C96E1F628FD648400C887F0 /* UIColor+Ext.swift in Sources */,
 				6C96E1F928FD648400C887F0 /* Constants.swift in Sources */,
 				CFAE55692DBF82DF002E9F69 /* SettingsCellProtocol.swift in Sources */,
-				CFAE555E2DBF7F9D002E9F69 /* ToastLabelContentView.swift in Sources */,
-				CFAE555F2DBF7F9D002E9F69 /* ToastConfig.swift in Sources */,
 				CFAE55712DC06F0A002E9F69 /* ReuseIdentifier.swift in Sources */,
-				CFAE55602DBF7F9D002E9F69 /* Toast.swift in Sources */,
-				CFAE55612DBF7F9D002E9F69 /* UIView+Toast.swift in Sources */,
 				6C96E1E128FD648400C887F0 /* ChapterModel.swift in Sources */,
 				6CF2BA2829014310005408BF /* ScrollReaderViewController.swift in Sources */,
-				6C4D4BAA2B19F15F004CD7BB /* LocalNetworkAuthorization.swift in Sources */,
 				6C4FAB4A2913BDE20045981D /* UIApplication+Ext.swift in Sources */,
 				6C96E1E828FD648400C887F0 /* BookModel.swift in Sources */,
 				6C96E1EC28FD648400C887F0 /* NavigationController.swift in Sources */,
@@ -846,7 +810,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = 2UJF96QFVH;
+				DEVELOPMENT_TEAM = HTCFQ79HMN;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = PoReader/Info.plist;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
@@ -880,7 +844,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = 2UJF96QFVH;
+				DEVELOPMENT_TEAM = HTCFQ79HMN;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = PoReader/Info.plist;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";

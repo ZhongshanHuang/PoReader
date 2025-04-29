@@ -21,9 +21,12 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         window?.backgroundColor = Appearance.backgroundColor
         window?.rootViewController = NavigationController(rootViewController: MainViewController())
         window?.makeKeyAndVisible()
+        // makeKeyAndVisible后才准确
         Appearance.configDeviceSafeAreaInsets(insets: window?.safeAreaInsets)
         return true
     }
+    
+    
 
 }
 

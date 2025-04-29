@@ -10,22 +10,6 @@ import UIKit
 
 struct Appearance {
     
-    enum ReadStyle: Codable, CaseIterable, CustomStringConvertible {
-        // 翻页效果
-        case pageCurl
-        // 滑动效果
-        case scroll
-        
-        var description: String {
-            switch self {
-            case .pageCurl:
-                return "左右翻页"
-            case .scroll:
-                return "上下滑动"
-            }
-        }
-    }
-    
     // MARK: - 全局
     
     /// 背景色
@@ -49,12 +33,8 @@ struct Appearance {
     /// 字体
     @UserDefault(key: "fontSize", defaultValue: 18)
     static var fontSize: CGFloat {
-        didSet { attributes[.font] = UIFont.systemFont(ofSize: fontSize) }
+        didSet { attributes[.font] = UIFont.pingfang(ofSize: fontSize) }
     }
-    
-    /// 翻页效果
-    @UserDefaultCustom(key: "readStyle", defaultValue: .pageCurl)
-    static var readStyle: ReadStyle
     
     /// 文字整体属性
     private static var _attributes: [NSAttributedString.Key: Any]?
@@ -64,7 +44,7 @@ struct Appearance {
                 let paragraphStyle = NSMutableParagraphStyle()
                 paragraphStyle.lineBreakMode = .byCharWrapping
                 paragraphStyle.lineSpacing = Appearance.lineSpacing
-                paragraphStyle.paragraphSpacing = 10
+                paragraphStyle.paragraphSpacing = Appearance.paragraphSpacing
                 paragraphStyle.alignment = .left
                 _attributes = [NSAttributedString.Key.font: UIFont.pingfang(ofSize: fontSize),
                                NSAttributedString.Key.paragraphStyle: paragraphStyle]
@@ -76,6 +56,7 @@ struct Appearance {
     }
     
     static let lineSpacing: CGFloat = 7
+    static let paragraphSpacing: CGFloat = 10
     
     //注意:以下方法均不考虑iOS11以下情况
     static func configDeviceSafeAreaInsets(insets: UIEdgeInsets?) {
@@ -93,7 +74,7 @@ struct Appearance {
         return .zero
     }
     
-    static let displayInsets: UIEdgeInsets = UIEdgeInsets(top: deviceSafeAreaInsets.top, left: 20, bottom: 30, right: 20)
+    static let displayInsets: UIEdgeInsets = UIEdgeInsets(top: deviceSafeAreaInsets.top, left: 20, bottom: max(deviceSafeAreaInsets.bottom, 30), right: 20)
     
     /// 文本显示范围(左下原点)
     static let displayRect: CGRect = {

@@ -50,6 +50,7 @@ class PageReaderViewController: BaseViewController {
     private func setupUI() {
         title = book?.name.components(separatedBy: ".").first
         
+        
         addChild(pageViewController)
         view.addSubview(pageViewController.view)
         pageViewController.didMove(toParent: self)

@@ -42,7 +42,10 @@ class MainViewController: BaseViewController {
         title = "土豆阅读"
         setupUI()
         
-        triggerLocalNetworkPrivacyAlert()
+        /// 触发网络权限弹窗
+        let data = URLSession.shared.dataTask(with: URLRequest(url: URL(string: "https://www.baidu.com")!)) { _, _, _ in
+        }
+        data.resume()
     }
     
     override func viewDidAppear(_ animated: Bool) {
@@ -51,11 +54,11 @@ class MainViewController: BaseViewController {
     }
     
     private func setupUI() {
-        let styleButon = UIBarButtonItem(title: Appearance.readStyle.description, style: .plain, target: self, action: #selector(handleStyleAction(_:)))
-        navigationItem.leftBarButtonItem = styleButon
-        
         let uploadButon = UIBarButtonItem(title: "传书", style: .plain, target: self, action: #selector(handleUploadAction(_:)))
-        navigationItem.rightBarButtonItem = uploadButon
+        navigationItem.leftBarButtonItem = uploadButon
+        
+        let settingsButon = UIBarButtonItem(title: "设置", style: .plain, target: self, action: #selector(handleStyleAction(_:)))
+        navigationItem.rightBarButtonItem = settingsButon
         
         let flowLayout = UICollectionViewFlowLayout()
         let padding: CGFloat = 20
@@ -89,22 +92,22 @@ class MainViewController: BaseViewController {
             switch result {
             case .success:
                 self.collectionView.reloadData()
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) {
-                    if self.openFirstBook {
-                        self.openFirstBook = false
+                if UserSettings.autoOpenBook, openFirstBook {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) {
                         self.openBook(at: 0)
                     }
                 }
             case .failure:
                 print("加载出错")
             }
+            openFirstBook = false
         }
     }
     
     private func openBook(at index: Int) {
         guard viewModel.dataList != nil, viewModel.dataList!.count > index else { return }
         let vc: UIViewController
-        switch Appearance.readStyle {
+        switch UserSettings.transitionStyle {
         case .pageCurl:
             let pageVC = PageReaderViewController()
             pageVC.book = viewModel.dataList?[index]
@@ -129,19 +132,8 @@ class MainViewController: BaseViewController {
     
     @objc
     private func handleStyleAction(_ sender: UIBarButtonItem) {
-        let alert = UIAlertController(title: "请选择翻页效果", message: "当前翻页效果为：\(Appearance.readStyle)", preferredStyle: .actionSheet)
-        Appearance.ReadStyle.allCases.forEach { style in
-            let action = UIAlertAction(title: style.description, style: .default) { (_) in
-                Appearance.readStyle = style
-                sender.title = style.description
-            }
-            alert.addAction(action)
-        }
-        
-        let cancel = UIAlertAction(title: "取消", style: .cancel)
-        alert.addAction(cancel)
-    
-        present(alert, animated: true, completion: nil)
+        let vc = SettingsViewController()
+        navigationController?.pushViewController(vc, animated: true)
     }
     
     @objc

@@ -36,7 +36,7 @@ extension NSString {
     func parseToPage(attributes: [NSAttributedString.Key: Any], constraintSize: CGSize) -> [NSRange] {
         var ranges = [NSRange]()
 //        print(self)
-        let date = Date()
+//        let date = Date()
         var local = 0
         let storage = NSTextStorage(string: self as String, attributes: attributes)
         let layoutManager = NSLayoutManager()
@@ -52,8 +52,8 @@ extension NSString {
             let range = layoutManager.characterRange(forGlyphRange: glyphRange, actualGlyphRange: nil)
             ranges.append(range)
             local += range.length
-            print(range)
-            print(substring(with: range))
+//            print(range)
+//            print(substring(with: range))
         } while local < storage.length
 //        debugPrint("page cost seconds: \(Date().timeIntervalSince(date))")
         return ranges

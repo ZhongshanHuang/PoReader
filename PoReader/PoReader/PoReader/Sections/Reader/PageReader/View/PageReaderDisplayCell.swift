@@ -53,7 +53,7 @@ class PageReaderDisplayCell: UIViewController {
         (view as! TextDisplayView).attributedString = NSAttributedString(string: pageItem.content, attributes: Appearance.attributes)
         
         
-        let bottomMargin: CGFloat = Appearance.displayInsets.bottom - 10
+        let bottomMargin: CGFloat = Appearance.displayInsets.bottom / 2
         
         let powerView = PowerDisplayView()
         powerView.backgroundColor = .clear

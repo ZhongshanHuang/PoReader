@@ -45,6 +45,17 @@
 		6CF2BA2A29014355005408BF /* ScrollReaderDisplayCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6CF2BA2929014355005408BF /* ScrollReaderDisplayCell.swift */; };
 		6CF2BA2C29014A09005408BF /* PageItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6CF2BA2B29014A09005408BF /* PageItem.swift */; };
 		CF1680FB2DBB2ED6006076A0 /* PoText in Frameworks */ = {isa = PBXBuildFile; productRef = CF1680FA2DBB2ED6006076A0 /* PoText */; };
+		CFAE555E2DBF7F9D002E9F69 /* ToastLabelContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CFAE555B2DBF7F9D002E9F69 /* ToastLabelContentView.swift */; };
+		CFAE555F2DBF7F9D002E9F69 /* ToastConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = CFAE555A2DBF7F9D002E9F69 /* ToastConfig.swift */; };
+		CFAE55602DBF7F9D002E9F69 /* Toast.swift in Sources */ = {isa = PBXBuildFile; fileRef = CFAE55592DBF7F9D002E9F69 /* Toast.swift */; };
+		CFAE55612DBF7F9D002E9F69 /* UIView+Toast.swift in Sources */ = {isa = PBXBuildFile; fileRef = CFAE555C2DBF7F9D002E9F69 /* UIView+Toast.swift */; };
+		CFAE55672DBF809D002E9F69 /* SettingsViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = CFAE55662DBF809D002E9F69 /* SettingsViewController.swift */; };
+		CFAE55692DBF82DF002E9F69 /* SettingsCellProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = CFAE55682DBF82DF002E9F69 /* SettingsCellProtocol.swift */; };
+		CFAE556B2DBF8326002E9F69 /* SettingsSwitchCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = CFAE556A2DBF8326002E9F69 /* SettingsSwitchCell.swift */; };
+		CFAE556D2DBF83F8002E9F69 /* SettingsItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = CFAE556C2DBF83F8002E9F69 /* SettingsItem.swift */; };
+		CFAE556F2DBF8568002E9F69 /* SettingsSelectCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = CFAE556E2DBF8568002E9F69 /* SettingsSelectCell.swift */; };
+		CFAE55712DC06F0A002E9F69 /* ReuseIdentifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = CFAE55702DC06F0A002E9F69 /* ReuseIdentifier.swift */; };
+		CFAE55732DC0A75E002E9F69 /* UserSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = CFAE55722DC0A75E002E9F69 /* UserSettings.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -107,6 +118,17 @@
 		6CF2BA2929014355005408BF /* ScrollReaderDisplayCell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScrollReaderDisplayCell.swift; sourceTree = "<group>"; };
 		6CF2BA2B29014A09005408BF /* PageItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PageItem.swift; sourceTree = "<group>"; };
 		CF1680F92DBB2ECA006076A0 /* PoText */ = {isa = PBXFileReference; lastKnownFileType = wrapper; name = PoText; path = ../packages/PoText; sourceTree = SOURCE_ROOT; };
+		CFAE55592DBF7F9D002E9F69 /* Toast.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Toast.swift; sourceTree = "<group>"; };
+		CFAE555A2DBF7F9D002E9F69 /* ToastConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToastConfig.swift; sourceTree = "<group>"; };
+		CFAE555B2DBF7F9D002E9F69 /* ToastLabelContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToastLabelContentView.swift; sourceTree = "<group>"; };
+		CFAE555C2DBF7F9D002E9F69 /* UIView+Toast.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UIView+Toast.swift"; sourceTree = "<group>"; };
+		CFAE55662DBF809D002E9F69 /* SettingsViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsViewController.swift; sourceTree = "<group>"; };
+		CFAE55682DBF82DF002E9F69 /* SettingsCellProtocol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsCellProtocol.swift; sourceTree = "<group>"; };
+		CFAE556A2DBF8326002E9F69 /* SettingsSwitchCell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsSwitchCell.swift; sourceTree = "<group>"; };
+		CFAE556C2DBF83F8002E9F69 /* SettingsItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsItem.swift; sourceTree = "<group>"; };
+		CFAE556E2DBF8568002E9F69 /* SettingsSelectCell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsSelectCell.swift; sourceTree = "<group>"; };
+		CFAE55702DC06F0A002E9F69 /* ReuseIdentifier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReuseIdentifier.swift; sourceTree = "<group>"; };
+		CFAE55722DC0A75E002E9F69 /* UserSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserSettings.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -227,7 +249,9 @@
 				6C96E1C628FD648400C887F0 /* Database */,
 				6C96E1D728FD648400C887F0 /* Macros */,
 				6C96E1AD28FD648300C887F0 /* Sections */,
+				6C96E1D228FD648400C887F0 /* Extension */,
 				6C96E1D028FD648400C887F0 /* Utilities */,
+				CFAE55582DBF7F7B002E9F69 /* Common */,
 				6C96E18328FD62EB00C887F0 /* Main.storyboard */,
 				6C96E20628FD77CD00C887F0 /* ViewController.swift */,
 				6C96E18628FD62EC00C887F0 /* Assets.xcassets */,
@@ -257,6 +281,7 @@
 		6C96E1AD28FD648300C887F0 /* Sections */ = {
 			isa = PBXGroup;
 			children = (
+				CFAE55622DBF8057002E9F69 /* Settings */,
 				6C928E2428FE7EBA00903640 /* Upload */,
 				6C96E1AE28FD648300C887F0 /* Reader */,
 				6C96E1B828FD648300C887F0 /* Main */,
@@ -368,7 +393,7 @@
 			children = (
 				6C4D4BA92B19F15F004CD7BB /* LocalNetworkAuthorization.swift */,
 				6C96E1D128FD648400C887F0 /* PropertyWrapper.swift */,
-				6C96E1D228FD648400C887F0 /* Extension */,
+				CFAE55702DC06F0A002E9F69 /* ReuseIdentifier.swift */,
 			);
 			path = Utilities;
 			sourceTree = "<group>";
@@ -409,6 +434,62 @@
 			children = (
 			);
 			name = Frameworks;
+			sourceTree = "<group>";
+		};
+		CFAE55582DBF7F7B002E9F69 /* Common */ = {
+			isa = PBXGroup;
+			children = (
+				CFAE555D2DBF7F9D002E9F69 /* Toast */,
+			);
+			path = Common;
+			sourceTree = "<group>";
+		};
+		CFAE555D2DBF7F9D002E9F69 /* Toast */ = {
+			isa = PBXGroup;
+			children = (
+				CFAE55592DBF7F9D002E9F69 /* Toast.swift */,
+				CFAE555A2DBF7F9D002E9F69 /* ToastConfig.swift */,
+				CFAE555B2DBF7F9D002E9F69 /* ToastLabelContentView.swift */,
+				CFAE555C2DBF7F9D002E9F69 /* UIView+Toast.swift */,
+			);
+			path = Toast;
+			sourceTree = "<group>";
+		};
+		CFAE55622DBF8057002E9F69 /* Settings */ = {
+			isa = PBXGroup;
+			children = (
+				CFAE55652DBF807F002E9F69 /* Model */,
+				CFAE55642DBF8074002E9F69 /* Controller */,
+				CFAE55632DBF8065002E9F69 /* View */,
+			);
+			path = Settings;
+			sourceTree = "<group>";
+		};
+		CFAE55632DBF8065002E9F69 /* View */ = {
+			isa = PBXGroup;
+			children = (
+				CFAE55682DBF82DF002E9F69 /* SettingsCellProtocol.swift */,
+				CFAE556A2DBF8326002E9F69 /* SettingsSwitchCell.swift */,
+				CFAE556E2DBF8568002E9F69 /* SettingsSelectCell.swift */,
+			);
+			path = View;
+			sourceTree = "<group>";
+		};
+		CFAE55642DBF8074002E9F69 /* Controller */ = {
+			isa = PBXGroup;
+			children = (
+				CFAE55662DBF809D002E9F69 /* SettingsViewController.swift */,
+			);
+			path = Controller;
+			sourceTree = "<group>";
+		};
+		CFAE55652DBF807F002E9F69 /* Model */ = {
+			isa = PBXGroup;
+			children = (
+				CFAE556C2DBF83F8002E9F69 /* SettingsItem.swift */,
+				CFAE55722DC0A75E002E9F69 /* UserSettings.swift */,
+			);
+			path = Model;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -549,19 +630,30 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				CFAE556F2DBF8568002E9F69 /* SettingsSelectCell.swift in Sources */,
 				6C96E20728FD77CD00C887F0 /* ViewController.swift in Sources */,
 				6C96E1EA28FD648400C887F0 /* BaseViewController.swift in Sources */,
 				6C96E1E928FD648400C887F0 /* BookCell.swift in Sources */,
 				6C96E1E228FD648400C887F0 /* ReaderBottomBar.swift in Sources */,
 				6C96E1EB28FD648400C887F0 /* BaseViewModel.swift in Sources */,
 				6CF2BA2A29014355005408BF /* ScrollReaderDisplayCell.swift in Sources */,
+				CFAE556B2DBF8326002E9F69 /* SettingsSwitchCell.swift in Sources */,
 				6C96E1F728FD648400C887F0 /* String+Ext.swift in Sources */,
+				CFAE55732DC0A75E002E9F69 /* UserSettings.swift in Sources */,
+				CFAE55672DBF809D002E9F69 /* SettingsViewController.swift in Sources */,
+				CFAE556D2DBF83F8002E9F69 /* SettingsItem.swift in Sources */,
 				6CF2BA2C29014A09005408BF /* PageItem.swift in Sources */,
 				6C96E1E028FD648400C887F0 /* ReaderDataSource.swift in Sources */,
 				6C96E1FA28FD648400C887F0 /* Appearance.swift in Sources */,
 				6C96E1E628FD648400C887F0 /* UploaderViewController.swift in Sources */,
 				6C96E1F628FD648400C887F0 /* UIColor+Ext.swift in Sources */,
 				6C96E1F928FD648400C887F0 /* Constants.swift in Sources */,
+				CFAE55692DBF82DF002E9F69 /* SettingsCellProtocol.swift in Sources */,
+				CFAE555E2DBF7F9D002E9F69 /* ToastLabelContentView.swift in Sources */,
+				CFAE555F2DBF7F9D002E9F69 /* ToastConfig.swift in Sources */,
+				CFAE55712DC06F0A002E9F69 /* ReuseIdentifier.swift in Sources */,
+				CFAE55602DBF7F9D002E9F69 /* Toast.swift in Sources */,
+				CFAE55612DBF7F9D002E9F69 /* UIView+Toast.swift in Sources */,
 				6C96E1E128FD648400C887F0 /* ChapterModel.swift in Sources */,
 				6CF2BA2829014310005408BF /* ScrollReaderViewController.swift in Sources */,
 				6C4D4BAA2B19F15F004CD7BB /* LocalNetworkAuthorization.swift in Sources */,
@@ -762,8 +854,8 @@
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchStoryboardName = LaunchScreen.storyboard;
 				INFOPLIST_KEY_UIMainStoryboardFile = Main;
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
 				IPHONEOS_DEPLOYMENT_TARGET = 13.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -796,8 +888,8 @@
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchStoryboardName = LaunchScreen.storyboard;
 				INFOPLIST_KEY_UIMainStoryboardFile = Main;
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
 				IPHONEOS_DEPLOYMENT_TARGET = 13.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",

@@ -13,7 +13,7 @@ class SettingsSwitchCell: UITableViewCell, SettingsCellProtocol {
     
     private let titleLabel: UILabel = {
         let label = UILabel()
-        label.textColor = .black
+        label.textColor = .label
         return label
     }()
     
@@ -43,7 +43,7 @@ class SettingsSwitchCell: UITableViewCell, SettingsCellProtocol {
         titleLabel.snp.makeConstraints { make in
             make.centerY.equalToSuperview()
             make.leading.equalToSuperview().offset(15)
-            make.trailing.lessThanOrEqualTo(switchView.snp.leading).offset(-5)
+            make.trailing.lessThanOrEqualTo(switchView.snp.leading).offset(-15)
         }
     }
     

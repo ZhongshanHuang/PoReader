@@ -92,10 +92,10 @@ extension SettingsViewController {
                 UserSettings.appearanceMode = mode
                 self.dataList[indexPath.row].dataType = .selectVal(value: mode.description)
                 cell.config(with: self.dataList[indexPath.row])
+                UIApplication.shared.currentKeyWindow?.overrideUserInterfaceStyle = mode.toUIUserInterfaceStyle
             }
             alert.addAction(action)
         }
-        
         let cancel = UIAlertAction(title: "取消", style: .cancel)
         alert.addAction(cancel)
     

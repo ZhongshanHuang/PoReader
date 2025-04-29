@@ -5,7 +5,7 @@
 //  Created by zhongshan on 2025/4/29.
 //
 
-import Foundation
+import UIKit
 
 struct UserSettings {
     /// 观看模式
@@ -25,6 +25,17 @@ struct UserSettings {
                 "暗黑"
             case .auto:
                 "跟随系统"
+            }
+        }
+        
+        var toUIUserInterfaceStyle: UIUserInterfaceStyle {
+            switch self {
+            case .light:
+                return .light
+            case .dark:
+                return .dark
+            case .auto:
+                return .unspecified
             }
         }
     }

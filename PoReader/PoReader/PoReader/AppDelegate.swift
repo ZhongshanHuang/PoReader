@@ -19,6 +19,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         
         window = UIWindow(frame: UIScreen.main.bounds)
         window?.backgroundColor = Appearance.backgroundColor
+        window?.overrideUserInterfaceStyle = UserSettings.appearanceMode.toUIUserInterfaceStyle
         window?.rootViewController = NavigationController(rootViewController: MainViewController())
         window?.makeKeyAndVisible()
         // makeKeyAndVisible后才准确

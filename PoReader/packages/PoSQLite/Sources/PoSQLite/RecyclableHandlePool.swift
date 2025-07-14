@@ -1,10 +1,3 @@
-//
-//  RecyclableHandlePool.swift
-//  PoSQLiteDemo
-//
-//  Created by HzS on 2022/8/14.
-//
-
 import Foundation
 
 typealias RecyclableHandle = Recyclable<SQLiteHandlePool.HandleWrap>
@@ -12,7 +5,7 @@ typealias RecyclableHandlePool = Recyclable<SQLiteHandlePool>
 
 final class SQLiteHandlePool {
     
-    private class Wrap {
+    private final class Wrap {
         let handlePool: SQLiteHandlePool
         var reference: Int = 0
         init(_ handlePool: SQLiteHandlePool) {
@@ -22,8 +15,8 @@ final class SQLiteHandlePool {
     
     private static let spin = Spin()
     private static var pools: [String: Wrap] = [:]
-    static private let maxConcurrency = max(maxHardwareConcurrency, 64)
-    static private let maxHardwareConcurrency = ProcessInfo.processInfo.processorCount
+    private static let maxConcurrency = max(maxHardwareConcurrency, 64)
+    private static let maxHardwareConcurrency = ProcessInfo.processInfo.processorCount
     
     static func getHandlePool(with path: String) -> RecyclableHandlePool {
         spin.lock()
@@ -130,7 +123,7 @@ final class SQLiteHandlePool {
         return rwlock.isWriting
     }
 
-    public typealias OnDrained = () throws -> Void
+    typealias OnDrained = () throws -> Void
 
     func drain(onDrained: OnDrained) rethrows {
         blockade()

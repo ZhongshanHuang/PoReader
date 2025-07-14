@@ -1,64 +1,30 @@
-//
-//  SQLiteDatabase.swift
-//  KitDemo
-//
-//  Created by 黄中山 on 2020/1/6.
-//  Copyright © 2020 黄中山. All rights reserved.
-//
-
 #if canImport(UIKit)
 import UIKit
 #endif
 import Foundation
 import SQLite3
 
-public protocol SQLiteDatabaseProtocol {
-    
-    var canOpen: Bool { get }
-    var isOpened: Bool { get }
-    func close()
-    
-    func prepare(statement stat: String) throws -> SQLiteStmt
-    /// 除了更新和插入算write,，其余的算read，write无法并发执行，所以会主动加锁，防止失败
-    func execute(sql: String, isWrite: Bool) throws
-    
-    func begin(_ transaction: SQLiteTransaction) throws
-    func commit() throws
-    func rollback() throws
-    
-    func lastInsertRowID() throws -> Int
-    
-    /// 自数据库链接被打开起，通过insert，update，delete语句所影响的数据行数
-    func totalChanges() throws -> Int
-    /// 最近一条insert，update，delete语句所影响的数据行数
-    func changes() throws -> Int
-    
-    func errCode() throws -> Int
-    
-    func errMsg() throws -> String?
-}
-
-final class SQLiteDatabase {
+public final class SQLiteDatabase {
     private let recyclableHandlePool: RecyclableHandlePool
     
-    var handlePool: SQLiteHandlePool {
+    private var handlePool: SQLiteHandlePool {
         recyclableHandlePool.rawValue
     }
     
-    var path: String {
+    public var path: String {
         handlePool.path
     }
     
-    convenience init(path: String) {
+    public convenience init(path: String) {
         self.init(fileURL: URL(fileURLWithPath: path))
     }
     
-    init(fileURL: URL) {
+    public init(fileURL: URL) {
         self.recyclableHandlePool = SQLiteHandlePool.getHandlePool(with: fileURL.standardizedFileURL.path)
-        
-        DispatchQueue.once(name: "com.Potato.sqlite.swift.purge", {
+
 #if canImport(UIKit)
-            let purgeFreeHandleQueue: DispatchQueue = DispatchQueue(label: "com.Potato.sqlite.swift.purge")
+        DispatchQueue.once(name: "com.potato.sqlite.swift.purge", {
+            let purgeFreeHandleQueue: DispatchQueue = DispatchQueue(label: "com.potato.sqlite.swift.purge")
             _ = NotificationCenter.default.addObserver(
                 forName: UIApplication.didReceiveMemoryWarningNotification,
                 object: nil,
@@ -68,18 +34,18 @@ final class SQLiteDatabase {
                         SQLiteDatabase.purge()
                     }
                 })
-#endif
         })
+#endif
     }
     
     private static var threadedHandles = ThreadLocal<[String: RecyclableHandle]>(defaultValue: [:])
     
     func flowOut() throws -> RecyclableHandle {
-        let threadedHandles = SQLiteDatabase.threadedHandles.value
-        if let handle = threadedHandles[path] {
+        if let handle = Self.threadedHandles.value[path] {
             return handle
         }
-        return try handlePool.flowOut()
+        let handle = try handlePool.flowOut()
+        return handle
     }
 
     /// Since It is using lazy initialization,
@@ -100,7 +66,7 @@ final class SQLiteDatabase {
         return handlePool.isBlockaded
     }
     
-    public typealias OnClosed = SQLiteHandlePool.OnDrained
+    public typealias OnClosed = () throws -> Void
     
     public func close(onClosed: OnClosed) rethrows {
         try handlePool.drain(onDrained: onClosed)
@@ -138,65 +104,128 @@ final class SQLiteDatabase {
     
 }
 
-// MARK: - Operations
-extension SQLiteDatabase: SQLiteDatabaseProtocol {
+// MARK: - Base Operations
+extension SQLiteDatabase {
     
-    func prepare(statement stat: String) throws -> SQLiteStmt {
+    public func prepare(statement stat: String) throws -> SQLiteStmt {
         let recyclableHandle = try flowOut()
-        return try recyclableHandle.rawValue.prepare(statement: stat)
+        var stat = try recyclableHandle.rawValue.prepare(statement: stat)
+        let path = path
+        stat.onFinalize = {
+            recyclableHandle.refCount -= 1
+            if recyclableHandle.refCount == 0 {
+                Self.threadedHandles.value.removeValue(forKey: path)
+            }
+        }
+        recyclableHandle.refCount += 1
+        if recyclableHandle.refCount == 1 {
+            Self.threadedHandles.value[path] = recyclableHandle
+        }
+        return stat
     }
     
-    func execute(sql: String, isWrite: Bool = false) throws {
+    // write: CREATE TABLE, DELETE, ALTER; INSERT, UPDATE, REPLACE
+    public func execute(sql: String, isWrite: Bool) throws {
         if isWrite { handlePool.wLock() }
         defer { if isWrite { handlePool.wUnlock() } }
         let recyclableHandle = try flowOut()
         try recyclableHandle.rawValue.execute(sql: sql)
     }
     
-    func begin(_ transaction: SQLiteTransaction) throws {
+    public func begin(_ transaction: SQLiteTransaction) throws {
         let recyclableHandle = try flowOut()
         try recyclableHandle.rawValue.begin(transaction)
-        SQLiteDatabase.threadedHandles.value[path] = recyclableHandle
+        recyclableHandle.refCount += 1
+        if recyclableHandle.refCount == 1 {
+            Self.threadedHandles.value[path] = recyclableHandle
+        }
     }
     
-    func commit() throws {
+    public func commit() throws {
         let recyclableHandle = try flowOut()
         try recyclableHandle.rawValue.commit()
-        SQLiteDatabase.threadedHandles.value.removeValue(forKey: path)
+        recyclableHandle.refCount -= 1
+        if recyclableHandle.refCount == 0 {
+            Self.threadedHandles.value.removeValue(forKey: path)
+        }
     }
     
-    func rollback() throws {
+    public func rollback() throws {
         let recyclableHandle = try flowOut()
         try recyclableHandle.rawValue.rollback()
-        SQLiteDatabase.threadedHandles.value.removeValue(forKey: path)
+        recyclableHandle.refCount -= 1
+        if recyclableHandle.refCount == 0 {
+            Self.threadedHandles.value.removeValue(forKey: path)
+        }
     }
     
-    func lastInsertRowID() throws -> Int {
+    public func lastInsertRowID() throws -> Int {
         let recyclableHandle = try flowOut()
         return recyclableHandle.rawValue.lastInsertRowID()
     }
     
     /// 自数据库链接被打开起，通过insert，update，delete语句所影响的数据行数
-    func totalChanges() throws -> Int {
+    public func totalChanges() throws -> Int {
         let recyclableHandle = try flowOut()
         return recyclableHandle.rawValue.totalChanges()
     }
     
     /// 最近一条insert，update，delete语句所影响的数据行数
-    func changes() throws -> Int {
+    public func changes() throws -> Int {
         let recyclableHandle = try flowOut()
         return recyclableHandle.rawValue.changes()
     }
     
-    func errCode() throws -> Int {
+    public func errCode() throws -> Int {
         let recyclableHandle = try flowOut()
         return recyclableHandle.rawValue.errCode()
     }
     
-    func errMsg() throws -> String? {
+    public func errMsg() throws -> String? {
         let recyclableHandle = try flowOut()
         return recyclableHandle.rawValue.errMsg()
     }
     
+}
+
+// MARK: - Convenience Operations
+extension SQLiteDatabase {
+    /// write multi
+    public func executeUpdatesInTransaction(_ transaction: SQLiteTransaction = .immediate, statement: String, doUpdatings: (_ stmt: borrowing SQLiteStmt) throws -> Void) throws {
+        handlePool.wLock()
+        defer { handlePool.wUnlock() }
+        
+        let stat = try prepare(statement: statement)
+        do {
+            try begin(transaction)
+            try doUpdatings(stat)
+            try commit()
+        } catch {
+            try? rollback()
+        }
+    }
+    
+    /// write single
+    public func executeUpdate(statement: String, doUpdating: (borrowing SQLiteStmt) throws -> Void) throws {
+        handlePool.wLock()
+        defer { handlePool.wUnlock() }
+        
+        let stat = try prepare(statement: statement)
+        try doUpdating(stat)
+        try stat.step()
+    }
+    
+    /// read
+    public func executeQuery(statement: String, doBindings: (_ stmt: borrowing SQLiteStmt) throws -> Void, handleRow: (_ stmt: borrowing SQLiteStmt) throws -> Void) throws {
+        var stat = try prepare(statement: statement)
+        defer { try? stat.finalize() }
+        try doBindings(stat)
+        var res = try stat.step()
+        
+        while res == SQLITE_ROW {
+            try handleRow(stat)
+            res = try stat.step()
+        }
+    }
 }
 

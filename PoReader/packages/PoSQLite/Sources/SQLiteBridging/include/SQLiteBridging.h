@@ -1,9 +1,6 @@
 //
 //  SQLite_Bridging.h
 //  
-//
-//  Created by HzS on 2022/9/26.
-//
 
 #ifndef SQLite_Bridging_h
 #define SQLite_Bridging_h

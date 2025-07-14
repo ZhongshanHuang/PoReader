@@ -15,16 +15,14 @@ final class Database {
     static let shared = Database()
     
     /// 数据库
-    private let database: SQLiteMultipartDatabase = {
+    private let database: SQLiteDatabase = {
         let path = (Constants.databaseDirectory as NSString).appendingPathComponent("reader.db")
-        let dababase = SQLiteMultipartDatabase(path: path)
-        dababase.doWithTransaction { db in
-            do {
-                try db.execute(sql: "CREATE TABLE IF NOT EXISTS book_list (name TEXT PRIMARY KEY, last_access REAL DEFAULT 0, chapter_index INTEGER DEFAULT 0, subrange_index INTEGER DEFAULT 0, progress REAL DEFAULT 0);", isWrite: false)
-                try db.execute(sql: "CREATE INDEX IF NOT EXISTS book_list_name_index ON book_list (name);", isWrite: false)
-            } catch {
-                debugPrint("创建表格失败")
-            }
+        let dababase = SQLiteDatabase(path: path)
+        do {
+            try dababase.execute(sql: "CREATE TABLE IF NOT EXISTS book_list (name TEXT PRIMARY KEY, last_access REAL DEFAULT 0, chapter_index INTEGER DEFAULT 0, subrange_index INTEGER DEFAULT 0, progress REAL DEFAULT 0);", isWrite: true)
+            try dababase.execute(sql: "CREATE INDEX IF NOT EXISTS book_list_name_index ON book_list (name);", isWrite: true)
+        } catch {
+            debugPrint("创建表格失败")
         }
         return dababase
     }()
@@ -34,7 +32,7 @@ final class Database {
         var books = [BookModel]()
         try? database.executeQuery(statement: "SELECT name, last_access, progress FROM book_list;") { _ in
             
-        } handleRow: { stmt, stop in
+        } handleRow: { stmt in
             let name = stmt.columnText(position: 0)
             let lastAccess = stmt.columnDouble(position: 1)
             let progress = stmt.columnDouble(position: 2)
@@ -63,7 +61,7 @@ final class Database {
     /// 从数据库删除书籍记录
     /// - Parameter name: book name
     func removeBook(_ name: String) {
-        try? database.executeUpdate(statement: "DELETE FROM book_list WHERE name=?;", doBindings: { stmt in
+        try? database.executeUpdate(statement: "DELETE FROM book_list WHERE name=?;", doUpdating: { stmt in
             try stmt.bind(position: 1, name)
         })
     }
@@ -73,7 +71,7 @@ final class Database {
     ///   - accessDate: timeIntervalSince1970
     ///   - name: book name
     func save(_ accessDate: Double, forBook name: String) {
-        try? database.executeUpdate(statement: "UPDATE book_list SET last_access=? WHERE name=?;", doBindings: { stmt in
+        try? database.executeUpdate(statement: "UPDATE book_list SET last_access=? WHERE name=?;", doUpdating: { stmt in
             try stmt.bind(position: 1, accessDate)
             try stmt.bind(position: 2, name)
         })
@@ -84,18 +82,17 @@ final class Database {
         var location = PageLocation()
         try? database.executeQuery(statement: "SELECT chapter_index, subrange_index, progress FROM book_list WHERE name=?;", doBindings: { stmt in
             try stmt.bind(position: 1, name)
-        }, handleRow: { stmt, stop in
+        }, handleRow: { stmt in
             location.chapterIndex = stmt.columnInt(position: 0)
             location.subrangeIndex = stmt.columnInt(position: 1)
             location.progress = stmt.columnDouble(position: 2)
-            stop.pointee = true
         })
         return location
     }
     
     /// 保存页码
     func save(_ pageLocation: PageLocation, forBook name: String) {
-        try? database.executeUpdate(statement: "UPDATE book_list SET chapter_index=?, subrange_index=?, progress=? WHERE name=?;", doBindings: { stmt in
+        try? database.executeUpdate(statement: "UPDATE book_list SET chapter_index=?, subrange_index=?, progress=? WHERE name=?;", doUpdating: { stmt in
             try stmt.bind(position: 1, pageLocation.chapterIndex)
             try stmt.bind(position: 2, pageLocation.subrangeIndex)
             try stmt.bind(position: 3, pageLocation.progress)
@@ -105,7 +102,7 @@ final class Database {
     
     /// 删除页码
     func removePageLocation(ofBook name: String) {
-        try? database.executeUpdate(statement: "DELETE FROM book_list WHERE name=?;", doBindings: { stmt in
+        try? database.executeUpdate(statement: "DELETE FROM book_list WHERE name=?;", doUpdating: { stmt in
             try stmt.bind(position: 1, name)
         })
     }

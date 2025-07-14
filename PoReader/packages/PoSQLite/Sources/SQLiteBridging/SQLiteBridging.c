@@ -1,9 +1,6 @@
 //
 //  SQLite_Bridging.c
 //  
-//
-//  Created by HzS on 2022/9/26.
-//
 
 #include "SQLiteBridging.h"
 

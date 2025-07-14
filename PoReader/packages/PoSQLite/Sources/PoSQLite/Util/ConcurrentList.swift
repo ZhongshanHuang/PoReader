@@ -1,10 +1,3 @@
-//
-//  ConcurrentList.swift
-//  PoSQLiteDemo
-//
-//  Created by HzS on 2022/8/15.
-//
-
 import Foundation
 
 final class ConcurrentList<Value> {

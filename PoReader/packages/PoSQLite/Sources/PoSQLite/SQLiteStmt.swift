@@ -1,10 +1,3 @@
-//
-//  SQLiteStmt.swift
-//  PoSQLiteDemo
-//
-//  Created by HzS on 2022/8/27.
-//
-
 import Foundation
 import SQLite3
 
@@ -16,11 +9,15 @@ public enum SQLiteType: Int32 {
     case null = 5       // SQLITE_NULL
 }
 
-public final class SQLiteStmt {
+public struct SQLiteStmt: ~Copyable {
     private var stat: SQLite3Statement!
+    var onFinalize: (() -> Void)?
     
     deinit {
-        try? finalize()
+        if self.stat != nil {
+            sqlite3_finalize(self.stat)
+            self.onFinalize?()
+        }
     }
     
     internal init(stat: SQLite3Statement) {
@@ -31,10 +28,12 @@ public final class SQLiteStmt {
         try _checkResult(sqlite3_reset(self.stat))
     }
     
-    public func finalize() throws {
+    public mutating func finalize() throws {
         if self.stat != nil {
             try _checkResult(sqlite3_finalize(self.stat))
             self.stat = nil
+            self.onFinalize?()
+            self.onFinalize = nil
         }
     }
     
@@ -46,6 +45,7 @@ public final class SQLiteStmt {
         return res
     }
     
+    /* bind position */
     public func bind(position: Int, _ d: Double) throws {
         try _checkResult(sqlite3_bind_double(self.stat, Int32(position), d))
     }
@@ -82,7 +82,7 @@ public final class SQLiteStmt {
         try _checkResult(sqlite3_bind_null(self.stat, Int32(position)))
     }
     
-    /*  */
+    /* bind name */
     
     public func bind(name: String, _ d: Double) throws {
         try _checkResult(sqlite3_bind_double(self.stat, bindParameterIndex(name: name), d))

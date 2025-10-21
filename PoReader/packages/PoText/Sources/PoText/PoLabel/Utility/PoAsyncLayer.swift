@@ -35,6 +35,7 @@ final class PoAsyncLayerRenderCtx: @unchecked Sendable {
     }
 }
 
+@preconcurrency
 final class PoAsyncLayer: CALayer, @unchecked Sendable {
     
     // MARK: - Properties - [public]

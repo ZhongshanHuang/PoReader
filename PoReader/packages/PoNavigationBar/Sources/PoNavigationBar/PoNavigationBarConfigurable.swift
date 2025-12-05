@@ -27,11 +27,10 @@ public extension PoNavigationBarConfigurable {
         config.barStyle = .default
         config.isTranslucent = true
         config.isHidden = false
-        if #available(iOS 13.0, *) {
-            let appearance = UINavigationBarAppearance()
-            config.standardAppearance = appearance
-            config.scrollEdgeAppearance = appearance
-        }
+        let appearance = UINavigationBarAppearance()
+        appearance.configureWithDefaultBackground()
+        config.standardAppearance = appearance
+        config.scrollEdgeAppearance = appearance
         objc_setAssociatedObject(self, &kDefaultNavigationBarConfigKey, config, .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
         return config
     }

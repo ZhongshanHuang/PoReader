@@ -1,10 +1,6 @@
 import UIKit
 
-public final class PoTextContainer: NSTextContainer {
-    var insets: UIEdgeInsets = .zero
-}
-
-public struct TextContainer {
+public struct TextContainer: @unchecked Sendable {
     /// 系统默认的maxSize，十进制：65536
     public static let maxSize: CGSize = CGSize(width: 0x10000, height: 0x10000)
 

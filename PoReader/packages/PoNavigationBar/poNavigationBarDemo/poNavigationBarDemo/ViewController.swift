@@ -11,9 +11,9 @@ import PoNavigationBar
 
 class ViewController: UIViewController {
 
-    private let tableView: UITableView = UITableView(frame: .zero, style: .plain)
-    private var dataList: [String: Any] = [:]
-    private let titles: [String] = ["style", "color", "image"]
+    lazy var tableView: UITableView = UITableView(frame: .zero, style: .plain)
+    var dataList: [String: Any] = [:]
+    let titles: [String] = ["style", "color", "image"]
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -23,10 +23,6 @@ class ViewController: UIViewController {
         setupUI()
         mockDataList()
         tableView.reloadData()
-    }
-    
-    override func viewDidAppear(_ animated: Bool) {
-        super.viewDidAppear(animated)
     }
 
     private func setupUI() {
@@ -52,7 +48,7 @@ class ViewController: UIViewController {
     
     private func mockDataList() {
         // bar style
-        let styles: [(String, Bool)] = [("Hidden", false), ("Transparent", false), ("Transluent", false), ("Black Bar Style", true), ("Shadow Image", true)]
+        let styles: [(String, Bool)] = [("Hidden", false), ("Transparent", false), ("Transluent", false), ("Black Bar Style", true), ("Shadow Image", true), ("prefersLargeTitles", false)]
         dataList["style"] = styles
         
         // color
@@ -141,13 +137,11 @@ extension ViewController: UITableViewDelegate {
             vc.poNavigationBarConfig.isTranslucent = true
             vc.poNavigationBarConfig.backgroundImage = UIImage()
             vc.poNavigationBarConfig.shadowImage = UIImage()
-            if #available(iOS 13.0, *) {
-                let appearance = poCopyNavigationBarStandardAppearance
-                appearance?.configureWithTransparentBackground()
-                
-                vc.poNavigationBarConfig.standardAppearance = appearance
-                vc.poNavigationBarConfig.scrollEdgeAppearance = appearance
-            }
+            let appearance = poCopyNavigationBarStandardAppearance
+            appearance.configureWithTransparentBackground()
+            
+            vc.poNavigationBarConfig.standardAppearance = appearance
+            vc.poNavigationBarConfig.scrollEdgeAppearance = appearance
             
             navigationController?.pushViewController(vc, animated: true)
             return
@@ -159,34 +153,40 @@ extension ViewController: UITableViewDelegate {
         let shadowImage = (tableView.cellForRow(at: IndexPath(row: 4, section: 0)) as! SwitchCell).switchButton.isOn
         vc.poNavigationBarConfig.shadowImage = shadowImage ? nil : UIImage()
         
+        let prefersLargeTitles = (tableView.cellForRow(at: IndexPath(row: 5, section: 0)) as! SwitchCell).switchButton.isOn
+        vc.poNavigationBarConfig.prefersLargeTitles = prefersLargeTitles
+        
+        var barTintColor: UIColor?
+        var backgroundImage: UIImage?
         switch indexPath.section {
         case 1: // color
             let model = (dataList[titles[indexPath.section]] as! [(String, UIColor)])[indexPath.row]
-            vc.poNavigationBarConfig.barTintColor = model.1
+            barTintColor = model.1
         case 2: // image
             let model = (dataList[titles[indexPath.section]] as! [(String, UIImage)])[indexPath.row]
-            vc.poNavigationBarConfig.backgroundImage = model.1
+            backgroundImage = model.1
         default:
             fatalError("Not Implement")
         }
-        if #available(iOS 13.0, *) {
-            let appearance = poCopyNavigationBarStandardAppearance
-            if transluent {
-                appearance?.configureWithDefaultBackground()
-                appearance?.backgroundEffect = UIBlurEffect(style: .light)
-                appearance?.backgroundColor = vc.poNavigationBarConfig.barTintColor?.withAlphaComponent(0.3)
-            } else {
-                appearance?.configureWithOpaqueBackground()
-                appearance?.backgroundColor = vc.poNavigationBarConfig.barTintColor
-            }
-            appearance?.backgroundImage = vc.poNavigationBarConfig.backgroundImage
-            
-            if vc.poNavigationBarConfig.shadowImage != nil {
-                appearance?.shadowImage = vc.poNavigationBarConfig.shadowImage
-                appearance?.shadowColor = UIColor.clear
-            }
-            
-            vc.poNavigationBarConfig.standardAppearance = appearance
+        let appearance = poCopyNavigationBarStandardAppearance
+        if transluent {
+            appearance.configureWithDefaultBackground()
+            appearance.backgroundEffect = UIBlurEffect(style: .light)
+            appearance.backgroundColor = vc.poNavigationBarConfig.barTintColor?.withAlphaComponent(0.3)
+        } else {
+            appearance.configureWithOpaqueBackground()
+            appearance.backgroundColor = barTintColor
+        }
+        appearance.backgroundImage = backgroundImage
+        
+        if vc.poNavigationBarConfig.shadowImage != nil {
+            appearance.shadowImage = vc.poNavigationBarConfig.shadowImage
+            appearance.shadowColor = UIColor.clear
+        }
+        
+        vc.poNavigationBarConfig.standardAppearance = appearance
+        if #available(iOS 26.0, *) {
+        } else {
             vc.poNavigationBarConfig.scrollEdgeAppearance = appearance
         }
         navigationController?.pushViewController(vc, animated: true)

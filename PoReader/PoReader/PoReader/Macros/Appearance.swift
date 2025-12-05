@@ -45,7 +45,7 @@ struct Appearance {
                 paragraphStyle.lineBreakMode = .byCharWrapping
                 paragraphStyle.lineSpacing = Appearance.lineSpacing
                 paragraphStyle.paragraphSpacing = Appearance.paragraphSpacing
-                paragraphStyle.alignment = .left
+                paragraphStyle.alignment = .justified
                 _attributes = [NSAttributedString.Key.font: UIFont.pingfang(ofSize: fontSize),
                                NSAttributedString.Key.paragraphStyle: paragraphStyle]
             }

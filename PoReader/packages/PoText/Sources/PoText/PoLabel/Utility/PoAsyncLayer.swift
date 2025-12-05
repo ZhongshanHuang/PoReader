@@ -1,13 +1,11 @@
 import UIKit
 
+@MainActor
 protocol PoAsyncLayerDelegate: CALayerDelegate {
-    
-    @MainActor
     func asyncLayerPrepareForRenderCtx() -> PoAsyncLayerRenderCtx
-    @MainActor
     func asyncLayerWillDisplay(_ layer: CALayer, renderCtx: PoAsyncLayerRenderCtx)
-    func asyncLayerDisplay(renderCtx: PoAsyncLayerRenderCtx, context: CGContext, size: CGSize, isCancelled: @escaping () -> Bool)
-    @MainActor
+    nonisolated
+    func asyncLayerDisplay(renderCtx: PoAsyncLayerRenderCtx, context: CGContext, size: CGSize)
     func asyncLayerDidDisplay(_ layer: CALayer, renderCtx: PoAsyncLayerRenderCtx, finished: Bool)
 }
 
@@ -35,31 +33,22 @@ final class PoAsyncLayerRenderCtx: @unchecked Sendable {
     }
 }
 
-@preconcurrency
 final class PoAsyncLayer: CALayer, @unchecked Sendable {
     
     // MARK: - Properties - [public]
-    var isDispalyedsAsynchronously: Bool = true
-    
-    // MARK: - Properties - [private]
-    private var _sentinel: PoSentinel = PoSentinel()
-    private var renderCtx: PoAsyncLayerRenderCtx?
+    var isDisplayedAsynchronously: Bool = true
     
     // MARK: - Methods - [override]
-    
-    deinit {
-        _sentinel.increase()
-    }
         
     override class func defaultAction(forKey event: String) -> (any CAAction)? {
-        return NSNull()
+        nil
     }
     
     override class func defaultValue(forKey key: String) -> Any? {
         if key == "isDispalyedsAsynchronously" {
-            return true
+            true
         } else {
-            return super.defaultValue(forKey: key)
+            super.defaultValue(forKey: key)
         }
     }
     
@@ -70,74 +59,81 @@ final class PoAsyncLayer: CALayer, @unchecked Sendable {
     
     override func display() {
         super.contents = super.contents
+        
+        struct SafeCarrier: Sendable {
+            let layer: PoAsyncLayer
+        }
+        let carrier = SafeCarrier(layer: self)
+        let isDisplayedAsynchronously = isDisplayedAsynchronously
         MainActor.assumeIsolated {
-            displayAsync(isDispalyedsAsynchronously)
+            carrier.layer.displayAsync(isDisplayedAsynchronously)
         }
     }
     
+    private var asyncTask: Task<Void, Never>?
     @MainActor
     private func displayAsync(_ isAsync: Bool) {
+        asyncTask?.cancel()
         guard let asyncDelegate = delegate as? (any PoAsyncLayerDelegate) else { return }
-        self.renderCtx = asyncDelegate.asyncLayerPrepareForRenderCtx()
+        let renderCtx = asyncDelegate.asyncLayerPrepareForRenderCtx()
         
-        asyncDelegate.asyncLayerWillDisplay(self, renderCtx: self.renderCtx!)
+        asyncDelegate.asyncLayerWillDisplay(self, renderCtx: renderCtx)
         let size = bounds.size
         if size.width < 1 || size.height < 1 {
             contents = nil
-            asyncDelegate.asyncLayerDidDisplay(self, renderCtx: self.renderCtx!, finished: true)
+            asyncDelegate.asyncLayerDidDisplay(self, renderCtx: renderCtx, finished: true)
             return
-        }
-
-        let value = _sentinel.value()
-        let isCancelled: @Sendable () -> Bool = {
-            return value != self._sentinel.value()
         }
         
         if isAsync {
-            Task(priority: .userInitiated) { @MainActor in
-                let image = await drawDisplay(asyncDelegate: asyncDelegate, renderCtx: self.renderCtx!, inSize: size, isCancelled: isCancelled)
-                if isCancelled() {
-                    asyncDelegate.asyncLayerDidDisplay(self, renderCtx: self.renderCtx!, finished: false)
-                    return
+            asyncTask = Task(priority: .userInitiated) {
+                do {
+                    let image = try await drawDisplay(asyncDelegate: asyncDelegate, renderCtx: renderCtx, inSize: size)
+                    if Task.isCancelled {
+                        asyncDelegate.asyncLayerDidDisplay(self, renderCtx: renderCtx, finished: false)
+                        return
+                    }
+                    self.contents = image.cgImage
+                    asyncDelegate.asyncLayerDidDisplay(self, renderCtx: renderCtx, finished: true)
+                } catch {
+                    asyncDelegate.asyncLayerDidDisplay(self, renderCtx: renderCtx, finished: false)
                 }
-                
-                self.contents = image?.cgImage
-                asyncDelegate.asyncLayerDidDisplay(self, renderCtx: self.renderCtx!, finished: true)
             }
         } else {
-            _sentinel.increase()
-
             let format = UIGraphicsImageRendererFormat.preferred()
             let renderer = UIGraphicsImageRenderer(size: size, format: format)
             let image = renderer.image { (ctx) in
                 let context = ctx.cgContext
-                asyncDelegate.asyncLayerDisplay(renderCtx: self.renderCtx!, context: context, size: size, isCancelled: { false })
+                asyncDelegate.asyncLayerDisplay(renderCtx: renderCtx, context: context, size: size)
             }
             contents = image.cgImage
-            asyncDelegate.asyncLayerDidDisplay(self, renderCtx: self.renderCtx!, finished: true)
+            asyncDelegate.asyncLayerDidDisplay(self, renderCtx: renderCtx, finished: true)
         }
         
     }
     
-    private func drawDisplay(asyncDelegate: any PoAsyncLayerDelegate, renderCtx: PoAsyncLayerRenderCtx, inSize size: CGSize, isCancelled: @escaping () -> Bool) async -> UIImage? {
-        if isCancelled() { return nil }
+#if swift(>=6.1)
+    @concurrent
+#endif
+    nonisolated
+    private func drawDisplay(asyncDelegate: any PoAsyncLayerDelegate, renderCtx: PoAsyncLayerRenderCtx, inSize size: CGSize) async throws -> UIImage {
+        try Task.checkCancellation()
 
         let format = UIGraphicsImageRendererFormat.preferred()
         let renderer = UIGraphicsImageRenderer(size: size, format: format)
         let image = renderer.image { (ctx) in
             let context = ctx.cgContext
-            asyncDelegate.asyncLayerDisplay(renderCtx: renderCtx, context: context, size: size, isCancelled: isCancelled)
+            asyncDelegate.asyncLayerDisplay(renderCtx: renderCtx, context: context, size: size)
         }
         return image
     }
     
     private func _cancelAsyncDisplay() {
-        _sentinel.increase()
+        asyncTask?.cancel()
     }
     
     private func _clear() {
-        contents = nil
         _cancelAsyncDisplay()
+        contents = nil
     }
 }
-

@@ -54,12 +54,23 @@ extension UIViewController {
     }
     
     /// copy default standard appearance
-    @available(iOS 13.0, *)
-    public var poCopyNavigationBarStandardAppearance: UINavigationBarAppearance? {
+    public var poCopyNavigationBarStandardAppearance: UINavigationBarAppearance {
         if let appearance = (navigationController as? PoNavigationBarConfigurable)?.defaultNavigationBarConfig.standardAppearance {
             return UINavigationBarAppearance(barAppearance: appearance)
         }
-        return nil
+        let appearance = UINavigationBarAppearance()
+        appearance.configureWithDefaultBackground()
+        return appearance
+    }
+    
+    /// copy default standard appearance
+    public var poCopyNavigationBarScrollEdgeAppearance: UINavigationBarAppearance {
+        if let appearance = (navigationController as? PoNavigationBarConfigurable)?.defaultNavigationBarConfig.scrollEdgeAppearance {
+            return UINavigationBarAppearance(barAppearance: appearance)
+        }
+        let appearance = UINavigationBarAppearance()
+        appearance.configureWithDefaultBackground()
+        return appearance
     }
     
     /// 将navigationBarConfig设置到navigationBar, animated 影响setNavigationBarHidden

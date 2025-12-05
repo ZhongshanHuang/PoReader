@@ -295,7 +295,7 @@ public final class PoLabel: UIView {
     
     /// A Boolean value indicating whether the layout and rendering codes are running asynchronously on back background threads.
     public var isDisplayedAsynchronously: Bool = true {
-        didSet { (layer as! PoAsyncLayer).isDispalyedsAsynchronously = isDisplayedAsynchronously }
+        didSet { (layer as! PoAsyncLayer).isDisplayedAsynchronously = isDisplayedAsynchronously }
     }
     
     /// If the value is true, and the layer is rendered asynchronously, then it will set label.layer.contents to nil before display.
@@ -744,12 +744,11 @@ extension PoLabel: PoAsyncLayerDelegate {
     }
     
     nonisolated
-    func asyncLayerDisplay(renderCtx: PoAsyncLayerRenderCtx, context: CGContext, size: CGSize, isCancelled: @escaping () -> Bool) {
-        if isCancelled() || renderCtx.text.isEmpty { return }
+    func asyncLayerDisplay(renderCtx: PoAsyncLayerRenderCtx, context: CGContext, size: CGSize) {
+        if renderCtx.text.isEmpty { return }
         
         if renderCtx.layoutNeedUpdate { // 直到此时layout才计算
             renderCtx.layout = TextLayout(attributedString: renderCtx.text, container: renderCtx.container)
-            if isCancelled() { return }
             renderCtx.layoutUpdated = true
         }
         
@@ -768,6 +767,7 @@ extension PoLabel: PoAsyncLayerDelegate {
 //            layout?.draw(in: context, traitCollection: traitCollection, point: point, size: size, view: nil, layer: nil, cancel: isCancelled)
         renderCtx.layout?.draw(in: context, at: point, size: size)
     }
+    
     func asyncLayerDidDisplay(_ layer: CALayer, renderCtx: PoAsyncLayerRenderCtx, finished: Bool) {
         // if the display task is cancelled, we should clear the attachments.
         if finished == false {

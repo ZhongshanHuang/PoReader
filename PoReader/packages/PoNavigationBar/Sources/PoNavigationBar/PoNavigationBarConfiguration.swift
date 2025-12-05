@@ -26,27 +26,12 @@ public class PoNavigationBarConfiguration {
     public var backgroundImage: UIImage?
     public var shadowImage: UIImage?
     public var titleTextAttributes: [NSAttributedString.Key: Any]?
+    public var largeTitleTextAttributes: [NSAttributedString.Key: Any]?
+    public var prefersLargeTitles: Bool?
     
-    private var _standardAppearance: AnyObject?
-    @available(iOS 13.0, *)
-    public var standardAppearance: UINavigationBarAppearance? {
-        get { _standardAppearance as? UINavigationBarAppearance }
-        set { _standardAppearance = newValue }
-    }
-    
-    private var _compactAppearance: AnyObject?
-    @available(iOS 13.0, *)
-    public var compactAppearance: UINavigationBarAppearance? {
-        get { _compactAppearance as? UINavigationBarAppearance }
-        set { _compactAppearance = newValue }
-    }
-    
-    private var _scrollEdgeAppearance: AnyObject?
-    @available(iOS 13.0, *)
-    public var scrollEdgeAppearance: UINavigationBarAppearance? {
-        get { _scrollEdgeAppearance as? UINavigationBarAppearance }
-        set { _scrollEdgeAppearance = newValue }
-    }
+    public var standardAppearance: UINavigationBarAppearance?
+    public var compactAppearance: UINavigationBarAppearance?
+    public var scrollEdgeAppearance: UINavigationBarAppearance?
     
     private var _compactScrollEdgeAppearance: AnyObject?
     @available(iOS 15.0, *)
@@ -55,10 +40,17 @@ public class PoNavigationBarConfiguration {
         set { _compactScrollEdgeAppearance = newValue }
     }
     
+    private var _preferredBehavioralStyle: UInt?
+    @available(iOS 16.0, *)
+    public var preferredBehavioralStyle: UIBehavioralStyle? {
+        get { if let _preferredBehavioralStyle { UIBehavioralStyle(rawValue: _preferredBehavioralStyle) } else { nil } }
+        set { _preferredBehavioralStyle = newValue?.rawValue }
+    }
+    
     public init() {}
     
     internal func apply(to navigationBar: UINavigationBar) {
-//        navigationBar.isHidden = isHidden ?? false // 在别处设置的此属性
+        navigationBar.isHidden = isHidden ?? false // 在别处设置的此属性
         navigationBar.barStyle = barStyle ?? .default
         navigationBar.tintColor = tintColor
         navigationBar.isTranslucent = isTranslucent ?? true
@@ -67,35 +59,35 @@ public class PoNavigationBarConfiguration {
         navigationBar.setBackgroundImage(backgroundImage, for: .default)
         navigationBar.shadowImage = shadowImage
         navigationBar.titleTextAttributes = titleTextAttributes
-        if #available(iOS 13.0, *) {
-            navigationBar.standardAppearance = standardAppearance ?? UINavigationBarAppearance()
-            navigationBar.compactAppearance = compactAppearance
-            navigationBar.scrollEdgeAppearance = scrollEdgeAppearance
-        }
+        navigationBar.largeTitleTextAttributes = largeTitleTextAttributes
+        navigationBar.prefersLargeTitles = prefersLargeTitles ?? false
+        
+        navigationBar.standardAppearance = standardAppearance ?? UINavigationBarAppearance()
+        navigationBar.compactAppearance = compactAppearance
+        navigationBar.scrollEdgeAppearance = scrollEdgeAppearance
         if #available(iOS 15.0, *) {
             navigationBar.compactScrollEdgeAppearance = compactScrollEdgeAppearance
         }
+        if #available(iOS 16.0, *) {
+            navigationBar.preferredBehavioralStyle = preferredBehavioralStyle ?? .automatic
+        }
         
         if isBottomLineHidden == true {
-            if #available(iOS 13, *) {
-                navigationBar.standardAppearance.shadowColor = .clear
-                navigationBar.scrollEdgeAppearance?.shadowColor = .clear
-            } else {
-                navigationBar.shadowImage = UIImage()
-            }
+            navigationBar.standardAppearance.shadowColor = .clear
+            navigationBar.scrollEdgeAppearance?.shadowColor = .clear
+            navigationBar.shadowImage = UIImage()
         }
         
         if isTransparent == true {
             navigationBar.isTranslucent = true
             navigationBar.setBackgroundImage(UIImage(), for: .default)
             navigationBar.shadowImage = UIImage()
+            navigationBar.prefersLargeTitles = false
             
-            if #available(iOS 13.0, *) {
-                let appearance = navigationBar.standardAppearance.copy()
-                appearance.configureWithTransparentBackground()
-                navigationBar.standardAppearance = appearance
-                navigationBar.scrollEdgeAppearance = appearance
-            }
+            let appearance = UINavigationBarAppearance()
+            appearance.configureWithTransparentBackground()
+            navigationBar.standardAppearance = appearance
+            navigationBar.scrollEdgeAppearance = appearance
         }
     }
     
@@ -135,20 +127,29 @@ public class PoNavigationBarConfiguration {
         if titleTextAttributes == nil {
             titleTextAttributes = anotherConfiguration.titleTextAttributes
         }
-        if #available(iOS 13.0, *) {
-            if standardAppearance == nil {
-                standardAppearance = anotherConfiguration.standardAppearance
-            }
-            if compactAppearance == nil {
-                compactAppearance = anotherConfiguration.compactAppearance
-            }
-            if scrollEdgeAppearance == nil {
-                scrollEdgeAppearance = anotherConfiguration.scrollEdgeAppearance
-            }
+        if largeTitleTextAttributes == nil {
+            largeTitleTextAttributes = anotherConfiguration.largeTitleTextAttributes
+        }
+        if prefersLargeTitles == nil {
+            prefersLargeTitles = anotherConfiguration.prefersLargeTitles
+        }
+        if standardAppearance == nil {
+            standardAppearance = anotherConfiguration.standardAppearance
+        }
+        if compactAppearance == nil {
+            compactAppearance = anotherConfiguration.compactAppearance
+        }
+        if scrollEdgeAppearance == nil {
+            scrollEdgeAppearance = anotherConfiguration.scrollEdgeAppearance
         }
         if #available(iOS 15.0, *) {
             if compactScrollEdgeAppearance == nil {
                 compactScrollEdgeAppearance = anotherConfiguration.compactScrollEdgeAppearance
+            }
+        }
+        if #available(iOS 16.0, *) {
+            if preferredBehavioralStyle == nil {
+                preferredBehavioralStyle = anotherConfiguration.preferredBehavioralStyle
             }
         }
     }

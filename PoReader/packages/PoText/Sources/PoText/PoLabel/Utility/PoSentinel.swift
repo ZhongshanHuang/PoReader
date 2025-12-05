@@ -1,6 +1,6 @@
 import Foundation
 
-struct PoSentinel {
+struct PoSentinel: @unchecked Sendable {
     
     // MARK: - Properties
     private var _value: Int = 0

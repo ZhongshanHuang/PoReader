@@ -16,7 +16,7 @@ final class ReaderDataSource {
     var sourcePath: URL?
     
     private var text: NSString?
-    private(set) var chapters: [ChapterModel]?
+    private(set) var chapters: [ChapterModel] = []
     
     func parseChapter() {
         guard let sourcePath = sourcePath, let data = try? Data(contentsOf: sourcePath) else { return }
@@ -86,7 +86,7 @@ final class ReaderDataSource {
     
     // 重新计算章节内部分页(因为采用的懒加载，所以这儿其实只删除了之前的分页结果)
     func updateChapterSubrange() {
-        chapters?.forEach({ $0.updateSubranges() })
+        chapters.forEach({ $0.updateSubranges() })
     }
 }
 
@@ -100,8 +100,6 @@ extension ReaderDataSource {
     ///   - subrangeIndex: 章节内部分页索引
     /// - Returns: pageItem
     func pageItem(atChapter chapterIndex: Int, subrangeIndex: Int) -> PageItem? {
-        guard let chapters = chapters else { return nil }
-        
         if chapterIndex >= chapters.count {
             return nil
         }
@@ -121,8 +119,6 @@ extension ReaderDataSource {
     ///   - sublocation: 章节内部分页的一个字符位置
     /// - Returns: subrangeIndex
     func chapterSubrangeIndex(atChapter chapterIndex: Int, sublocation: Int) -> Int? {
-        guard let chapters = chapters else { return nil }
-        
         if chapterIndex >= chapters.count { return nil }
         let chapter = chapters[chapterIndex]
         if sublocation >= chapter.range.length { return nil }
@@ -150,7 +146,7 @@ extension ReaderDataSource {
     /// - Returns: pageItem
     func pageItem(at location: Int) -> PageItem? {
         guard let (chapterIndex, subrangeIndex) = searchPageLocation(location: location) else { return nil }
-        let chapter = chapters![chapterIndex]
+        let chapter = chapters[chapterIndex]
         
         let pageItem = PageItem(chapterIndex: chapterIndex, subrangeIndex: subrangeIndex, content: (chapter.content as NSString).substring(with: chapter.subranges[subrangeIndex]), progress: progress(atChapter: chapterIndex, subrangeIndex: subrangeIndex))
         return pageItem
@@ -163,8 +159,6 @@ extension ReaderDataSource {
     ///   - subrangeIndex: 章节内部分页索引
     /// - Returns: location
     func location(atChapter chapterIndex: Int, subrangeIndex: Int) -> Int? {
-        guard let chapters = chapters else { return nil }
-        
         if chapterIndex >= chapters.count {
             return nil
         }
@@ -183,7 +177,6 @@ extension ReaderDataSource {
     ///   - subrangeIndex: 章节内部分页索引
     /// - Returns: progress
     func progress(atChapter chapterIndex: Int, subrangeIndex: Int) -> Float {
-        guard let chapters = chapters else { return 0 }
         if chapterIndex == chapters.count - 1 && subrangeIndex == chapters[chapterIndex].subranges.count - 1 {
             return 1
         }
@@ -201,8 +194,6 @@ extension ReaderDataSource {
     ///   - subrangeIndex: 章节内部分页索引
     /// - Returns: sublocation
     func chapterSublocation(atChapter chapterIndex: Int, subrangeIndex: Int) -> Int? {
-        guard let chapters = chapters else { return nil }
-        
         if chapterIndex >= chapters.count {
             return nil
         }
@@ -218,8 +209,6 @@ extension ReaderDataSource {
     /// - Parameter location: 文本某个字符的位置
     /// - Returns: 字符所在章节和分页的索引
     func searchPageLocation(location: Int) -> (chapterIndex: Int, subrangeIndex: Int)? {
-        guard let chapters = chapters else { return nil }
-
         var low = 0
         var up = chapters.count - 1
         var chapterIndex = -1

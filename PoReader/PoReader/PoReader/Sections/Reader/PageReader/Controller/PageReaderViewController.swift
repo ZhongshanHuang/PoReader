@@ -31,7 +31,11 @@ class PageReaderViewController: BaseViewController {
     private let bottomBar = ReaderBottomBar()
     private var hideStatusBar = true
     
-    // MARK: - View life cycle
+    deinit {
+        if let observer {
+            NotificationCenter.default.removeObserver(observer)
+        }
+    }
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -49,7 +53,7 @@ class PageReaderViewController: BaseViewController {
     
     private func setupUI() {
         title = book?.name.components(separatedBy: ".").first
-        
+        poNavigationBarConfig.isHidden = true
         
         addChild(pageViewController)
         view.addSubview(pageViewController.view)
@@ -66,17 +70,16 @@ class PageReaderViewController: BaseViewController {
             let height: CGFloat = (UIApplication.shared.currentKeyWindow?.safeAreaInsets.bottom ?? 0) + 110
             make.height.equalTo(height)
         }
-        
-        poNavigationBarConfig.isHidden = true
     }
     
     // 观察应用事件，保存当前文章页码
+    private var observer: (any NSObjectProtocol)?
     private func registerForNotification() {
-        NotificationCenter.default.addObserver(forName: UIApplication.willResignActiveNotification, object: nil, queue: nil) { [weak self] (_) in
+        observer = NotificationCenter.default.addObserver(forName: UIApplication.willResignActiveNotification, object: nil, queue: nil) { [weak self] _ in
             self?.savePageLocation()
         }
         
-        NotificationCenter.default.addObserver(forName: UIApplication.willTerminateNotification, object: nil, queue: nil) { [weak self] (_) in
+        NotificationCenter.default.addObserver(forName: UIApplication.willTerminateNotification, object: nil, queue: nil) { [weak self] _ in
             self?.savePageLocation()
         }
     }
@@ -87,8 +90,8 @@ class PageReaderViewController: BaseViewController {
         
         dataSource.parseChapter()
         if let book = self.book {
-            let pageLocation = Database.shared.pageLocation(forBook: book.name)
-            self.showPageItem(atChapter: pageLocation.chapterIndex, subrangeIndex: pageLocation.subrangeIndex)
+            let pageLocation = try? Database.shared.pageLocation(forBook: book.name)
+            self.showPageItem(atChapter: pageLocation?.chapterIndex ?? 0, subrangeIndex: pageLocation?.subrangeIndex ?? 0)
         }
     }
     
@@ -112,7 +115,7 @@ class PageReaderViewController: BaseViewController {
         guard let currentPage = (pageViewController.viewControllers?.first as? PageReaderDisplayCell)?.pageItem,
             let book = book else { return }
         let pageLocal = PageLocation(chapterIndex: currentPage.chapterIndex, subrangeIndex: currentPage.subrangeIndex, progress: Double(currentPage.progress))
-        Database.shared.save(pageLocal, forBook: book.name)
+        try? Database.shared.update(pageLocal, forBook: book.name)
     }
     
     @objc
@@ -191,14 +194,12 @@ class PageReaderViewController: BaseViewController {
 extension PageReaderViewController: UIPageViewControllerDataSource {
     
     func pageViewController(_ pageViewController: UIPageViewController, viewControllerBefore viewController: UIViewController) -> UIViewController? {
-        guard let chapters = dataSource.chapters else { return nil }
-
         if let pageItem = (viewController as? PageReaderDisplayCell)?.pageItem {
             if pageItem.subrangeIndex == 0 {
                 if pageItem.chapterIndex == 0 {
                     return nil
                 } else {
-                    let chapter = chapters[pageItem.chapterIndex - 1]
+                    let chapter = dataSource.chapters[pageItem.chapterIndex - 1]
                     return reversePageDisplayItem(atChapter: pageItem.chapterIndex - 1, subrangeIndex: chapter.subranges.count - 1)
                 }
             }
@@ -212,12 +213,10 @@ extension PageReaderViewController: UIPageViewControllerDataSource {
     }
 
     func pageViewController(_ pageViewController: UIPageViewController, viewControllerAfter viewController: UIViewController) -> UIViewController? {
-        guard let chapters = dataSource.chapters else { return nil }
-        
         if let reverseItem = viewController as? ReversePageReaderDisplayItem {
-            let chapter = chapters[reverseItem.chapterIndex]
+            let chapter = dataSource.chapters[reverseItem.chapterIndex]
             if reverseItem.subrangeIndex >= chapter.subranges.count - 1 {
-                if reverseItem.chapterIndex >= chapters.count - 1 {
+                if reverseItem.chapterIndex >= dataSource.chapters.count - 1 {
                     return nil
                 } else {
                     return pageDisplayItem(atChapter: reverseItem.chapterIndex + 1, subrangeIndex: 0)
@@ -267,7 +266,7 @@ extension PageReaderViewController: ReaderBottomBarDelegate {
             }
             bottomBar.progress = currentProgress
             
-            if let chapter = dataSource.chapters?.last {
+            if let chapter = dataSource.chapters.last {
                 let totalLength = chapter.range.upperBound - 1
                 let location = currentProgress * Float(totalLength)
                 if let (chapterIndex, subrangeIndex) = dataSource.searchPageLocation(location: Int(location)) {
@@ -298,7 +297,7 @@ extension PageReaderViewController: ReaderBottomBarDelegate {
     }
         
     func readerBottomBar(_ bottomBar: ReaderBottomBar, didChangeProgressTo value: Float) {
-        if let chapter = dataSource.chapters?.last {
+        if let chapter = dataSource.chapters.last {
             let totalLength = chapter.range.upperBound - 1
             let location = value * Float(totalLength)
             if let (chapterIndex, subrangeIndex) = dataSource.searchPageLocation(location: Int(location)) {

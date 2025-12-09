@@ -11,8 +11,6 @@ import SnapKit
 
 class BookCell: UICollectionViewCell {
     
-    static let identifier = "BookCell"
-    
     private let imageView: UIImageView = {
         let imageView = UIImageView()
         imageView.backgroundColor = .dynamicColor(light: UIColor(red: 0, green: 0.48, blue: 0.8, alpha: 1),
@@ -70,19 +68,6 @@ class BookCell: UICollectionViewCell {
         }
     }
     
-    
-    var model: BookModel? {
-        didSet {
-            guard let model = model else { return }
-            titleLabel.text = model.name
-            if model.progress == 0 {
-                processLabel.text = "未读"
-            } else {
-                processLabel.text = String(format: "%.1f%%", model.progress * 100)
-            }
-        }
-    }
-    
     override init(frame: CGRect) {
         super.init(frame: frame)
         setupUI()
@@ -90,6 +75,15 @@ class BookCell: UICollectionViewCell {
     
     required init?(coder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
+    }
+    
+    func config(with data: BookModel) {
+        titleLabel.text = data.name
+        if data.progress == 0 {
+            processLabel.text = "未读"
+        } else {
+            processLabel.text = String(format: "%.1f%%", data.progress * 100)
+        }
     }
     
     private func setupUI() {

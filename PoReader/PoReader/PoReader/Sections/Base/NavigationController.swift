@@ -32,6 +32,7 @@ class NavigationController: UINavigationController, PoNavigationBarConfigurable 
     override func pushViewController(_ viewController: UIViewController, animated: Bool) {
         if !children.isEmpty {
             viewController.hidesBottomBarWhenPushed = true
+            
             let backBarButtonItem = UIBarButtonItem(image: UIImage(named: "navigation_back_white"), style: .plain, target: self, action: #selector(backBtnClick))
             backBarButtonItem.imageInsets = UIEdgeInsets(top: 0, left: -5, bottom: 0, right: 0)
             viewController.navigationItem.leftBarButtonItem = backBarButtonItem

@@ -7,17 +7,49 @@
 //
 
 import UIKit
+import Combine
 import SnapKit
 
 class MainViewController: BaseViewController {
 
+    nonisolated
+    enum Section: Sendable, Hashable {
+        case main
+    }
+    
     // MARK: - Properties
     private let viewModel = MainViewModel()
-    private var collectionView: UICollectionView!
+    private let flowLayout: UICollectionViewFlowLayout = {
+        let flowLayout = UICollectionViewFlowLayout()
+        let padding: CGFloat = 20
+        let column: CGFloat = 3
+        let itemW = (Appearance.minScreenWidth - padding * (column + 1)) / column
+        let itemH = itemW * (3 / 2)
+        flowLayout.itemSize = CGSize(width: itemW, height: itemH)
+        flowLayout.minimumInteritemSpacing = padding
+        flowLayout.minimumLineSpacing = padding
+        flowLayout.scrollDirection = .vertical
+        flowLayout.sectionInset = UIEdgeInsets(top: padding, left: padding, bottom: padding, right: padding)
+        return flowLayout
+    }()
+    private lazy var collectionView: UICollectionView = {
+        let collectionView = UICollectionView(frame: .zero, collectionViewLayout: flowLayout)
+        collectionView.backgroundColor = Appearance.backgroundColor
+        collectionView.delegate = self
+        return collectionView
+    }()
+    private var dataSource: UICollectionViewDiffableDataSource<Section, BookModel>!
+    private var stores: Set<AnyCancellable> = []
+    
     private var openFirstBook: Bool = true
     
     private lazy var uploadButon: UIBarButtonItem = {
         let button = UIBarButtonItem(title: "传书", style: .plain, target: self, action: #selector(handleUploadAction(_:)))
+        return button
+    }()
+    
+    private lazy var settingsButon: UIBarButtonItem = {
+        let button = UIBarButtonItem(title: "设置", style: .plain, target: self, action: #selector(handleStyleAction(_:)))
         return button
     }()
         
@@ -39,13 +71,13 @@ class MainViewController: BaseViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         // Do any additional setup after loading the view.
-        title = "土豆阅读"
         setupUI()
+        setupViewModel()
         
         /// 触发网络权限弹窗
-        let data = URLSession.shared.dataTask(with: URLRequest(url: URL(string: "https://www.baidu.com")!)) { _, _, _ in
+        let dataTask = URLSession.shared.dataTask(with: URLRequest(url: URL(string: "https://www.baidu.com")!)) { _, _, _ in
         }
-        data.resume()
+        dataTask.resume()
     }
     
     override func viewDidAppear(_ animated: Bool) {
@@ -54,78 +86,83 @@ class MainViewController: BaseViewController {
     }
     
     private func setupUI() {
-        let uploadButon = UIBarButtonItem(title: "传书", style: .plain, target: self, action: #selector(handleUploadAction(_:)))
+        title = "土豆阅读"
         navigationItem.leftBarButtonItem = uploadButon
-        
-        let settingsButon = UIBarButtonItem(title: "设置", style: .plain, target: self, action: #selector(handleStyleAction(_:)))
         navigationItem.rightBarButtonItem = settingsButon
         
-        let flowLayout = UICollectionViewFlowLayout()
-        let padding: CGFloat = 20
-        let column: CGFloat = 3
-        let itemW = (view.frame.width - padding * (column + 1)) / column
-        let itemH = itemW * (3 / 2)
-        flowLayout.itemSize = CGSize(width: itemW, height: itemH)
-        flowLayout.minimumInteritemSpacing = padding
-        flowLayout.minimumLineSpacing = padding
-        flowLayout.scrollDirection = .vertical
-        flowLayout.sectionInset = UIEdgeInsets(top: padding, left: padding, bottom: padding, right: padding)
+        collectionView.register(BookCell.self, forCellWithReuseIdentifier: BookCell.reuseIdentifier)
+        dataSource = UICollectionViewDiffableDataSource(collectionView: collectionView) { [unowned self] collectionView, indexPath, itemIdentifier in
+            let cell = collectionView.dequeueReusableCell(withReuseIdentifier: BookCell.reuseIdentifier, for: indexPath) as! BookCell
+            cell.config(with: itemIdentifier)
+            cell.showEditing = isEditing
+            return cell
+        }
         
-        collectionView = UICollectionView(frame: .zero, collectionViewLayout: flowLayout)
-        collectionView.backgroundColor = Appearance.backgroundColor
-        collectionView.dataSource = self
-        collectionView.delegate = self
         view.addSubview(collectionView)
         collectionView.snp.makeConstraints { (make) in
             make.edges.equalToSuperview()
         }
         
-        collectionView.register(BookCell.self, forCellWithReuseIdentifier: BookCell.identifier)
-        
         let longPressGesture = UILongPressGestureRecognizer(target: self, action: #selector(handleLongPressAction(_:)))
         collectionView.addGestureRecognizer(longPressGesture)
     }
     
+    private func updateUI(with data: [BookModel]) {
+        var snapshot = NSDiffableDataSourceSnapshot<Section, BookModel>()
+        snapshot.appendSections([.main])
+        snapshot.appendItems(data, toSection: .main)
+        dataSource.apply(snapshot, animatingDifferences: false)
+    }
+    
+    private func setupViewModel() {
+        viewModel.$dataList.debounce(for: 0.5, scheduler: RunLoop.main).sink { [unowned self] data in
+            updateUI(with: data)
+        }.store(in: &stores)
+        
+//        viewModel.$dataList.throttle(for: 0.5, scheduler: RunLoop.main, latest: true).sink { [unowned self] data in
+//            updateUI(with: data)
+//        }.store(in: &stores)
+    }
+    
+    
     private func loadData() {
-        viewModel.loadBookList() { [weak self] result in
-            guard let self = self else { return }
-            switch result {
-            case .success:
-                self.collectionView.reloadData()
+        Task {
+            do {
+                try await viewModel.loadBookList()
                 if UserSettings.autoOpenBook, openFirstBook {
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) {
-                        self.openBook(at: 0)
+                    openFirstBook = false
+                    if #available(iOS 16.0, *) {
+                        try await Task.sleep(for: .seconds(0.35))
+                    } else {
+                        try await Task.sleep(nanoseconds: 35 * 1000 * 1000 * 10)
                     }
+                    openBook(at: 0)
                 }
-            case .failure:
-                print("加载出错")
+            } catch {
+                openFirstBook = false
+                print("书本列表加载出错: \(error.localizedDescription)")
             }
-            openFirstBook = false
         }
     }
     
     private func openBook(at index: Int) {
-        guard viewModel.dataList != nil, viewModel.dataList!.count > index else { return }
+        guard viewModel.dataList.count > index else { return }
         let vc: UIViewController
         switch UserSettings.transitionStyle {
         case .pageCurl:
             let pageVC = PageReaderViewController()
-            pageVC.book = viewModel.dataList?[index]
+            pageVC.book = viewModel.dataList[index]
             vc = pageVC
         case .scroll:
             let scrollVC = ScrollReaderViewController()
-            scrollVC.book = viewModel.dataList?[index]
+            scrollVC.book = viewModel.dataList[index]
             vc = scrollVC
         }
         navigationController?.pushViewController(vc, animated: true)
         
         // 保存打开时间
         let accessDate = Date().timeIntervalSince1970
-        viewModel.dataList?[index].lastAccessDate = accessDate
-        let name = viewModel.dataList![index].name
-        DispatchQueue.global(qos: .userInitiated).async {
-            Database.shared.save(accessDate, forBook: name)
-        }
+        viewModel.update(accessDate, at: index)
     }
     
     // MARK: - Selector
@@ -158,8 +195,8 @@ class MainViewController: BaseViewController {
     private func handleDeleteAction() {
         isEditing = false
         collectionView.allowsMultipleSelection = false
-        navigationItem.rightBarButtonItem = uploadButon
-        navigationItem.leftBarButtonItem = nil
+        navigationItem.leftBarButtonItem = uploadButon
+        navigationItem.rightBarButtonItem = settingsButon
         
         if selectedIndices.isEmpty {
             collectionView.reloadData()
@@ -169,22 +206,11 @@ class MainViewController: BaseViewController {
         var toDeleteBooks: Set<BookModel> = []
         toDeleteBooks.reserveCapacity(selectedIndices.count)
         for index in selectedIndices {
-            let book = viewModel.dataList![index.item]
-            Database.shared.removePageLocation(ofBook: book.name)
-            try? FileManager.default.removeItem(at: book.localPath)
+            let book = viewModel.dataList[index.item]
             toDeleteBooks.insert(book)
         }
         
-        // 如果数组很大，这样删除比较好
-        viewModel.dataList?.removeAll(where: { (book) -> Bool in
-            return toDeleteBooks.contains(book)
-        })
-        
-        collectionView.performBatchUpdates({
-            collectionView.deleteItems(at: selectedIndices.filter({ _ in return true }))
-        }) { (_) in
-            self.collectionView.reloadData()
-        }
+        viewModel.remove(toDeleteBooks)
         selectedIndices.removeAll()
     }
     
@@ -195,8 +221,8 @@ class MainViewController: BaseViewController {
         collectionView.reloadData()
         
         deleteButon.isEnabled = true
-        navigationItem.leftBarButtonItem = nil
-        navigationItem.rightBarButtonItem = uploadButon
+        navigationItem.leftBarButtonItem = uploadButon
+        navigationItem.rightBarButtonItem = settingsButon
     }
     
     @objc
@@ -211,22 +237,6 @@ class MainViewController: BaseViewController {
         selectedIndices.insert(indexPath)
         navigationItem.rightBarButtonItem = deleteButon
         navigationItem.leftBarButtonItem = cancelButon
-    }
-}
-
-// MARK: - UICollectionViewDataSource
-
-extension MainViewController: UICollectionViewDataSource {
-    
-    func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
-        return viewModel.dataList?.count ?? 0
-    }
-    
-    func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
-        let cell = collectionView.dequeueReusableCell(withReuseIdentifier: BookCell.identifier, for: indexPath) as! BookCell
-        cell.model = viewModel.dataList?[indexPath.item]
-        cell.showEditing = isEditing
-        return cell
     }
 }
 

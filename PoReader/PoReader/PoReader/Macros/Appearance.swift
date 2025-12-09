@@ -78,8 +78,11 @@ struct Appearance {
     
     /// 文本显示范围(左下原点)
     static let displayRect: CGRect = {
-        return CGRect(x: displayInsets.left, y: displayInsets.top, width: UIScreen.main.bounds.width - displayInsets.left - displayInsets.right, height: UIScreen.main.bounds.height - displayInsets.bottom - displayInsets.top)
+        return CGRect(x: displayInsets.left, y: displayInsets.top, width: minScreenWidth - displayInsets.left - displayInsets.right, height: maxScreenHeight - displayInsets.bottom - displayInsets.top)
     }()
+    
+    static var minScreenWidth: CGFloat { min(UIScreen.main.bounds.width, UIScreen.main.bounds.height) }
+    static var maxScreenHeight: CGFloat { max(UIScreen.main.bounds.width, UIScreen.main.bounds.height) }
     
     // MARK: - 阅读页 bottom bar
     static let readerBottomBarBackgroundColor: UIColor = .dynamicColor(light: .white,

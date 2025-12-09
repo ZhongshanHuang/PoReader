@@ -68,13 +68,21 @@ extension UploaderViewController: GCDWebUploaderDelegate {
     /// 将上传的书本信息存入本地数据库
     func webUploader(_ uploader: GCDWebUploader, didUploadFileAtPath path: String) {
         let bookName = (path as NSString).lastPathComponent
-        Database.shared.addBook(bookName)
+        do {
+            try Database.shared.addBook(bookName)
+        } catch {
+            print("add book failure: \(error.localizedDescription)")
+        }
     }
     
     /// 在浏览器端删除书本
     func webUploader(_ uploader: GCDWebUploader, didDeleteItemAtPath path: String) {
         let bookName = (path as NSString).lastPathComponent
-        Database.shared.removeBook(bookName)
+        do {
+            try Database.shared.removeBook(bookName)
+        } catch {
+            print("delete book failure: \(error.localizedDescription)")
+        }
     }
 }
 

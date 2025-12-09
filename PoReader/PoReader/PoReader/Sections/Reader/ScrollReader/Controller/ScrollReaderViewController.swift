@@ -52,6 +52,12 @@ class ScrollReaderViewController: BaseViewController {
         return collectionView
     }()
     
+    deinit {
+        if let observer {
+            NotificationCenter.default.removeObserver(observer)
+        }
+    }
+    
     override func viewDidLoad() {
         super.viewDidLoad()
 
@@ -66,8 +72,7 @@ class ScrollReaderViewController: BaseViewController {
         if !isFirstDidAppear { return }
         
         isFirstDidAppear = true
-        if let book = self.book {
-            let pageLocation = Database.shared.pageLocation(forBook: book.name)
+        if let book = self.book, let pageLocation = try? Database.shared.pageLocation(forBook: book.name) {
             if pageLocation.subrangeIndex < dataList[0].subranges.count {
                 collectionView.setContentOffset(CGPoint(x: 0, y: dataList[0].subrangeHeight(before: pageLocation.subrangeIndex)), animated: true)
             }
@@ -105,34 +110,34 @@ class ScrollReaderViewController: BaseViewController {
         
         dataSource.parseChapter()
         if let book = self.book {
-            let pageLocation = Database.shared.pageLocation(forBook: book.name)
-            showPageItem(chapterIndex: pageLocation.chapterIndex, subrangeIndex: pageLocation.subrangeIndex)
+            let pageLocation = try? Database.shared.pageLocation(forBook: book.name)
+            showPageItem(chapterIndex: pageLocation?.chapterIndex ?? 0, subrangeIndex: pageLocation?.subrangeIndex ?? 0)
         }
     }
     
     private func showPageItem(chapterIndex: Int, subrangeIndex: Int) {
-        if chapterIndex >= (dataSource.chapters?.count ?? 0) || subrangeIndex >= dataSource.chapters![chapterIndex].subranges.count { return }
+        if chapterIndex >= dataSource.chapters.count || subrangeIndex >= dataSource.chapters[chapterIndex].subranges.count { return }
         
         // 为保持章节顺序，必须先清除原来的章节
         dataList.removeAll()
         
-        if let chapter = dataSource.chapters?[chapterIndex] {
-            dataList.append(chapter)
-            if subrangeIndex >= chapter.subranges.count - 2, chapter.idx + 1 < dataSource.chapters!.count {
-                dataList.append(dataSource.chapters![chapter.idx + 1])
-            }
-            collectionView.reloadData()
-            collectionView.setContentOffset(CGPoint(x: 0, y: dataList[0].subrangeHeight(before: subrangeIndex)), animated: false)
+        let chapter = dataSource.chapters[chapterIndex]
+        dataList.append(chapter)
+        if subrangeIndex >= chapter.subranges.count - 2, chapter.idx + 1 < dataSource.chapters.count {
+            dataList.append(dataSource.chapters[chapter.idx + 1])
         }
+        collectionView.reloadData()
+        collectionView.setContentOffset(CGPoint(x: 0, y: dataList[0].subrangeHeight(before: subrangeIndex)), animated: false)
     }
     
     // 观察应用事件，保存当前文章页码
+    private var observer: (any NSObjectProtocol)?
     private func registerForNotification() {
-        NotificationCenter.default.addObserver(forName: UIApplication.willResignActiveNotification, object: nil, queue: nil) { [weak self] (_) in
+        observer = NotificationCenter.default.addObserver(forName: UIApplication.willResignActiveNotification, object: nil, queue: nil) { [weak self] _ in
             self?.savePageLocation()
         }
         
-        NotificationCenter.default.addObserver(forName: UIApplication.willTerminateNotification, object: nil, queue: nil) { [weak self] (_) in
+        NotificationCenter.default.addObserver(forName: UIApplication.willTerminateNotification, object: nil, queue: nil) { [weak self] _ in
             self?.savePageLocation()
         }
     }
@@ -143,7 +148,7 @@ class ScrollReaderViewController: BaseViewController {
         guard let currentPage = (collectionView.visibleCells.last as? ScrollReaderDisplayCell)?.pageItem,
             let book = book else { return }
         let pageLocal = PageLocation(chapterIndex: currentPage.chapterIndex, subrangeIndex: currentPage.subrangeIndex, progress: Double(currentPage.progress))
-        Database.shared.save(pageLocal, forBook: book.name)
+        try? Database.shared.update(pageLocal, forBook: book.name)
     }
     
     @objc
@@ -241,8 +246,8 @@ extension ScrollReaderViewController: UICollectionViewDelegateFlowLayout {
             if offset.y >= scrollView.contentSize.height - scrollView.bounds.height * 2 {
                 print("触发上拉")
                 if let currentChapter = dataList.last {
-                    if currentChapter.idx + 1 < dataSource.chapters!.count {
-                        dataList.append(dataSource.chapters![currentChapter.idx + 1])
+                    if currentChapter.idx + 1 < dataSource.chapters.count {
+                        dataList.append(dataSource.chapters[currentChapter.idx + 1])
                         collectionView.reloadData()
                     } else {
                         nextLoadState = .noMore
@@ -257,7 +262,7 @@ extension ScrollReaderViewController: UICollectionViewDelegateFlowLayout {
                 print("触发下拉")
                 if let currentChapter = dataList.first {
                     if currentChapter.idx - 1 >= 0 {
-                        let previousChapter = dataSource.chapters![currentChapter.idx - 1]
+                        let previousChapter = dataSource.chapters[currentChapter.idx - 1]
                         dataList.insert(previousChapter, at: 0)
                         collectionView.reloadData()
                         collectionView.contentOffset = CGPoint(x: offset.x, y: offset.y + previousChapter.totalSubrangeHeight())
@@ -288,7 +293,7 @@ extension ScrollReaderViewController: ReaderBottomBarDelegate {
             }
             bottomBar.progress = currentProgress
 
-            if let chapter = dataSource.chapters?.last {
+            if let chapter = dataSource.chapters.last {
                 let totalLength = chapter.range.upperBound - 1
                 let location = currentProgress * Float(totalLength)
                 if let (chapterIndex, subrangeIndex) = dataSource.searchPageLocation(location: Int(location)) {
@@ -319,7 +324,7 @@ extension ScrollReaderViewController: ReaderBottomBarDelegate {
     }
         
     func readerBottomBar(_ bottomBar: ReaderBottomBar, didChangeProgressTo value: Float) {
-        if let chapter = dataSource.chapters?.last {
+        if let chapter = dataSource.chapters.last {
             let totalLength = chapter.range.upperBound - 1
             let location = value * Float(totalLength)
             if let (chapterIndex, subrangeIndex) = dataSource.searchPageLocation(location: Int(location)) {

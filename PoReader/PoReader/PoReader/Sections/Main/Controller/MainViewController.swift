@@ -276,7 +276,7 @@ extension MainViewController: UICollectionViewDelegate {
     }
 }
 
-class OpenBookTransitionAnimationConfig: NavigationTransitionAnimationConfigurable {
+class OpenBookTransitionAnimationConfig: TransitionAnimationConfigurable {
     var duration: TimeInterval { 0.5 }
     var auxAnimations: ((Bool) -> [AuxAnimation])? { nil }
     var onCompletion: ((Bool) -> Void)?

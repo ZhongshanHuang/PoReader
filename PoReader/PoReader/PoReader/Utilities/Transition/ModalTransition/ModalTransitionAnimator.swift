@@ -1,40 +1,10 @@
 import UIKit
 
-public protocol ModalTransitionAnimationConfigurable {
-    var duration: TimeInterval { get }
-    func layout(presenting: Bool, fromView: UIView, toView: UIView, in container: UIView)
-    func animate(presenting: Bool, fromView: UIView, toView: UIView, in container: UIView)
-    func auxAnimations(presenting: Bool, fromView: UIView, toView: UIView, in container: UIView) -> [AuxAnimation]
-    func completeTransition(didComplete: Bool, presenting: Bool, fromView: UIView, toView: UIView, in container: UIView)
-}
-
-public extension ModalTransitionAnimationConfigurable {
-    var duration: TimeInterval { 0.35 }
-    
-    func layout(presenting: Bool, fromView: UIView, toView: UIView, in container: UIView) {
-        if presenting {
-            toView.transform = .identity.translatedBy(x: 0, y: toView.bounds.height)
-        }
-    }
-    
-    func animate(presenting: Bool, fromView: UIView, toView: UIView, in container: UIView) {
-        if presenting {
-            toView.transform = .identity
-        } else {
-            fromView.transform = .identity.translatedBy(x: 0, y: fromView.bounds.height)
-        }
-    }
-    
-    func auxAnimations(presenting: Bool, fromView: UIView, toView: UIView, in container: UIView) -> [AuxAnimation] { [] }
-    
-    func completeTransition(didComplete: Bool, presenting: Bool, fromView: UIView, toView: UIView, in container: UIView) {}
-}
-
 final class ModalTransitionAnimator: NSObject {
-    private let config: any ModalTransitionAnimationConfigurable
+    private let config: any TransitionAnimationConfigurable
     private var animator: UIViewPropertyAnimator?
     
-    init(config: any ModalTransitionAnimationConfigurable) {
+    init(config: any TransitionAnimationConfigurable) {
         self.config = config
     }
 }

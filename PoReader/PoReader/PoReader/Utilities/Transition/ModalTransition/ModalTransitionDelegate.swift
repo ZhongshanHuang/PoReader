@@ -6,7 +6,7 @@ public class ModalTransitionDelegate: NSObject {
         case dismiss
     }
     
-    private var animationConfigs = [ModalOperation: any ModalTransitionAnimationConfigurable]()
+    private var animationConfigs = [ModalOperation: any TransitionAnimationConfigurable]()
     private let interactiveController = TransitionInteractiveController()
     public var interactiveGestureRecognizer: UIGestureRecognizer? { interactiveController.gestureRecognizer }
     public var presentationController: UIPresentationController?
@@ -17,7 +17,7 @@ public class ModalTransitionDelegate: NSObject {
         interactiveController.shouldBeginTransition = beginWhen
     }
     
-    public func set(animatorConfig: any ModalTransitionAnimationConfigurable, for operation: ModalOperation) {
+    public func set(animatorConfig: any TransitionAnimationConfigurable, for operation: ModalOperation) {
         animationConfigs[operation] = animatorConfig
     }
 

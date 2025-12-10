@@ -62,8 +62,8 @@ class ScrollReaderViewController: BaseViewController {
         super.viewDidLoad()
 
         // Do any additional setup after loading the view.
-        setupDataSource()
         setupUI()
+        setupDataSource()
         registerForNotification()
     }
     
@@ -86,6 +86,7 @@ class ScrollReaderViewController: BaseViewController {
     
     private func setupUI() {
         title = book?.name.components(separatedBy: ".").first
+        poNavigationBarConfig.isHidden = true
         
         view.addSubview(collectionView)
         collectionView.snp.makeConstraints { make in
@@ -100,8 +101,6 @@ class ScrollReaderViewController: BaseViewController {
             let height: CGFloat = (UIApplication.shared.currentKeyWindow?.safeAreaInsets.bottom ?? 0) + 110
             make.height.equalTo(height)
         }
-        
-        poNavigationBarConfig.isHidden = true
     }
     
     private func setupDataSource() {

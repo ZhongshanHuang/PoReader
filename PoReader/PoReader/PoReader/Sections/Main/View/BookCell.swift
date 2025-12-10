@@ -11,6 +11,10 @@ import SnapKit
 
 class BookCell: UICollectionViewCell {
     
+    var animationView: UIView {
+        imageView
+    }
+    
     private let imageView: UIImageView = {
         let imageView = UIImageView()
         imageView.backgroundColor = .dynamicColor(light: UIColor(red: 0, green: 0.48, blue: 0.8, alpha: 1),

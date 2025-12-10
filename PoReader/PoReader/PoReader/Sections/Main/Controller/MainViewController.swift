@@ -145,6 +145,7 @@ class MainViewController: BaseViewController {
         }
     }
     
+    private var transitionDelegate: NavigationTransitionDelegate!
     private func openBook(at index: Int) {
         guard viewModel.dataList.count > index else { return }
         let vc: UIViewController
@@ -157,6 +158,20 @@ class MainViewController: BaseViewController {
             let scrollVC = ScrollReaderViewController()
             scrollVC.book = viewModel.dataList[index]
             vc = scrollVC
+        }
+        
+        if let cell = collectionView.cellForItem(at: IndexPath(item: index, section: 0)) as? BookCell {
+            transitionDelegate = NavigationTransitionDelegate()
+            let animator = OpenBookTransitionAnimationConfig()
+            animator.targetView = cell.animationView
+            animator.onCompletion = { [unowned self] isPresent in
+                if !isPresent {
+                    transitionDelegate = nil
+                }
+            }
+            transitionDelegate.set(animatorConfig: animator, for: .push)
+            transitionDelegate.set(animatorConfig: animator, for: .pop)
+            navigationController?.delegate = transitionDelegate
         }
         navigationController?.pushViewController(vc, animated: true)
         
@@ -261,3 +276,93 @@ extension MainViewController: UICollectionViewDelegate {
     }
 }
 
+class OpenBookTransitionAnimationConfig: NavigationTransitionAnimationConfigurable {
+    var duration: TimeInterval { 3 }
+    var auxAnimations: ((Bool) -> [AuxAnimation])? { nil }
+    var onCompletion: ((Bool) -> Void)?
+    var targetView: UIView!
+    
+    private var coverView: UIView?
+    private var contentView: UIView?
+    
+    func layout(presenting: Bool, fromView: UIView, toView: UIView, in container: UIView) {
+        var sublayerTransform = CATransform3DIdentity
+        sublayerTransform.m34 = -1.0 / 500
+        container.layer.sublayerTransform = sublayerTransform
+        if presenting {
+            let targetRect = targetView.convert(targetView.frame, to: fromView)
+            let coverView = getSnapshotView(from: targetView)
+            coverView.isOpaque = true
+            coverView.layer.anchorPoint = CGPoint(x: 0, y: 0.5)
+            coverView.frame = targetRect
+            let contentView = getSnapshotView(from: toView)
+            contentView.frame = targetRect
+            container.addSubview(contentView)
+            container.addSubview(coverView)
+            
+            targetView.isHidden = true
+            toView.isHidden = true
+            
+            self.coverView = coverView
+            self.contentView = contentView
+        } else {
+            let coverView = getSnapshotView(from: targetView)
+            coverView.isOpaque = true
+            coverView.layer.anchorPoint = CGPoint(x: 0, y: 0.5)
+            coverView.frame = fromView.frame
+            coverView.transform3D = CATransform3DMakeRotation(-.pi / 2, 0, 1, 0)
+            let contentView = getSnapshotView(from: fromView)
+            contentView.frame = fromView.frame
+            container.addSubview(contentView)
+            container.addSubview(coverView)
+            
+            targetView.isHidden = true
+            fromView.isHidden = true
+            
+            self.coverView = coverView
+            self.contentView = contentView
+        }
+    }
+    
+    func animations(presenting: Bool, fromView: UIView, toView: UIView, in container: UIView) {
+        if presenting {
+            coverView?.frame = toView.frame
+            contentView?.frame = toView.frame
+            coverView?.transform3D = CATransform3DMakeRotation(-.pi / 2, 0, 1, 0)
+        } else {
+            let targetRect = targetView.convert(targetView.frame, to: toView)
+            coverView?.frame = targetRect
+            contentView?.frame = targetRect
+            coverView?.transform3D = CATransform3DIdentity
+        }
+    }
+    
+    func completeTransition(didComplete: Bool, presenting: Bool, fromView: UIView, toView: UIView, in container: UIView) {
+        targetView.isHidden = false
+        coverView?.removeFromSuperview()
+        coverView = nil
+        contentView?.removeFromSuperview()
+        contentView = nil
+        if presenting {
+            toView.isHidden = false
+        } else {
+            fromView.isHidden = false
+        }
+        onCompletion?(presenting)
+    }
+    
+    private func getSnapshotView(from: UIView) -> UIImageView {
+        let imageView = UIImageView()
+        let render = UIGraphicsImageRenderer(size: from.frame.size, format: .preferred())
+        imageView.image = render.image { ctx in
+            let isHidden = from.isHidden
+            if isHidden {
+                from.isHidden = false
+            }
+            from.layer.render(in: ctx.cgContext)
+            from.isHidden = isHidden
+        }
+        return imageView
+    }
+    
+}

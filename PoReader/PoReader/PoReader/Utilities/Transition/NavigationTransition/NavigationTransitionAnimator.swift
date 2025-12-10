@@ -1,20 +1,19 @@
 import UIKit
 
-public typealias AuxAnimation = (closure: () -> Void, relativeDelay: Double)
+public typealias AuxAnimation = (closure: () -> Void, relativeStartTime: TimeInterval, relativeDuration: TimeInterval)
 
 public protocol NavigationTransitionAnimationConfigurable {
     var duration: TimeInterval { get }
     var auxAnimations: ((Bool) -> [AuxAnimation])? { get }
-    var onCompletion: ((Bool) -> Void)? { get }
     
     func layout(presenting: Bool, fromView: UIView, toView: UIView, in container: UIView)
     func animations(presenting: Bool, fromView: UIView, toView: UIView, in container: UIView)
+    func completeTransition(didComplete: Bool, presenting: Bool, fromView: UIView, toView: UIView, in container: UIView)
 }
 
 public extension NavigationTransitionAnimationConfigurable {
-    var duration: TimeInterval { 0.25 }
+    var duration: TimeInterval { 0.35 }
     var auxAnimations: ((Bool) -> [AuxAnimation])? { nil }
-    var onCompletion: ((Bool) -> Void)? { nil }
     
     func layout(presenting: Bool, fromView: UIView, toView: UIView, in container: UIView) {
         if presenting {
@@ -29,6 +28,8 @@ public extension NavigationTransitionAnimationConfigurable {
             fromView.transform = .identity.translatedBy(x: fromView.bounds.width, y: 0)
         }
     }
+    
+    func completeTransition(didComplete: Bool, presenting: Bool, fromView: UIView, toView: UIView, in container: UIView) {}
 }
 
 final class NavigationTransitionAnimator: NSObject {
@@ -84,8 +85,6 @@ extension NavigationTransitionAnimator: UIViewControllerAnimatedTransitioning {
         fromView.frame = fromFrame
         toView.frame = toFrame
         
-        
-        
         config.layout(presenting: isPush, fromView: fromView,
                                   toView: toView, in: containerView)
         
@@ -101,9 +100,8 @@ extension NavigationTransitionAnimator: UIViewControllerAnimatedTransitioning {
                 
                 if let auxAnimations = self.config.auxAnimations?(isPush) {
                     for animation in auxAnimations {
-                        let relativeDuration = duration - animation.relativeDelay * duration
-                        UIView.addKeyframe(withRelativeStartTime: animation.relativeDelay,
-                                           relativeDuration: relativeDuration,
+                        UIView.addKeyframe(withRelativeStartTime: animation.relativeStartTime,
+                                           relativeDuration: animation.relativeDuration,
                                            animations: animation.closure)
                     }
                 }
@@ -113,10 +111,11 @@ extension NavigationTransitionAnimator: UIViewControllerAnimatedTransitioning {
         animator.addCompletion { position in
             switch position {
             case .end:
-              transitionContext.completeTransition(!transitionContext.transitionWasCancelled)
-                self.config.onCompletion?(isPush)
+                transitionContext.completeTransition(!transitionContext.transitionWasCancelled)
+                self.config.completeTransition(didComplete: !transitionContext.transitionWasCancelled, presenting: isPush, fromView: fromView, toView: toView, in: containerView)
             default:
-              transitionContext.completeTransition(false)
+                transitionContext.completeTransition(false)
+                self.config.completeTransition(didComplete: false, presenting: isPush, fromView: fromView, toView: toView, in: containerView)
             }
         }
         self.animator = animator

@@ -9,7 +9,7 @@ public protocol ModalTransitionAnimationConfigurable {
 }
 
 public extension ModalTransitionAnimationConfigurable {
-    var duration: TimeInterval { 0.25 }
+    var duration: TimeInterval { 0.35 }
     var auxAnimation: ((Bool) -> Void)? { nil }
     var onCompletion: ((Bool) -> Void)? { nil }
     func layout(presenting: Bool, fromView: UIView, toView: UIView, in container: UIView) {

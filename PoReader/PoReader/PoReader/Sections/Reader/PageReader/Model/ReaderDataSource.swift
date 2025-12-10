@@ -30,12 +30,12 @@ final class ReaderDataSource {
         }
 
         guard let text = text else {
-            debugPrint("load file faile")
+            print("load file faile")
             return
         }
 
-        let pattern = #"(?<=\s)[第]?[0-9零一二三四五六七八九十百千万]+[章节集卷部篇回](?: |　|：){0,4}(?:\S)*"#
-//        let pattern = #"\s{1}[第]{0,1}(?:.{1,8})(章|节|集|回|卷|部|篇)"#
+//        let pattern = #"(?<=\s)[第]?[0-9零一二三四五六七八九十百千万]+[章节集卷部篇回](?: |　|：){0,4}(?:\S)*"#
+        let pattern = #"^\s*(?:第\s*[0-9零一二三四五六七八九十百千万两]+\s*[章卷节回部篇]|序言|序章|前言|楔子|尾声|番外|后记)[^\n]{0,35}$"#
         let expression = try! NSRegularExpression(pattern: pattern, options: .anchorsMatchLines)
         let matchResults = expression.matches(in: text as String, options: .reportCompletion, range: NSRange(location: 0, length: text.length))
         
@@ -80,7 +80,12 @@ final class ReaderDataSource {
                 currentLocal += range.length
             }
         }
-
+        #if DEBUG
+        print("章节数: \(matchResults.count) - \(chapterArr.count)")
+        chapterArr.forEach { model in
+            print(model)
+        }
+        #endif
         chapters = chapterArr
     }
     

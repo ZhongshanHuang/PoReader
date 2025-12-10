@@ -8,6 +8,12 @@
 
 import Foundation
 
+extension ChapterModel: CustomStringConvertible {
+    var description: String {
+        "idx: \(idx), range: \(range), title: \(title, default: "nil")"
+    }
+}
+
 final class ChapterModel {
     let idx: Int
     let title: String?

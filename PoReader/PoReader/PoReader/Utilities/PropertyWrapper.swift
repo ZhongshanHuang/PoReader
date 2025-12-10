@@ -96,7 +96,7 @@ struct UserDefaultCustom<T: Codable> {
                 memoryValue = value.wrapped
                 return value.wrapped
             } catch {
-                debugPrint(error.localizedDescription)
+                print(error.localizedDescription)
             }
             return defaultValue
         }
@@ -108,7 +108,7 @@ struct UserDefaultCustom<T: Codable> {
             } catch {
                 memoryValue = nil
                 UserDefaults.standard.removeObject(forKey: key)
-                debugPrint(error.localizedDescription)
+                print(error.localizedDescription)
             }
         }
     }
@@ -148,7 +148,7 @@ struct UserDefaultCustomOptional<T: Codable> {
                 memoryValue = value.wrapped
                 return value.wrapped
             } catch {
-                debugPrint(error.localizedDescription)
+                print(error.localizedDescription)
             }
             return nil
         }
@@ -160,7 +160,7 @@ struct UserDefaultCustomOptional<T: Codable> {
                     UserDefaults.standard.set(data, forKey: key)
                 } catch {
                     memoryValue = nil
-                    debugPrint(error.localizedDescription)
+                    print(error.localizedDescription)
                 }
             } else {
                 UserDefaults.standard.removeObject(forKey: key)

@@ -20,7 +20,7 @@ final class Database {
     
     /// 获取书本列表
     func loadBookList() throws -> [BookModel] {
-        let sql = "SELECT name, last_access, progress FROM \(BookModel.tableName) ORDER BY last_access;"
+        let sql = "SELECT name, last_access, progress FROM \(BookModel.tableName) ORDER BY last_access DESC;"
         
         var books = [BookModel]()
         try database.executeQuery(statement: sql) { stmt in

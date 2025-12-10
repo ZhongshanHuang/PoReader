@@ -115,7 +115,7 @@ class MainViewController: BaseViewController {
     }
     
     private func setupViewModel() {
-        viewModel.$dataList.debounce(for: 0.5, scheduler: RunLoop.main).sink { [unowned self] data in
+        viewModel.$dataList.debounce(for: 0.35, scheduler: RunLoop.main).sink { [unowned self] data in
             updateUI(with: data)
         }.store(in: &stores)
         
@@ -277,7 +277,7 @@ extension MainViewController: UICollectionViewDelegate {
 }
 
 class OpenBookTransitionAnimationConfig: NavigationTransitionAnimationConfigurable {
-    var duration: TimeInterval { 3 }
+    var duration: TimeInterval { 0.5 }
     var auxAnimations: ((Bool) -> [AuxAnimation])? { nil }
     var onCompletion: ((Bool) -> Void)?
     var targetView: UIView!
@@ -324,7 +324,7 @@ class OpenBookTransitionAnimationConfig: NavigationTransitionAnimationConfigurab
         }
     }
     
-    func animations(presenting: Bool, fromView: UIView, toView: UIView, in container: UIView) {
+    func animate(presenting: Bool, fromView: UIView, toView: UIView, in container: UIView) {
         if presenting {
             coverView?.frame = toView.frame
             contentView?.frame = toView.frame

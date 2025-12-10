@@ -2,16 +2,15 @@ import UIKit
 
 public protocol ModalTransitionAnimationConfigurable {
     var duration: TimeInterval { get }
-    var auxAnimation: ((Bool) -> Void)? { get }
-    var onCompletion: ((Bool) -> Void)? { get }
     func layout(presenting: Bool, fromView: UIView, toView: UIView, in container: UIView)
     func animate(presenting: Bool, fromView: UIView, toView: UIView, in container: UIView)
+    func auxAnimations(presenting: Bool, fromView: UIView, toView: UIView, in container: UIView) -> [AuxAnimation]
+    func completeTransition(didComplete: Bool, presenting: Bool, fromView: UIView, toView: UIView, in container: UIView)
 }
 
 public extension ModalTransitionAnimationConfigurable {
     var duration: TimeInterval { 0.35 }
-    var auxAnimation: ((Bool) -> Void)? { nil }
-    var onCompletion: ((Bool) -> Void)? { nil }
+    
     func layout(presenting: Bool, fromView: UIView, toView: UIView, in container: UIView) {
         if presenting {
             toView.transform = .identity.translatedBy(x: 0, y: toView.bounds.height)
@@ -25,6 +24,10 @@ public extension ModalTransitionAnimationConfigurable {
             fromView.transform = .identity.translatedBy(x: 0, y: fromView.bounds.height)
         }
     }
+    
+    func auxAnimations(presenting: Bool, fromView: UIView, toView: UIView, in container: UIView) -> [AuxAnimation] { [] }
+    
+    func completeTransition(didComplete: Bool, presenting: Bool, fromView: UIView, toView: UIView, in container: UIView) {}
 }
 
 final class ModalTransitionAnimator: NSObject {
@@ -76,19 +79,29 @@ extension ModalTransitionAnimator: UIViewControllerAnimatedTransitioning {
         let duration = transitionDuration(using: transitionContext)
         let animator = UIViewPropertyAnimator(duration: duration, curve: .linear)
         animator.addAnimations {
-            self.config.animate(presenting: isPresenting, fromView: fromView, toView: toView, in: containerView)
+            UIView.animateKeyframes(withDuration: duration, delay: 0.0, options: [], animations: {
+                UIView.addKeyframe(withRelativeStartTime: 0, relativeDuration: 1, animations: {
+                    self.config.animate(presenting: isPresenting,fromView: fromView, toView: toView, in: containerView)
+                })
+                
+                let auxAnimations = self.config.auxAnimations(presenting: isPresenting, fromView: fromView, toView: toView, in: containerView)
+                for animation in auxAnimations {
+                    UIView.addKeyframe(withRelativeStartTime: animation.relativeStartTime,
+                                       relativeDuration: animation.relativeDuration,
+                                       animations: animation.closure)
+                }
+            }) { _ in
+            }
         }
         animator.addCompletion { position in
             switch position {
             case .end:
-              transitionContext.completeTransition(!transitionContext.transitionWasCancelled)
-                self.config.onCompletion?(isPresenting)
+                transitionContext.completeTransition(!transitionContext.transitionWasCancelled)
+                self.config.completeTransition(didComplete: !transitionContext.transitionWasCancelled, presenting: isPresenting, fromView: fromView, toView: toView, in: containerView)
             default:
-              transitionContext.completeTransition(false)
+                transitionContext.completeTransition(false)
+                self.config.completeTransition(didComplete: false, presenting: isPresenting, fromView: fromView, toView: toView, in: containerView)
             }
-        }
-        if let auxAnimation = config.auxAnimation {
-            animator.addAnimations({ auxAnimation(isPresenting) })
         }
         self.animator = animator
         animator.addCompletion { _ in

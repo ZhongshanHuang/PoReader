@@ -9,14 +9,16 @@ class AudioListViewController: BaseViewController {
     
     private let viewModel = AudioListViewModel()
     
-    private var collectionView: UICollectionView!
-    private var dataSource: UICollectionViewDiffableDataSource<Section, AudioModel>!
-    private var stores: Set<AnyCancellable> = []
-    
     private lazy var uploadButon: UIBarButtonItem = {
         let button = UIBarButtonItem(title: "传书", style: .plain, target: self, action: #selector(handleUploadAction(_:)))
         return button
     }()
+    
+    private var collectionView: UICollectionView!
+    private var dataSource: UICollectionViewDiffableDataSource<Section, AudioModel>!
+    private var stores: Set<AnyCancellable> = []
+    
+    let playerView = AudioPlayerView()
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -25,7 +27,7 @@ class AudioListViewController: BaseViewController {
         navigationItem.title = "土豆阅读"
         navigationItem.leftBarButtonItem = uploadButon
         
-        setupCollectionView()
+        setupView()
         configureDataSource()
         setupViewModel()
     }
@@ -35,7 +37,15 @@ class AudioListViewController: BaseViewController {
         loadData()
     }
     
-    private func setupCollectionView() {
+    private func setupView() {
+        view.addSubview(playerView)
+        playerView.snp.makeConstraints { make in
+            make.leading.equalToSuperview()
+            make.trailing.equalToSuperview()
+            make.bottom.equalTo(view.safeAreaLayoutGuide.snp.bottom)
+            make.height.equalTo(65)
+        }
+        
         var config = UICollectionLayoutListConfiguration(appearance: .plain)
         config.backgroundColor = .clear
         if #available(iOS 15.0, *) {
@@ -52,7 +62,8 @@ class AudioListViewController: BaseViewController {
         collectionView.delegate = self
         view.addSubview(collectionView)
         collectionView.snp.makeConstraints { make in
-            make.edges.equalToSuperview()
+            make.top.leading.trailing.equalToSuperview()
+            make.bottom.equalTo(playerView.snp.top)
         }
     }
     

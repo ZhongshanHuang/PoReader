@@ -55,6 +55,9 @@
 		CFB37DA12EF8E4B400BB2385 /* MainTabBarController.swift in Sources */ = {isa = PBXBuildFile; fileRef = CFB37DA02EF8E4B400BB2385 /* MainTabBarController.swift */; };
 		CFB37DA32EF8E8CA00BB2385 /* AudioModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = CFB37DA22EF8E8CA00BB2385 /* AudioModel.swift */; };
 		CFB37DA62EF8F31600BB2385 /* AudioListViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = CFB37DA52EF8F31600BB2385 /* AudioListViewModel.swift */; };
+		CFB37DA82EF9367800BB2385 /* PoAVPlayer.swift in Sources */ = {isa = PBXBuildFile; fileRef = CFB37DA72EF9367800BB2385 /* PoAVPlayer.swift */; };
+		CFB37DAC2EF936BB00BB2385 /* AudioPlayerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CFB37DAA2EF936BB00BB2385 /* AudioPlayerView.swift */; };
+		CFB37DAD2EF936BB00BB2385 /* MediaProgressView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CFB37DAB2EF936BB00BB2385 /* MediaProgressView.swift */; };
 		CFD3B7182EE7B3D9006251B2 /* NavigationTransitionDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = CFD3B7122EE7B3D9006251B2 /* NavigationTransitionDelegate.swift */; };
 		CFD3B7192EE7B3D9006251B2 /* NavigationTransitionAnimator.swift in Sources */ = {isa = PBXBuildFile; fileRef = CFD3B7112EE7B3D9006251B2 /* NavigationTransitionAnimator.swift */; };
 		CFD3B71A2EE7B3D9006251B2 /* PanGesture.swift in Sources */ = {isa = PBXBuildFile; fileRef = CFD3B7152EE7B3D9006251B2 /* PanGesture.swift */; };
@@ -139,6 +142,9 @@
 		CFB37DA02EF8E4B400BB2385 /* MainTabBarController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainTabBarController.swift; sourceTree = "<group>"; };
 		CFB37DA22EF8E8CA00BB2385 /* AudioModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioModel.swift; sourceTree = "<group>"; };
 		CFB37DA52EF8F31600BB2385 /* AudioListViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioListViewModel.swift; sourceTree = "<group>"; };
+		CFB37DA72EF9367800BB2385 /* PoAVPlayer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PoAVPlayer.swift; sourceTree = "<group>"; };
+		CFB37DAA2EF936BB00BB2385 /* AudioPlayerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioPlayerView.swift; sourceTree = "<group>"; };
+		CFB37DAB2EF936BB00BB2385 /* MediaProgressView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaProgressView.swift; sourceTree = "<group>"; };
 		CFD3B70A2EE7B3D9006251B2 /* TransitionInteractiveController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransitionInteractiveController.swift; sourceTree = "<group>"; };
 		CFD3B70C2EE7B3D9006251B2 /* ModalPresentationController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModalPresentationController.swift; sourceTree = "<group>"; };
 		CFD3B70D2EE7B3D9006251B2 /* ModalTransitionAnimator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModalTransitionAnimator.swift; sourceTree = "<group>"; };
@@ -390,6 +396,7 @@
 		6C96E1D028FD648400C887F0 /* Utilities */ = {
 			isa = PBXGroup;
 			children = (
+				CFB37DA72EF9367800BB2385 /* PoAVPlayer.swift */,
 				CFD3B7172EE7B3D9006251B2 /* Transition */,
 				6C96E1D128FD648400C887F0 /* PropertyWrapper.swift */,
 				CFAE55702DC06F0A002E9F69 /* ReuseIdentifier.swift */,
@@ -480,6 +487,7 @@
 			isa = PBXGroup;
 			children = (
 				CFB37D9D2EF8DF5100BB2385 /* AudioListCell.swift */,
+				CFB37DA92EF936AA00BB2385 /* Player */,
 			);
 			path = View;
 			sourceTree = "<group>";
@@ -498,6 +506,15 @@
 				CFB37DA52EF8F31600BB2385 /* AudioListViewModel.swift */,
 			);
 			path = ViewModel;
+			sourceTree = "<group>";
+		};
+		CFB37DA92EF936AA00BB2385 /* Player */ = {
+			isa = PBXGroup;
+			children = (
+				CFB37DAA2EF936BB00BB2385 /* AudioPlayerView.swift */,
+				CFB37DAB2EF936BB00BB2385 /* MediaProgressView.swift */,
+			);
+			path = Player;
 			sourceTree = "<group>";
 		};
 		CFD3B70B2EE7B3D9006251B2 /* InteractiveTransition */ = {
@@ -691,6 +708,7 @@
 				6C96E20728FD77CD00C887F0 /* ViewController.swift in Sources */,
 				6C96E1EA28FD648400C887F0 /* BaseViewController.swift in Sources */,
 				CFD3B7222EE7B541006251B2 /* SceneDelegate.swift in Sources */,
+				CFB37DA82EF9367800BB2385 /* PoAVPlayer.swift in Sources */,
 				6C96E1E928FD648400C887F0 /* BookCell.swift in Sources */,
 				6C96E1E228FD648400C887F0 /* ReaderBottomBar.swift in Sources */,
 				6CF2BA2A29014355005408BF /* ScrollReaderDisplayCell.swift in Sources */,
@@ -698,6 +716,8 @@
 				6C96E1F728FD648400C887F0 /* String+Ext.swift in Sources */,
 				CFAE55732DC0A75E002E9F69 /* UserSettings.swift in Sources */,
 				CFAE55672DBF809D002E9F69 /* SettingsViewController.swift in Sources */,
+				CFB37DAC2EF936BB00BB2385 /* AudioPlayerView.swift in Sources */,
+				CFB37DAD2EF936BB00BB2385 /* MediaProgressView.swift in Sources */,
 				CFAE556D2DBF83F8002E9F69 /* SettingsItem.swift in Sources */,
 				6CF2BA2C29014A09005408BF /* PageItem.swift in Sources */,
 				6C96E1E028FD648400C887F0 /* ReaderDataSource.swift in Sources */,

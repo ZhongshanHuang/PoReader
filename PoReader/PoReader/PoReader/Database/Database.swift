@@ -12,12 +12,22 @@ final class Database {
         let dababase = SQLiteDatabase(path: path)
         do {
             try dababase.execute(sql: BookModel.scheme, isWrite: true)
+            try dababase.execute(sql: AudioModel.scheme, isWrite: true)
         } catch {
             print("创建表格失败")
         }
         return dababase
     }()
-    
+}
+
+// MARK: - Book
+struct PageLocation {
+    var chapterIndex: Int = 0
+    var subrangeIndex: Int = 0
+    var progress: Double = 0
+}
+
+extension Database {
     /// 获取书本列表
     func loadBookList() throws -> [BookModel] {
         let sql = "SELECT name, last_access, progress FROM \(BookModel.tableName) ORDER BY last_access DESC;"
@@ -89,13 +99,77 @@ final class Database {
             try stmt.bind(position: 4, name)
         })
     }
-    
 }
 
-// MARK: - PageLocation
+// MARK: - Audio
 
-struct PageLocation {
-    var chapterIndex: Int = 0
-    var subrangeIndex: Int = 0
-    var progress: Double = 0
+extension Database {
+    /// 获取音频列表
+    func loadAudioList() throws -> [AudioModel] {
+        let sql = "SELECT name, last_access, progress FROM \(AudioModel.tableName) ORDER BY last_access DESC;"
+        
+        var books = [AudioModel]()
+        try database.executeQuery(statement: sql) { stmt in
+        } handleRow: { stmt in
+            let name = stmt.columnText(position: 0)
+            let lastAccess = stmt.columnDouble(position: 1)
+            let progress = stmt.columnDouble(position: 2)
+            let localPath = (Constants.localAudioDirectory as NSString).appendingPathComponent(name)
+            books.append(AudioModel(name: name,
+                                    lastAccessDate: lastAccess,
+                                    progress: progress,
+                                    localPath: URL(fileURLWithPath: localPath)))
+        }
+        
+        return books
+    }
+    
+    
+    /// 将音频保存到数据库
+    /// - Parameter name: book name
+    func addAudio(_ name: String) throws {
+        try database.executeUpdate(statement: "INSERT OR REPLACE INTO \(AudioModel.tableName) (name) VALUES (?);") { stmt in
+            try stmt.bind(position: 1, name)
+        }
+    }
+    
+    
+    /// 从数据库删除音频记录
+    /// - Parameter name: book name
+    func removeAudio(_ name: String) throws {
+        try database.executeUpdate(statement: "DELETE FROM \(AudioModel.tableName) WHERE name=?;", doUpdating: { stmt in
+            try stmt.bind(position: 1, name)
+        })
+    }
+    
+    /// 保存最近一次听音频时间
+    /// - Parameters:
+    ///   - accessDate: timeIntervalSince1970
+    ///   - name: book name
+    func update(_ accessDate: Double, forAudio name: String) throws {
+        try database.executeUpdate(statement: "UPDATE \(AudioModel.tableName) SET last_access=? WHERE name=?;", doUpdating: { stmt in
+            try stmt.bind(position: 1, accessDate)
+            try stmt.bind(position: 2, name)
+        })
+    }
+    
+    /// 获取进度
+    func progress(forAudio name: String) throws -> Float {
+        var progress: Float = 0
+        try database.executeQuery(statement: "SELECT progress, progress FROM \(AudioModel.tableName) WHERE name=?;", doBindings: { stmt in
+            try stmt.bind(position: 1, name)
+        }, handleRow: { stmt in
+            progress = Float(stmt.columnDouble(position: 0))
+        })
+        return progress
+    }
+    
+    /// 保存进度
+    func update(_ progress: Float, forBook name: String) throws {
+        try database.executeUpdate(statement: "UPDATE \(BookModel.tableName) SET progress=? WHERE name=?;", doUpdating: { stmt in
+            try stmt.bind(position: 1, Double(progress))
+            try stmt.bind(position: 2, name)
+        })
+    }
+    
 }

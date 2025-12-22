@@ -41,7 +41,7 @@ class BookCell: UICollectionViewCell {
         return label
     }()
     
-    private let processLabel: UILabel = {
+    private let             progressLabel: UILabel = {
         let label = UILabel()
         label.font = .systemFont(ofSize: 12)
         label.textColor = .dynamicColor(light: UIColor(red: 0.24, green: 0.24, blue: 0.26, alpha: 0.6),
@@ -76,9 +76,9 @@ class BookCell: UICollectionViewCell {
     func config(with data: BookModel) {
         titleLabel.text = data.name
         if data.progress == 0 {
-            processLabel.text = "未读"
+            progressLabel.text = "未读"
         } else {
-            processLabel.text = String(format: "%.1f%%", data.progress * 100)
+                        progressLabel.text = String(format: "%.1f%%", data.progress * 100)
         }
     }
     
@@ -107,8 +107,8 @@ class BookCell: UICollectionViewCell {
             make.left.right.equalToSuperview()
         }
         
-        contentView.addSubview(processLabel)
-        processLabel.snp.makeConstraints { (make) in
+        contentView.addSubview(            progressLabel)
+                    progressLabel.snp.makeConstraints { (make) in
             make.top.equalTo(titleLabel.snp.bottom).offset(2)
             make.left.bottom.right.equalToSuperview()
         }

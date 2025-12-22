@@ -46,7 +46,7 @@ class UploaderViewController: BaseViewController {
     }
     
     private func setupUI() {
-        title = "书本上传"
+        title = "文件上传"
         
         view.addSubview(hostLabel)
         hostLabel.snp.makeConstraints { (make) in
@@ -57,7 +57,14 @@ class UploaderViewController: BaseViewController {
     }
     
     private func startUploadServer() {
-        webUploader = PoReaderWebUploader(uploadDirectory: Constants.localBookDirectory)
+        let localDirectory: String
+        switch uploadType {
+        case .txt:
+            localDirectory = Constants.localBookDirectory
+        case .audio:
+            localDirectory = Constants.localAudioDirectory
+        }
+        webUploader = PoReaderWebUploader(uploadDirectory: localDirectory)
         webUploader?.allowedFileExtensions = [uploadType.supportFormat]
         webUploader?.prologue = "请将文件拖至下方方框，或者点击上传按钮，目前只支持\(uploadType.supportFormat)格式"
         webUploader?.delegate = self
@@ -84,23 +91,33 @@ class UploaderViewController: BaseViewController {
 
 extension UploaderViewController: GCDWebUploaderDelegate {
     
-    /// 将上传的书本信息存入本地数据库
+    /// 将上传的文件信息存入本地数据库
     func webUploader(_ uploader: GCDWebUploader, didUploadFileAtPath path: String) {
-        let bookName = (path as NSString).lastPathComponent
+        let fileName = (path as NSString).lastPathComponent
         do {
-            try Database.shared.addBook(bookName)
+            switch uploadType {
+            case .txt:
+                try Database.shared.addBook(fileName)
+            case .audio:
+                try Database.shared.addAudio(fileName)
+            }
         } catch {
-            print("add book failure: \(error.localizedDescription)")
+            print("add file failure: \(error.localizedDescription)")
         }
     }
     
-    /// 在浏览器端删除书本
+    /// 在浏览器端删除文件
     func webUploader(_ uploader: GCDWebUploader, didDeleteItemAtPath path: String) {
-        let bookName = (path as NSString).lastPathComponent
+        let fileName = (path as NSString).lastPathComponent
         do {
-            try Database.shared.removeBook(bookName)
+            switch uploadType {
+            case .txt:
+                try Database.shared.removeBook(fileName)
+            case .audio:
+                try Database.shared.removeAudio(fileName)
+            }
         } catch {
-            print("delete book failure: \(error.localizedDescription)")
+            print("delete file failure: \(error.localizedDescription)")
         }
     }
 }

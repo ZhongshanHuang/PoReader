@@ -30,6 +30,11 @@ class AudioListViewController: BaseViewController {
         setupViewModel()
     }
     
+    override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
+        loadData()
+    }
+    
     private func setupCollectionView() {
         var config = UICollectionLayoutListConfiguration(appearance: .plain)
         config.backgroundColor = .clear
@@ -85,6 +90,16 @@ class AudioListViewController: BaseViewController {
             completion(true)
         }
         return UISwipeActionsConfiguration(actions: [starAction])
+    }
+    
+    private func loadData() {
+        Task {
+            do {
+                try await viewModel.loadAudioList()
+            } catch {
+                print("音频列表加载出错: \(error.localizedDescription)")
+            }
+        }
     }
     
     // MARK: - Selectors

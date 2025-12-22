@@ -11,7 +11,7 @@ class AudioPlayerView: UIView {
     private let titleLabel: UILabel = UILabel()
     private let activityIndicator: UIActivityIndicatorView = UIActivityIndicatorView(style: .large)
     private let timeLabel: UILabel = UILabel()
-    private let playButton: UIButton = UIButton(type: .system)
+    private let playButton: UIButton = UIButton(type: .custom)
     private let progress: MediaProgressView = MediaProgressView()
     private var isIgnorePeriod: Bool = false
     
@@ -84,12 +84,7 @@ class AudioPlayerView: UIView {
         if player.isPlaying {
             player.pause()
         } else {
-            if isPlayToEndTime {
-                player.seekToTime(0)
-                isPlayToEndTime = false
-            } else {
-                player.resume()
-            }
+            player.resume()
         }
     }
     
@@ -287,7 +282,7 @@ extension AudioPlayerView: PoAVPlayerDelegate {
     func avplayer(_ player: PoAVPlayer, playerItemStatusChanged status: PoAVPlayer.PlaybackStatus) {
         switch status {
         case .idle:
-            break
+            playButton.isSelected = false
         case .playing:
             playButton.isSelected = true
         case .paused:

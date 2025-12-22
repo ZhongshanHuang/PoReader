@@ -94,7 +94,9 @@ class PoAVPlayer: NSObject {
     public private(set) var playStatus = PlaybackStatus.idle {
         didSet {
             if playStatus == oldValue { return }
-            playOrPause()
+            if playStatus != .finished {
+                playOrPause()
+            }
             PoDebugLog("PoAVPlayer playerItemStatusChanged: \(playStatus)")
             delegate?.avplayer(self, playerItemStatusChanged: playStatus)
         }
@@ -145,10 +147,10 @@ class PoAVPlayer: NSObject {
     
     override init() {
         super.init()
-        _setup()
+        setup()
     }
     
-    private func _setup() {
+    private func setup() {
         player.actionAtItemEnd = .pause
         player.automaticallyWaitsToMinimizeStalling = false
         (renderView.layer as! AVPlayerLayer).player = player
@@ -252,13 +254,13 @@ class PoAVPlayer: NSObject {
             return
         }
         player.pause()
-        
         let seconds = playItem.duration.seconds > timeInterval ? timeInterval : playItem.duration.seconds
         let tolerance: CMTime = isAccurateSeek ? .zero : .positiveInfinity
         player.seek(to: CMTime(seconds: seconds, preferredTimescale: 600), toleranceBefore: tolerance, toleranceAfter: tolerance) { [weak self] success in
             guard let self else { return }
-            resume()
+            player.play()
             completionHandler?(success)
+            delegate?.avplayer(self, playerItemStatusChanged: .playing)
             PoDebugLog("PoAVPlayer seek: \(timeInterval) \(success ? "success" : "failure")")
         }
     }
@@ -266,29 +268,29 @@ class PoAVPlayer: NSObject {
     /// 是否在回前台时播放，退后台时暂停
     func followAppActityStatus(_ follow: Bool) {
         if follow {
-            _addAppNotification()
+            addAppNotification()
         } else {
-            _removeAppNotification()
+            removeAppNotification()
         }
     }
     
     // MARK: - Notification
     
     private var hasRegisterAppNotification = false
-    private func _addAppNotification() {
+    private func addAppNotification() {
         if hasRegisterAppNotification { return }
         hasRegisterAppNotification = true
         NotificationCenter.default.addObserver(self,
-                                               selector: #selector(_appResignActive),
+                                               selector: #selector(appResignActive),
                                                name: UIApplication.willResignActiveNotification,
                                                object: nil)
         NotificationCenter.default.addObserver(self,
-                                               selector: #selector(_appBecomeActive),
+                                               selector: #selector(appBecomeActive),
                                                name: UIApplication.didBecomeActiveNotification,
                                                object: nil)
     }
     
-    private func _removeAppNotification() {
+    private func removeAppNotification() {
         if !hasRegisterAppNotification { return }
         NotificationCenter.default.removeObserver(self, name: UIApplication.willResignActiveNotification, object: nil)
         NotificationCenter.default.removeObserver(self, name: UIApplication.didBecomeActiveNotification, object: nil)
@@ -302,15 +304,19 @@ class PoAVPlayer: NSObject {
         self.currentPlayerItem = playerItem
         
         if let playerItem {
-            _addObserver(for: playerItem)
+            addObserver(for: playerItem)
         }
         player.replaceCurrentItem(with: playerItem)
     }
     
     private func playOrPause() {
         if playStatus == .playing {
-            if loadState == .playable {
-                player.play()
+            if isReadyToPlay {
+                if let currentTime, let duration, duration - currentTime < 1 {
+                    seekToTime(0)
+                } else {
+                    player.play()
+                }
             }
         } else {
             player.pause()
@@ -319,9 +325,9 @@ class PoAVPlayer: NSObject {
     
     // MARK: - Observer
     
-    private func _addObserver(for playerItem: AVPlayerItem) {
-        NotificationCenter.default.addObserver(self, selector: #selector(_playerItemDidPlayToEndTime), name: .AVPlayerItemDidPlayToEndTime, object: playerItem)
-        NotificationCenter.default.addObserver(self, selector: #selector(_playerItemDidFailedPlayToEndTime(_:)), name: .AVPlayerItemFailedToPlayToEndTime, object: playerItem)
+    private func addObserver(for playerItem: AVPlayerItem) {
+        NotificationCenter.default.addObserver(self, selector: #selector(playerItemDidPlayToEndTime), name: .AVPlayerItemDidPlayToEndTime, object: playerItem)
+        NotificationCenter.default.addObserver(self, selector: #selector(playerItemDidFailedPlayToEndTime(_:)), name: .AVPlayerItemFailedToPlayToEndTime, object: playerItem)
 
         let statusObservation = playerItem.observe(\.status, options: [.new]) { [weak self] item, _ in
             guard let self else { return }
@@ -337,7 +343,7 @@ class PoAVPlayer: NSObject {
                 }
             case .failed:
                 PoDebugLog("PoAVPlayer status failed")
-                self.delegate?.avplayer(self, playerItemStatusChanged: .failed(.resourceLoadFailed(item.error)))
+                playStatus = .failed(.resourceLoadFailed(item.error))
             default:
                 break
             }
@@ -376,7 +382,7 @@ class PoAVPlayer: NSObject {
     }
     
     @objc
-    private func _appResignActive() {
+    private func appResignActive() {
         isPlayingBeforeResignActive = isPlaying
         if isPlayingBeforeResignActive {
             pause()
@@ -384,20 +390,20 @@ class PoAVPlayer: NSObject {
     }
     
     @objc
-    private func _appBecomeActive() {
+    private func appBecomeActive() {
         if isPlayingBeforeResignActive {
             resume()
         }
     }
     
     @objc
-    private func _playerItemDidPlayToEndTime() {
+    private func playerItemDidPlayToEndTime() {
         PoDebugLog("PoAVPlayer playerItemDidPlayToEndTime")
-        delegate?.avplayer(self, playerItemStatusChanged: .finished)
+        playStatus = .finished
     }
     
     @objc
-    private func _playerItemDidFailedPlayToEndTime(_ notification: Notification) {
+    private func playerItemDidFailedPlayToEndTime(_ notification: Notification) {
         var playError: Error?
         if let userInfo = notification.userInfo {
             if let error = userInfo["error"] as? Error {
@@ -409,7 +415,7 @@ class PoAVPlayer: NSObject {
             }
         }
         PoDebugLog("PoAVPlayer playerItemDidFailedPlayToEndTime: \(playError?.localizedDescription ?? "")")
-        delegate?.avplayer(self, playerItemStatusChanged: .failed(.playbackFailed(playError)))
+        playStatus = .failed(.playbackFailed(playError))
     }
 }
 

@@ -1,10 +1,3 @@
-//
-//  ReuseIdentifier.swift
-//  PoReader
-//
-//  Created by zhongshan on 2025/4/29.
-//
-
 import UIKit
 
 protocol ReuseIdentifier: AnyObject {

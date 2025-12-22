@@ -1,10 +1,3 @@
-//
-//  SettingsSwitchCell.swift
-//  PoReader
-//
-//  Created by zhongshan on 2025/4/28.
-//
-
 import UIKit
 
 class SettingsSwitchCell: UITableViewCell, SettingsCellProtocol {

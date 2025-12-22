@@ -1,10 +1,3 @@
-//
-//  ScrollReaderDisplayCell.swift
-//  PoReader
-//
-//  Created by HzS on 2022/10/20.
-//
-
 import UIKit
 import SnapKit
 

@@ -1,11 +1,3 @@
-//
-//  ReaderBottomBar.swift
-//  PoReader
-//
-//  Created by 黄中山 on 2020/5/20.
-//  Copyright © 2020 potato. All rights reserved.
-//
-
 import UIKit
 
 protocol ReaderBottomBarDelegate: AnyObject {

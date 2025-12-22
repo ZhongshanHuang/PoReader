@@ -1,16 +1,8 @@
-//
-//  MainViewController.swift
-//  PoReader
-//
-//  Created by 黄中山 on 2020/5/18.
-//  Copyright © 2020 potato. All rights reserved.
-//
-
 import UIKit
 import Combine
 import SnapKit
 
-class MainViewController: BaseViewController {
+class TextListViewController: BaseViewController {
 
     nonisolated
     enum Section: Sendable, Hashable {
@@ -18,7 +10,7 @@ class MainViewController: BaseViewController {
     }
     
     // MARK: - Properties
-    private let viewModel = MainViewModel()
+    private let viewModel = TextListViewModel()
     private let flowLayout: UICollectionViewFlowLayout = {
         let flowLayout = UICollectionViewFlowLayout()
         let padding: CGFloat = 20
@@ -86,7 +78,7 @@ class MainViewController: BaseViewController {
     }
     
     private func setupUI() {
-        title = "土豆阅读"
+        navigationItem.title = "土豆阅读"
         navigationItem.leftBarButtonItem = uploadButon
         navigationItem.rightBarButtonItem = settingsButon
         
@@ -190,7 +182,7 @@ class MainViewController: BaseViewController {
     
     @objc
     private func handleUploadAction(_ sender: UIBarButtonItem) {
-        let vc = UploaderViewController()
+        let vc = UploaderViewController(uploadType: .txt)
         navigationController?.pushViewController(vc, animated: true)
     }
     
@@ -257,7 +249,7 @@ class MainViewController: BaseViewController {
 
 // MARK: - UICollectionViewDelegate
 
-extension MainViewController: UICollectionViewDelegate {
+extension TextListViewController: UICollectionViewDelegate {
     
     func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
         if isEditing {

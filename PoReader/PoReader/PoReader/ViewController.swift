@@ -1,10 +1,3 @@
-//
-//  ViewController.swift
-//  PoReader
-//
-//  Created by HzS on 2022/10/17.
-//
-
 import UIKit
 
 class ViewController: UIViewController {

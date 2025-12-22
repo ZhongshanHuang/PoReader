@@ -1,10 +1,3 @@
-//
-//  SceneDelegate.swift
-//  PoReader
-//
-//  Created by zhongshan on 2025/12/9.
-//
-
 import UIKit
 
 class SceneDelegate: UIResponder, UIWindowSceneDelegate {
@@ -20,7 +13,7 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         window?.frame = windowScene.coordinateSpace.bounds
         window?.backgroundColor = Appearance.backgroundColor
         window?.overrideUserInterfaceStyle = UserSettings.appearanceMode.toUIUserInterfaceStyle
-        window?.rootViewController = NavigationController(rootViewController: MainViewController())
+        window?.rootViewController = MainTabBarController()
         window?.makeKeyAndVisible()
         
         // makeKeyAndVisible后才准确

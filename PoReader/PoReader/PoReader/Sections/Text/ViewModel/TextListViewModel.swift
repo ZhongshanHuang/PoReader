@@ -1,16 +1,8 @@
-//
-//  MainViewModel.swift
-//  PoReader
-//
-//  Created by 黄中山 on 2020/5/19.
-//  Copyright © 2020 potato. All rights reserved.
-//
-
 import Foundation
 import Combine
 
 @MainActor
-final class MainViewModel {
+final class TextListViewModel {
     @Published
     private(set) var dataList: [BookModel] = []
     
@@ -50,7 +42,7 @@ final class MainViewModel {
 }
 
 // MARK: - database concurrency
-extension MainViewModel {
+extension TextListViewModel {
     @concurrent
     nonisolated
     private func loadData() async throws -> [BookModel] {

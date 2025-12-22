@@ -1,11 +1,3 @@
-//
-//  BaseViewController.swift
-//  PoReader
-//
-//  Created by 黄中山 on 2020/5/19.
-//  Copyright © 2020 potato. All rights reserved.
-//
-
 import UIKit
 
 class BaseViewController: UIViewController {

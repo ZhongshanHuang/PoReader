@@ -23,9 +23,9 @@
 		6C96E1E228FD648400C887F0 /* ReaderBottomBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6C96E1B528FD648300C887F0 /* ReaderBottomBar.swift */; };
 		6C96E1E328FD648400C887F0 /* ReversePageReaderDisplayItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6C96E1B628FD648300C887F0 /* ReversePageReaderDisplayItem.swift */; };
 		6C96E1E428FD648400C887F0 /* PageReaderDisplayCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6C96E1B728FD648300C887F0 /* PageReaderDisplayCell.swift */; };
-		6C96E1E528FD648400C887F0 /* MainViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6C96E1BA28FD648300C887F0 /* MainViewModel.swift */; };
+		6C96E1E528FD648400C887F0 /* TextListViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6C96E1BA28FD648300C887F0 /* TextListViewModel.swift */; };
 		6C96E1E628FD648400C887F0 /* UploaderViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6C96E1BC28FD648300C887F0 /* UploaderViewController.swift */; };
-		6C96E1E728FD648400C887F0 /* MainViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6C96E1BD28FD648300C887F0 /* MainViewController.swift */; };
+		6C96E1E728FD648400C887F0 /* TextListViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6C96E1BD28FD648300C887F0 /* TextListViewController.swift */; };
 		6C96E1E828FD648400C887F0 /* BookModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6C96E1BF28FD648300C887F0 /* BookModel.swift */; };
 		6C96E1E928FD648400C887F0 /* BookCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6C96E1C128FD648300C887F0 /* BookCell.swift */; };
 		6C96E1EA28FD648400C887F0 /* BaseViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6C96E1C328FD648300C887F0 /* BaseViewController.swift */; };
@@ -50,6 +50,11 @@
 		CFAE556F2DBF8568002E9F69 /* SettingsSelectCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = CFAE556E2DBF8568002E9F69 /* SettingsSelectCell.swift */; };
 		CFAE55712DC06F0A002E9F69 /* ReuseIdentifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = CFAE55702DC06F0A002E9F69 /* ReuseIdentifier.swift */; };
 		CFAE55732DC0A75E002E9F69 /* UserSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = CFAE55722DC0A75E002E9F69 /* UserSettings.swift */; };
+		CFB37D9B2EF8DAF300BB2385 /* AudioListViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = CFB37D9A2EF8DAF300BB2385 /* AudioListViewController.swift */; };
+		CFB37D9E2EF8DF5100BB2385 /* AudioListCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = CFB37D9D2EF8DF5100BB2385 /* AudioListCell.swift */; };
+		CFB37DA12EF8E4B400BB2385 /* MainTabBarController.swift in Sources */ = {isa = PBXBuildFile; fileRef = CFB37DA02EF8E4B400BB2385 /* MainTabBarController.swift */; };
+		CFB37DA32EF8E8CA00BB2385 /* AudioModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = CFB37DA22EF8E8CA00BB2385 /* AudioModel.swift */; };
+		CFB37DA62EF8F31600BB2385 /* AudioListViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = CFB37DA52EF8F31600BB2385 /* AudioListViewModel.swift */; };
 		CFD3B7182EE7B3D9006251B2 /* NavigationTransitionDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = CFD3B7122EE7B3D9006251B2 /* NavigationTransitionDelegate.swift */; };
 		CFD3B7192EE7B3D9006251B2 /* NavigationTransitionAnimator.swift in Sources */ = {isa = PBXBuildFile; fileRef = CFD3B7112EE7B3D9006251B2 /* NavigationTransitionAnimator.swift */; };
 		CFD3B71A2EE7B3D9006251B2 /* PanGesture.swift in Sources */ = {isa = PBXBuildFile; fileRef = CFD3B7152EE7B3D9006251B2 /* PanGesture.swift */; };
@@ -102,9 +107,9 @@
 		6C96E1B528FD648300C887F0 /* ReaderBottomBar.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ReaderBottomBar.swift; sourceTree = "<group>"; };
 		6C96E1B628FD648300C887F0 /* ReversePageReaderDisplayItem.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ReversePageReaderDisplayItem.swift; sourceTree = "<group>"; };
 		6C96E1B728FD648300C887F0 /* PageReaderDisplayCell.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = PageReaderDisplayCell.swift; sourceTree = "<group>"; };
-		6C96E1BA28FD648300C887F0 /* MainViewModel.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = MainViewModel.swift; sourceTree = "<group>"; };
+		6C96E1BA28FD648300C887F0 /* TextListViewModel.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = TextListViewModel.swift; sourceTree = "<group>"; };
 		6C96E1BC28FD648300C887F0 /* UploaderViewController.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = UploaderViewController.swift; sourceTree = "<group>"; };
-		6C96E1BD28FD648300C887F0 /* MainViewController.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = MainViewController.swift; sourceTree = "<group>"; };
+		6C96E1BD28FD648300C887F0 /* TextListViewController.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = TextListViewController.swift; sourceTree = "<group>"; };
 		6C96E1BF28FD648300C887F0 /* BookModel.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = BookModel.swift; sourceTree = "<group>"; };
 		6C96E1C128FD648300C887F0 /* BookCell.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = BookCell.swift; sourceTree = "<group>"; };
 		6C96E1C328FD648300C887F0 /* BaseViewController.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = BaseViewController.swift; sourceTree = "<group>"; };
@@ -129,6 +134,11 @@
 		CFAE556E2DBF8568002E9F69 /* SettingsSelectCell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsSelectCell.swift; sourceTree = "<group>"; };
 		CFAE55702DC06F0A002E9F69 /* ReuseIdentifier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReuseIdentifier.swift; sourceTree = "<group>"; };
 		CFAE55722DC0A75E002E9F69 /* UserSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserSettings.swift; sourceTree = "<group>"; };
+		CFB37D9A2EF8DAF300BB2385 /* AudioListViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioListViewController.swift; sourceTree = "<group>"; };
+		CFB37D9D2EF8DF5100BB2385 /* AudioListCell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioListCell.swift; sourceTree = "<group>"; };
+		CFB37DA02EF8E4B400BB2385 /* MainTabBarController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainTabBarController.swift; sourceTree = "<group>"; };
+		CFB37DA22EF8E8CA00BB2385 /* AudioModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioModel.swift; sourceTree = "<group>"; };
+		CFB37DA52EF8F31600BB2385 /* AudioListViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioListViewModel.swift; sourceTree = "<group>"; };
 		CFD3B70A2EE7B3D9006251B2 /* TransitionInteractiveController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransitionInteractiveController.swift; sourceTree = "<group>"; };
 		CFD3B70C2EE7B3D9006251B2 /* ModalPresentationController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModalPresentationController.swift; sourceTree = "<group>"; };
 		CFD3B70D2EE7B3D9006251B2 /* ModalTransitionAnimator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModalTransitionAnimator.swift; sourceTree = "<group>"; };
@@ -176,17 +186,9 @@
 		6C928E2428FE7EBA00903640 /* Upload */ = {
 			isa = PBXGroup;
 			children = (
-				6C928E2528FE7EE300903640 /* Controller */,
-			);
-			path = Upload;
-			sourceTree = "<group>";
-		};
-		6C928E2528FE7EE300903640 /* Controller */ = {
-			isa = PBXGroup;
-			children = (
 				6C96E1BC28FD648300C887F0 /* UploaderViewController.swift */,
 			);
-			path = Controller;
+			path = Upload;
 			sourceTree = "<group>";
 		};
 		6C928E282901408400903640 /* PageReader */ = {
@@ -251,6 +253,7 @@
 			children = (
 				6C96E17D28FD62EB00C887F0 /* AppDelegate.swift */,
 				CFD3B7212EE7B541006251B2 /* SceneDelegate.swift */,
+				CFB37DA02EF8E4B400BB2385 /* MainTabBarController.swift */,
 				6C96E1C628FD648400C887F0 /* Database */,
 				6C96E1D728FD648400C887F0 /* Macros */,
 				6C96E1AD28FD648300C887F0 /* Sections */,
@@ -285,10 +288,11 @@
 		6C96E1AD28FD648300C887F0 /* Sections */ = {
 			isa = PBXGroup;
 			children = (
+				CFB37D992EF8DA7E00BB2385 /* Audio */,
 				CFAE55622DBF8057002E9F69 /* Settings */,
 				6C928E2428FE7EBA00903640 /* Upload */,
 				6C96E1AE28FD648300C887F0 /* Reader */,
-				6C96E1B828FD648300C887F0 /* Main */,
+				6C96E1B828FD648300C887F0 /* Text */,
 				6C96E1C228FD648300C887F0 /* Base */,
 			);
 			path = Sections;
@@ -331,31 +335,23 @@
 			path = View;
 			sourceTree = "<group>";
 		};
-		6C96E1B828FD648300C887F0 /* Main */ = {
+		6C96E1B828FD648300C887F0 /* Text */ = {
 			isa = PBXGroup;
 			children = (
+				6C96E1BD28FD648300C887F0 /* TextListViewController.swift */,
 				6C96E1B928FD648300C887F0 /* ViewModel */,
-				6C96E1BB28FD648300C887F0 /* Controller */,
 				6C96E1BE28FD648300C887F0 /* Model */,
 				6C96E1C028FD648300C887F0 /* View */,
 			);
-			path = Main;
+			path = Text;
 			sourceTree = "<group>";
 		};
 		6C96E1B928FD648300C887F0 /* ViewModel */ = {
 			isa = PBXGroup;
 			children = (
-				6C96E1BA28FD648300C887F0 /* MainViewModel.swift */,
+				6C96E1BA28FD648300C887F0 /* TextListViewModel.swift */,
 			);
 			path = ViewModel;
-			sourceTree = "<group>";
-		};
-		6C96E1BB28FD648300C887F0 /* Controller */ = {
-			isa = PBXGroup;
-			children = (
-				6C96E1BD28FD648300C887F0 /* MainViewController.swift */,
-			);
-			path = Controller;
 			sourceTree = "<group>";
 		};
 		6C96E1BE28FD648300C887F0 /* Model */ = {
@@ -443,8 +439,8 @@
 		CFAE55622DBF8057002E9F69 /* Settings */ = {
 			isa = PBXGroup;
 			children = (
+				CFAE55662DBF809D002E9F69 /* SettingsViewController.swift */,
 				CFAE55652DBF807F002E9F69 /* Model */,
-				CFAE55642DBF8074002E9F69 /* Controller */,
 				CFAE55632DBF8065002E9F69 /* View */,
 			);
 			path = Settings;
@@ -460,14 +456,6 @@
 			path = View;
 			sourceTree = "<group>";
 		};
-		CFAE55642DBF8074002E9F69 /* Controller */ = {
-			isa = PBXGroup;
-			children = (
-				CFAE55662DBF809D002E9F69 /* SettingsViewController.swift */,
-			);
-			path = Controller;
-			sourceTree = "<group>";
-		};
 		CFAE55652DBF807F002E9F69 /* Model */ = {
 			isa = PBXGroup;
 			children = (
@@ -475,6 +463,41 @@
 				CFAE55722DC0A75E002E9F69 /* UserSettings.swift */,
 			);
 			path = Model;
+			sourceTree = "<group>";
+		};
+		CFB37D992EF8DA7E00BB2385 /* Audio */ = {
+			isa = PBXGroup;
+			children = (
+				CFB37D9A2EF8DAF300BB2385 /* AudioListViewController.swift */,
+				CFB37D9F2EF8E15500BB2385 /* Model */,
+				CFB37D9C2EF8DF3C00BB2385 /* View */,
+				CFB37DA42EF8ECDF00BB2385 /* ViewModel */,
+			);
+			path = Audio;
+			sourceTree = "<group>";
+		};
+		CFB37D9C2EF8DF3C00BB2385 /* View */ = {
+			isa = PBXGroup;
+			children = (
+				CFB37D9D2EF8DF5100BB2385 /* AudioListCell.swift */,
+			);
+			path = View;
+			sourceTree = "<group>";
+		};
+		CFB37D9F2EF8E15500BB2385 /* Model */ = {
+			isa = PBXGroup;
+			children = (
+				CFB37DA22EF8E8CA00BB2385 /* AudioModel.swift */,
+			);
+			path = Model;
+			sourceTree = "<group>";
+		};
+		CFB37DA42EF8ECDF00BB2385 /* ViewModel */ = {
+			isa = PBXGroup;
+			children = (
+				CFB37DA52EF8F31600BB2385 /* AudioListViewModel.swift */,
+			);
+			path = ViewModel;
 			sourceTree = "<group>";
 		};
 		CFD3B70B2EE7B3D9006251B2 /* InteractiveTransition */ = {
@@ -678,13 +701,16 @@
 				CFAE556D2DBF83F8002E9F69 /* SettingsItem.swift in Sources */,
 				6CF2BA2C29014A09005408BF /* PageItem.swift in Sources */,
 				6C96E1E028FD648400C887F0 /* ReaderDataSource.swift in Sources */,
+				CFB37DA32EF8E8CA00BB2385 /* AudioModel.swift in Sources */,
 				6C96E1FA28FD648400C887F0 /* Appearance.swift in Sources */,
+				CFB37DA12EF8E4B400BB2385 /* MainTabBarController.swift in Sources */,
 				6C96E1E628FD648400C887F0 /* UploaderViewController.swift in Sources */,
 				6C96E1F628FD648400C887F0 /* UIColor+Ext.swift in Sources */,
 				6C96E1F928FD648400C887F0 /* Constants.swift in Sources */,
 				CFAE55692DBF82DF002E9F69 /* SettingsCellProtocol.swift in Sources */,
 				CFAE55712DC06F0A002E9F69 /* ReuseIdentifier.swift in Sources */,
 				6C96E1E128FD648400C887F0 /* ChapterModel.swift in Sources */,
+				CFB37DA62EF8F31600BB2385 /* AudioListViewModel.swift in Sources */,
 				6CF2BA2829014310005408BF /* ScrollReaderViewController.swift in Sources */,
 				6C4FAB4A2913BDE20045981D /* UIApplication+Ext.swift in Sources */,
 				6C96E1E828FD648400C887F0 /* BookModel.swift in Sources */,
@@ -694,15 +720,17 @@
 				6C96E1E428FD648400C887F0 /* PageReaderDisplayCell.swift in Sources */,
 				6C96E1E328FD648400C887F0 /* ReversePageReaderDisplayItem.swift in Sources */,
 				6C96E1DF28FD648400C887F0 /* PageReaderViewController.swift in Sources */,
-				6C96E1E528FD648400C887F0 /* MainViewModel.swift in Sources */,
+				6C96E1E528FD648400C887F0 /* TextListViewModel.swift in Sources */,
 				6C96E1ED28FD648400C887F0 /* Database.swift in Sources */,
 				6C96E1F428FD648400C887F0 /* PropertyWrapper.swift in Sources */,
-				6C96E1E728FD648400C887F0 /* MainViewController.swift in Sources */,
+				6C96E1E728FD648400C887F0 /* TextListViewController.swift in Sources */,
 				CFD3B7182EE7B3D9006251B2 /* NavigationTransitionDelegate.swift in Sources */,
 				CFD3B7192EE7B3D9006251B2 /* NavigationTransitionAnimator.swift in Sources */,
 				CFD3B71A2EE7B3D9006251B2 /* PanGesture.swift in Sources */,
 				CFD3B71B2EE7B3D9006251B2 /* ModalTransitionAnimator.swift in Sources */,
 				CFD3B71C2EE7B3D9006251B2 /* ModalTransitionAnimationDefaultConfig.swift in Sources */,
+				CFB37D9B2EF8DAF300BB2385 /* AudioListViewController.swift in Sources */,
+				CFB37D9E2EF8DF5100BB2385 /* AudioListCell.swift in Sources */,
 				CFD3B71D2EE7B3D9006251B2 /* NavigationTransitionAnimationDefaultConfig.swift in Sources */,
 				CFD3B71E2EE7B3D9006251B2 /* ModalTransitionDelegate.swift in Sources */,
 				CFD3B71F2EE7B3D9006251B2 /* TransitionInteractiveController.swift in Sources */,
@@ -902,7 +930,7 @@
 				INFOPLIST_KEY_UIMainStoryboardFile = Main;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
-				IPHONEOS_DEPLOYMENT_TARGET = 13.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 14.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -936,7 +964,7 @@
 				INFOPLIST_KEY_UIMainStoryboardFile = Main;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
-				IPHONEOS_DEPLOYMENT_TARGET = 13.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 14.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",

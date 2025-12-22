@@ -1,15 +1,24 @@
-//
-//  UploaderViewController.swift
-//  PoReader
-//
-//  Created by 黄中山 on 2020/5/21.
-//  Copyright © 2020 potato. All rights reserved.
-//
-
 import UIKit
 import GCDWebServerSPM
 
+extension UploaderViewController {
+    enum UploadType {
+        case txt
+        case audio
+        
+        var supportFormat: String {
+            switch self {
+            case .txt:
+                "txt"
+            case .audio:
+                "mp3"
+            }
+        }
+    }
+}
+
 class UploaderViewController: BaseViewController {
+    let uploadType: UploadType
     
     private var webUploader: PoReaderWebUploader?
     private let hostLabel: UILabel = {
@@ -18,6 +27,15 @@ class UploaderViewController: BaseViewController {
         label.numberOfLines = 0
         return label
     }()
+    
+    init(uploadType: UploadType) {
+        self.uploadType = uploadType
+        super.init(nibName: nil, bundle: nil)
+    }
+    
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -40,7 +58,8 @@ class UploaderViewController: BaseViewController {
     
     private func startUploadServer() {
         webUploader = PoReaderWebUploader(uploadDirectory: Constants.localBookDirectory)
-        webUploader?.prologue = "请将书本拖至下方方框，或者点击上传按钮，目前只支持txt格式"
+        webUploader?.allowedFileExtensions = [uploadType.supportFormat]
+        webUploader?.prologue = "请将文件拖至下方方框，或者点击上传按钮，目前只支持\(uploadType.supportFormat)格式"
         webUploader?.delegate = self
         webUploader?.start(withPort: 80, bonjourName: "Reader Uploader Server")
     }
@@ -94,10 +113,9 @@ class PoReaderWebUploader: GCDWebUploader {
      *
      *  The default implementation returns YES.
      */
-    /// 只允许上传txt格式文件
-    override func shouldUploadFile(atPath path: String, withTemporaryFile tempPath: String) -> Bool {
-        return (path as NSString).pathExtension.uppercased() == "TXT"
-    }
+//    override func shouldUploadFile(atPath path: String, withTemporaryFile tempPath: String) -> Bool {
+//        return true
+//    }
 
     /**
      *  This method is called to check if a file or directory is allowed to be moved.

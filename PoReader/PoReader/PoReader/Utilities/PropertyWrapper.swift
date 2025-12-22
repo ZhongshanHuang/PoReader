@@ -1,11 +1,3 @@
-//
-//  UserDefault.swift
-//  KitDemo
-//
-//  Created by HzS on 2023/7/26.
-//  Copyright © 2023 黄中山. All rights reserved.
-//
-
 import Foundation
 
 /*

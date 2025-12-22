@@ -126,6 +126,7 @@ class AudioListViewController: BaseViewController {
 extension AudioListViewController: UICollectionViewDelegate {
     func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
         collectionView.deselectItem(at: indexPath, animated: true)
-        
+        let model = dataSource.snapshot().itemIdentifiers[indexPath.item]
+        playerView.play(with: model)
     }
 }

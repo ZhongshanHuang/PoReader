@@ -10,8 +10,7 @@ class AudioPlayerView: UIView {
     
     private let titleLabel: UILabel = UILabel()
     private let activityIndicator: UIActivityIndicatorView = UIActivityIndicatorView(style: .large)
-    private let currentTimeLabel: UILabel = UILabel()
-    private let durationTimeLabel: UILabel = UILabel()
+    private let timeLabel: UILabel = UILabel()
     private let playButton: UIButton = UIButton(type: .system)
     private let progress: MediaProgressView = MediaProgressView()
     private var isIgnorePeriod: Bool = false
@@ -23,6 +22,11 @@ class AudioPlayerView: UIView {
     
     required init?(coder aDecoder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
+    }
+    
+    func play(with model: AudioModel) {
+        player.delegate = self
+        player.play(with: model.localPath)
     }
     
     private func setupUI() {
@@ -51,12 +55,12 @@ class AudioPlayerView: UIView {
         }
         
         // 当前播放时间
-        currentTimeLabel.text = "00:00/00:00"
-        currentTimeLabel.textColor = UIColor.white
-        currentTimeLabel.font = UIFont.monospacedDigitSystemFont(ofSize: 11, weight: .regular)
-        currentTimeLabel.textAlignment = .right
-        addSubview(currentTimeLabel)
-        currentTimeLabel.snp.makeConstraints { make in
+        timeLabel.text = "00:00/00:00"
+        timeLabel.textColor = UIColor.white
+        timeLabel.font = UIFont.monospacedDigitSystemFont(ofSize: 11, weight: .regular)
+        timeLabel.textAlignment = .right
+        addSubview(timeLabel)
+        timeLabel.snp.makeConstraints { make in
             make.centerY.equalTo(playButton)
             make.trailing.equalTo(titleLabel)
             make.width.equalTo(67)
@@ -68,58 +72,11 @@ class AudioPlayerView: UIView {
         addSubview(progress)
         progress.snp.makeConstraints { make in
             make.leading.equalTo(playButton.snp.trailing).offset(5)
-            make.trailing.equalTo(currentTimeLabel.snp.leading).offset(-5)
+            make.trailing.equalTo(timeLabel.snp.leading).offset(-5)
             make.centerY.equalTo(playButton)
             make.height.equalTo(20)
         }
-        
-        // 网络指示器
-//        self.addSubview(activityIndicator)
-        
-        // 总播放时间
-//        durationTimeLabel.text = "00:00"
-//        durationTimeLabel.textColor = UIColor.white
-//        durationTimeLabel.font = UIFont.systemFont(ofSize: 11)
-//        addSubview(durationTimeLabel)
     }
-    
-//    private func _layoutSubviews() {
-//        /* ------------------------------topToolBar ------------------------------ */
-//        
-//        let size = CGSize(width: 45, height: 30)
-//        let padding: CGFloat = 8
-//        
-//        topToolBar.frame = CGRect(x: 0, y: 0, width: bounds.width, height: 60)
-//        
-//        // 名称
-//        titleLabel.frame = CGRect(x: padding, y: 0, width: topToolBar.bounds.width - 40, height: 60)
-//        
-//        
-//        // 网络指示器
-//        activityIndicator.center = CGPoint(x: bounds.width / 2, y: bounds.height / 2)
-//        
-//        /* -----------------------------bottomToolBar ----------------------------- */
-//        bottomToolBar.frame = CGRect(x: 0, y: bounds.height - 60, width: bounds.width, height: 60)
-//        
-//        // 播放/暂停按钮
-//        let y = (bottomToolBar.bounds.height - size.height)/2
-//        
-//        playButton.frame = CGRect(x: padding, y: y, width: size.width, height: size.height)
-//        
-//        // 当前播放时间
-//        currentTimeLabel.frame = CGRect(x: playButton.frame.maxX + padding, y: y, width: 60, height: size.height)
-//        
-//        // 全屏按钮
-//        fullScreenButton.frame = CGRect(x: bounds.width - size.width - padding, y: y, width: size.width, height: size.height)
-//        
-//        // 总时长
-//        durationTimeLabel.frame = CGRect(x: fullScreenButton.frame.minX - padding - 60, y: y, width: 60, height: size.height)
-//        
-//        // 缓冲进度
-//        let width: CGFloat = bounds.width - padding - playButton.bounds.width - padding - currentTimeLabel.bounds.width - padding - padding - durationTimeLabel.bounds.width - padding - fullScreenButton.bounds.width - padding
-//        
-//        progress.frame = CGRect(x: currentTimeLabel.frame.maxX + padding, y: (bottomToolBar.bounds.height - 20)/2, width: width, height: 20)
-//    }
     
     // MARK: - selector
     @objc
@@ -156,6 +113,15 @@ class AudioPlayerView: UIView {
     }
     
     // MARK: - helper
+    
+    private func updateTime(current: Double, duration: Double?) {
+        guard let duration else {
+            timeLabel.text = "00:00/00:00"
+            return
+        }
+        timeLabel.text = "\(formartDuration(current))/\(formartDuration(duration))"
+    }
+    
     private func formartDuration(_ duration: Double) -> String {
         if duration.isNaN || duration.isInfinite { return "00:00" }
         
@@ -315,8 +281,7 @@ extension AudioPlayerView {
 extension AudioPlayerView: PoAVPlayerDelegate {
     
     func avplayerPrepared(_ player: PoAVPlayer) {
-        durationTimeLabel.text = formartDuration(player.duration!)
-        updateNowPlayingInfo()
+        updateTime(current: 0, duration: player.duration)
     }
     
     func avplayer(_ player: PoAVPlayer, playerItemStatusChanged status: PoAVPlayer.PlaybackStatus) {
@@ -355,12 +320,13 @@ extension AudioPlayerView: PoAVPlayerDelegate {
     
     /// 播放时周期性回调
     func avplayer(_ player: PoAVPlayer, periodicallyInvoke time: CMTime) {
+        guard let duration = player.duration else { return }
         let current = time.seconds
-        let duration = player.duration!
+        
         if !progress.isTouching && !isIgnorePeriod {
             progress.sliderValue = Float(current / duration)
         }
-        currentTimeLabel.text = formartDuration(current)
+        updateTime(current: current, duration: duration)
     }
     
 }

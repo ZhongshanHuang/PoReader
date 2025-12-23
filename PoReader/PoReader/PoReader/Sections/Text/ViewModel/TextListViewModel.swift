@@ -32,7 +32,7 @@ final class TextListViewModel {
         let name = dataList[index].name
         Task.detached(priority: .background) {
             do {
-                try Database.shared.update(accessDate, forBook: name)
+                try Database.shared.updateAccessDate(accessDate, forBook: name)
             } catch {
                 print("update accessDate failure: \(error.localizedDescription)")
             }

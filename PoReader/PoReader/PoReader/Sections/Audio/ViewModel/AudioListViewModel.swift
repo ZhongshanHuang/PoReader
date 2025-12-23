@@ -11,14 +11,10 @@ final class AudioListViewModel {
         dataList = res
     }
     
-    func update(_ accessDate: TimeInterval, at index: Int) {
-        guard index < dataList.count else { return }
-        dataList[index].lastAccessDate = accessDate
-        
-        let name = dataList[index].name
+    func updateAccessDate(_ accessDate: TimeInterval, forAudio audio: String) {
         Task.detached(priority: .background) {
             do {
-                try Database.shared.update(accessDate, forAudio: name)
+                try Database.shared.updateAccessDate(accessDate, forAudio: audio)
             } catch {
                 print("update accessDate failure: \(error.localizedDescription)")
             }
@@ -33,6 +29,21 @@ final class AudioListViewModel {
             try FileManager.default.removeItem(at: item.localPath)
         } catch {
             print("remove failure: \(error.localizedDescription)")
+        }
+    }
+    
+    func progress(forAudio audio: String) -> TimeInterval? {
+        try? Database.shared.progress(forAudio: audio)
+    }
+    
+    func updateProgress(_ progress: TimeInterval, forAudio audio: String) {
+        
+        Task.detached(priority: .background) {
+            do {
+                try Database.shared.updateProgress(progress, forAudio: audio)
+            } catch {
+                print("update accessDate failure: \(error.localizedDescription)")
+            }
         }
     }
     

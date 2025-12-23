@@ -3,17 +3,23 @@ import AVFoundation
 import MediaPlayer
 
 class AudioPlayerView: UIView {
-    
     private let player: PoAVPlayer = PoAVPlayer()
     
-    private var isPlayToEndTime: Bool = false
+    var onStop: ((_ model: AudioModel?, _ progress: Float) -> Void)?
     
     private let titleLabel: UILabel = UILabel()
-    private let activityIndicator: UIActivityIndicatorView = UIActivityIndicatorView(style: .large)
+    private let activityIndicator: UIActivityIndicatorView = UIActivityIndicatorView(style: .medium)
     private let timeLabel: UILabel = UILabel()
     private let playButton: UIButton = UIButton(type: .custom)
     private let progress: MediaProgressView = MediaProgressView()
     private var isIgnorePeriod: Bool = false
+    private var seekProgress: TimeInterval?
+    
+    var progressValue: Float { progress.sliderValue }
+    
+    deinit {
+        NotificationCenter.default.removeObserver(self)
+    }
     
     override init(frame: CGRect) {
         super.init(frame: frame)
@@ -24,10 +30,22 @@ class AudioPlayerView: UIView {
         fatalError("init(coder:) has not been implemented")
     }
     
-    func play(with model: AudioModel) {
+    private(set) var currentModel: AudioModel?
+    func play(with model: AudioModel, progress: Double) {
+        currentModel = model
+        seekProgress = progress
         titleLabel.text = model.name
         player.delegate = self
         player.play(with: model.localPath)
+    }
+    
+    func stop() {
+        player.stop()
+        onStop?(currentModel, progressValue)
+        
+        currentModel = nil
+        titleLabel.text = "-:-"
+        progress.sliderValue = 0
     }
     
     private func setupUI() {
@@ -75,7 +93,11 @@ class AudioPlayerView: UIView {
             make.leading.equalTo(playButton.snp.trailing).offset(5)
             make.trailing.equalTo(timeLabel.snp.leading).offset(-5)
             make.centerY.equalTo(playButton)
-            make.height.equalTo(20)
+            make.height.equalTo(30)
+        }
+        
+        NotificationCenter.default.addObserver(forName: UIApplication.willTerminateNotification, object: nil, queue: nil) { [unowned self] _ in
+            onStop?(currentModel, progressValue)
         }
     }
     
@@ -167,14 +189,14 @@ extension AudioPlayerView {
         MPRemoteCommandCenter.shared().pauseCommand.removeTarget(nil)
         MPRemoteCommandCenter.shared().togglePlayPauseCommand.removeTarget(nil)
         MPRemoteCommandCenter.shared().stopCommand.removeTarget(nil)
-        MPRemoteCommandCenter.shared().nextTrackCommand.removeTarget(nil)
-        MPRemoteCommandCenter.shared().previousTrackCommand.removeTarget(nil)
-        MPRemoteCommandCenter.shared().changeRepeatModeCommand.removeTarget(nil)
-        MPRemoteCommandCenter.shared().changePlaybackRateCommand.removeTarget(nil)
-        MPRemoteCommandCenter.shared().skipForwardCommand.removeTarget(nil)
-        MPRemoteCommandCenter.shared().skipBackwardCommand.removeTarget(nil)
+//        MPRemoteCommandCenter.shared().nextTrackCommand.removeTarget(nil)
+//        MPRemoteCommandCenter.shared().previousTrackCommand.removeTarget(nil)
+//        MPRemoteCommandCenter.shared().changeRepeatModeCommand.removeTarget(nil)
+//        MPRemoteCommandCenter.shared().changePlaybackRateCommand.removeTarget(nil)
+//        MPRemoteCommandCenter.shared().skipForwardCommand.removeTarget(nil)
+//        MPRemoteCommandCenter.shared().skipBackwardCommand.removeTarget(nil)
         MPRemoteCommandCenter.shared().changePlaybackPositionCommand.removeTarget(nil)
-        MPRemoteCommandCenter.shared().enableLanguageOptionCommand.removeTarget(nil)
+//        MPRemoteCommandCenter.shared().enableLanguageOptionCommand.removeTarget(nil)
     }
     
     public func registerRemoteControllEvent() {
@@ -287,21 +309,19 @@ extension AudioPlayerView: PoAVPlayerDelegate {
     
     func avplayerPrepared(_ player: PoAVPlayer) {
         updateTime(current: 0, duration: player.duration)
-        
         updateNowPlayingInfo(title: titleLabel.text)
+        if let seekProgress, let duration = player.duration, duration.isNormal {
+            player.seekToTime(seekProgress * duration)
+        }
+        seekProgress = nil
     }
     
     func avplayer(_ player: PoAVPlayer, playerItemStatusChanged status: PoAVPlayer.PlaybackStatus) {
         switch status {
-        case .idle:
+        case .idle, .paused, .finished:
             playButton.isSelected = false
         case .playing:
             playButton.isSelected = true
-        case .paused:
-            playButton.isSelected = false
-        case .finished:
-            isPlayToEndTime = true
-            playButton.isSelected = false
         case .failed(let error):
             playButton.isSelected = false
             removeRemote()
@@ -328,7 +348,7 @@ extension AudioPlayerView: PoAVPlayerDelegate {
     
     /// 播放时周期性回调
     func avplayer(_ player: PoAVPlayer, periodicallyInvoke time: CMTime) {
-        guard let duration = player.duration else { return }
+        guard let duration = player.duration, duration.isNormal, duration > 0 else { return }
         let current = time.seconds
         
         if !progress.isTouching && !isIgnorePeriod {

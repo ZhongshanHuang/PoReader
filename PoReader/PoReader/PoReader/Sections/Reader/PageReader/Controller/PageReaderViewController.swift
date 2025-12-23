@@ -107,7 +107,7 @@ class PageReaderViewController: BaseViewController {
         guard let currentPage = (pageViewController.viewControllers?.first as? PageReaderDisplayCell)?.pageItem,
             let book = book else { return }
         let pageLocal = PageLocation(chapterIndex: currentPage.chapterIndex, subrangeIndex: currentPage.subrangeIndex, progress: Double(currentPage.progress))
-        try? Database.shared.update(pageLocal, forBook: book.name)
+        try? Database.shared.updatePageLocation(pageLocal, forBook: book.name)
     }
     
     @objc

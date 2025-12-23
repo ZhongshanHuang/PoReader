@@ -70,7 +70,7 @@ extension Database {
     /// - Parameters:
     ///   - accessDate: timeIntervalSince1970
     ///   - name: book name
-    func update(_ accessDate: Double, forBook name: String) throws {
+    func updateAccessDate(_ accessDate: Double, forBook name: String) throws {
         try database.executeUpdate(statement: "UPDATE \(BookModel.tableName) SET last_access=? WHERE name=?;", doUpdating: { stmt in
             try stmt.bind(position: 1, accessDate)
             try stmt.bind(position: 2, name)
@@ -91,7 +91,7 @@ extension Database {
     }
     
     /// 保存页码
-    func update(_ pageLocation: PageLocation, forBook name: String) throws {
+    func updatePageLocation(_ pageLocation: PageLocation, forBook name: String) throws {
         try database.executeUpdate(statement: "UPDATE \(BookModel.tableName) SET chapter_index=?, subrange_index=?, progress=? WHERE name=?;", doUpdating: { stmt in
             try stmt.bind(position: 1, pageLocation.chapterIndex)
             try stmt.bind(position: 2, pageLocation.subrangeIndex)
@@ -146,7 +146,7 @@ extension Database {
     /// - Parameters:
     ///   - accessDate: timeIntervalSince1970
     ///   - name: book name
-    func update(_ accessDate: Double, forAudio name: String) throws {
+    func updateAccessDate(_ accessDate: Double, forAudio name: String) throws {
         try database.executeUpdate(statement: "UPDATE \(AudioModel.tableName) SET last_access=? WHERE name=?;", doUpdating: { stmt in
             try stmt.bind(position: 1, accessDate)
             try stmt.bind(position: 2, name)
@@ -154,20 +154,20 @@ extension Database {
     }
     
     /// 获取进度
-    func progress(forAudio name: String) throws -> Float {
-        var progress: Float = 0
+    func progress(forAudio name: String) throws -> Double {
+        var progress: Double = 0
         try database.executeQuery(statement: "SELECT progress, progress FROM \(AudioModel.tableName) WHERE name=?;", doBindings: { stmt in
             try stmt.bind(position: 1, name)
         }, handleRow: { stmt in
-            progress = Float(stmt.columnDouble(position: 0))
+            progress = stmt.columnDouble(position: 0)
         })
         return progress
     }
     
     /// 保存进度
-    func update(_ progress: Float, forBook name: String) throws {
-        try database.executeUpdate(statement: "UPDATE \(BookModel.tableName) SET progress=? WHERE name=?;", doUpdating: { stmt in
-            try stmt.bind(position: 1, Double(progress))
+    func updateProgress(_ progress: Double, forAudio name: String) throws {
+        try database.executeUpdate(statement: "UPDATE \(AudioModel.tableName) SET progress=? WHERE name=?;", doUpdating: { stmt in
+            try stmt.bind(position: 1, progress)
             try stmt.bind(position: 2, name)
         })
     }

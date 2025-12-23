@@ -163,11 +163,12 @@ class PoAVPlayer: NSObject {
         setupAudioSession()
     }
     
+    private var interruptionObserver: (any NSObjectProtocol)?
     private func setupAudioSession() {
         let session = AVAudioSession.sharedInstance()
         try? session.setCategory(.playback, mode: .default)
         
-        NotificationCenter.default.addObserver(forName: AVAudioSession.interruptionNotification, object: nil, queue: .main) { [weak self] notification in
+        interruptionObserver = NotificationCenter.default.addObserver(forName: AVAudioSession.interruptionNotification, object: nil, queue: .main) { [weak self] notification in
             guard let self,
                     let typeValue = notification.userInfo?[AVAudioSessionInterruptionTypeKey] as? UInt,
                   let type = AVAudioSession.InterruptionType(rawValue: typeValue) else { return }
@@ -197,6 +198,9 @@ class PoAVPlayer: NSObject {
         }
         if currentPlayerItem != nil {
             stop()
+        }
+        if let interruptionObserver {
+            NotificationCenter.default.removeObserver(interruptionObserver)
         }
         NotificationCenter.default.removeObserver(self)
     }

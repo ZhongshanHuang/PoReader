@@ -11,6 +11,7 @@ class AudioPlayerView: UIView {
     private let activityIndicator: UIActivityIndicatorView = UIActivityIndicatorView(style: .medium)
     private let timeLabel: UILabel = UILabel()
     private let playButton: UIButton = UIButton(type: .custom)
+    private let stopButton: UIButton = UIButton(type: .custom)
     private let progress: MediaProgressView = MediaProgressView()
     private var isIgnorePeriod: Bool = false
     private var seekProgress: TimeInterval?
@@ -46,10 +47,22 @@ class AudioPlayerView: UIView {
         currentModel = nil
         titleLabel.text = "-:-"
         progress.sliderValue = 0
+        timeLabel.text = "00:00/00:00"
     }
     
     private func setupUI() {
         backgroundColor = UIColor(white: 0.5, alpha: 0.7)
+        
+        stopButton.tintColor = .white
+        stopButton.setImage(UIImage(systemName: "xmark"), for: .normal)
+        stopButton.addTarget(self, action: #selector(stopButtonHandle(_:)), for: .touchUpInside)
+        addSubview(stopButton)
+        stopButton.snp.makeConstraints { make in
+            make.top.equalToSuperview()
+            make.trailing.equalToSuperview()
+            make.width.height.equalTo(25)
+        }
+        
         // 名称
         titleLabel.textColor = UIColor.white
         titleLabel.text = "-:-"
@@ -57,7 +70,7 @@ class AudioPlayerView: UIView {
         titleLabel.snp.makeConstraints { make in
             make.top.equalToSuperview().offset(5)
             make.leading.equalToSuperview().offset(10)
-            make.trailing.equalToSuperview().offset(-10)
+            make.trailing.equalToSuperview().offset(-40)
         }
         
         // 播放/暂停按钮
@@ -65,7 +78,7 @@ class AudioPlayerView: UIView {
         playButton.imageView?.contentMode = .scaleAspectFill
         playButton.setImage(UIImage(systemName: "play.circle"), for: .normal)
         playButton.setImage(UIImage(systemName: "pause.circle"), for: .selected)
-        playButton.addTarget(self, action: #selector(AudioPlayerView.playButtonHandle(_:)), for: .touchUpInside)
+        playButton.addTarget(self, action: #selector(playButtonHandle(_:)), for: .touchUpInside)
         addSubview(playButton)
         playButton.snp.makeConstraints { make in
             make.top.equalTo(titleLabel.snp.bottom).offset(5)
@@ -102,6 +115,11 @@ class AudioPlayerView: UIView {
     }
     
     // MARK: - selector
+    @objc
+    private func stopButtonHandle(_ sender: UIButton) {
+        stop()
+    }
+    
     @objc
     private func playButtonHandle(_ sender: UIButton) {
         if player.isPlaying {

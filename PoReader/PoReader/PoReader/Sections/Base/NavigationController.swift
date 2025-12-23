@@ -13,7 +13,7 @@ class NavigationController: UINavigationController, PoNavigationBarConfigurable 
         if !children.isEmpty {
             viewController.hidesBottomBarWhenPushed = true
             
-            let backBarButtonItem = UIBarButtonItem(image: UIImage(named: "navigation_back_white"), style: .plain, target: self, action: #selector(backBtnClick))
+            let backBarButtonItem = UIBarButtonItem(image: UIImage(named: "navigation_back")?.withRenderingMode(.alwaysOriginal), style: .plain, target: self, action: #selector(backBtnClick))
             viewController.navigationItem.leftBarButtonItem = backBarButtonItem
         }
         super.pushViewController(viewController, animated: true)

@@ -154,8 +154,7 @@ class PoAVPlayer: NSObject {
         player.actionAtItemEnd = .pause
         player.automaticallyWaitsToMinimizeStalling = false
         (renderView.layer as! AVPlayerLayer).player = player
-        timeObserver = player.addPeriodicTimeObserver(forInterval: CMTime(value: 1, timescale: 600),
-                                                      queue: DispatchQueue.main) { [weak self] (time) in
+        timeObserver = player.addPeriodicTimeObserver(forInterval: CMTime(seconds: 1, preferredTimescale: 600), queue: DispatchQueue.main) { [weak self] (time) in
             guard let self else { return }
             
             self.delegate?.avplayer(self, periodicallyInvoke: time)

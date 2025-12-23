@@ -25,6 +25,7 @@ class AudioPlayerView: UIView {
     }
     
     func play(with model: AudioModel) {
+        titleLabel.text = model.name
         player.delegate = self
         player.play(with: model.localPath)
     }
@@ -33,7 +34,7 @@ class AudioPlayerView: UIView {
         backgroundColor = UIColor(white: 0.5, alpha: 0.7)
         // 名称
         titleLabel.textColor = UIColor.white
-        titleLabel.text = "title"
+        titleLabel.text = "-:-"
         addSubview(titleLabel)
         titleLabel.snp.makeConstraints { make in
             make.top.equalToSuperview().offset(5)
@@ -128,7 +129,7 @@ class AudioPlayerView: UIView {
 }
 
 extension AudioPlayerView {
-    private func updateNowPlayingInfo() {
+    private func updateNowPlayingInfo(title: String?) {
         UIApplication.shared.beginReceivingRemoteControlEvents()
         registerRemoteControllEvent()
         
@@ -141,15 +142,24 @@ extension AudioPlayerView {
         }
         
         var playingInfo = [String: Any]()
-        playingInfo[MPMediaItemPropertyTitle] = "这是title"
-        playingInfo[MPMediaItemPropertyAlbumTitle] = "这是AlbumTitle"
-        playingInfo[MPMediaItemPropertyPlaybackDuration] = 120
-        playingInfo[MPNowPlayingInfoPropertyElapsedPlaybackTime] = 10
-        
+        playingInfo[MPMediaItemPropertyTitle] = title
+//        playingInfo[MPMediaItemPropertyAlbumTitle] = title
         MPNowPlayingInfoCenter.default().nowPlayingInfo = playingInfo
     }
     
+    private func updateNowPlayingInfo(current: TimeInterval, duration: TimeInterval) {
+        MPNowPlayingInfoCenter.default().nowPlayingInfo?[MPNowPlayingInfoPropertyElapsedPlaybackTime] = Int(current)
+        MPNowPlayingInfoCenter.default().nowPlayingInfo?[MPMediaItemPropertyPlaybackDuration] = Int(duration)
+    }
+    
     func removeRemote() {
+        do {
+            let audioSession = AVAudioSession.sharedInstance()
+            try audioSession.setActive(false)
+        } catch {
+            print("Failed to set audio session: \(error)")
+        }
+        
         UIApplication.shared.endReceivingRemoteControlEvents()
         
         MPNowPlayingInfoCenter.default().nowPlayingInfo = nil
@@ -277,6 +287,8 @@ extension AudioPlayerView: PoAVPlayerDelegate {
     
     func avplayerPrepared(_ player: PoAVPlayer) {
         updateTime(current: 0, duration: player.duration)
+        
+        updateNowPlayingInfo(title: titleLabel.text)
     }
     
     func avplayer(_ player: PoAVPlayer, playerItemStatusChanged status: PoAVPlayer.PlaybackStatus) {
@@ -292,6 +304,7 @@ extension AudioPlayerView: PoAVPlayerDelegate {
             playButton.isSelected = false
         case .failed(let error):
             playButton.isSelected = false
+            removeRemote()
             PoDebugLog(error)
         }
     }
@@ -322,6 +335,8 @@ extension AudioPlayerView: PoAVPlayerDelegate {
             progress.sliderValue = Float(current / duration)
         }
         updateTime(current: current, duration: duration)
+        
+        updateNowPlayingInfo(current: current, duration: duration)
     }
     
 }

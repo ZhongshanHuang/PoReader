@@ -41,17 +41,17 @@ class MediaProgressView: UIControl {
     var backgroundTintColor: UIColor = UIColor.darkGray {
         didSet { setNeedsDisplay() }
     }
-    var progressTintColor: UIColor = UIColor.white {
+    var progressTintColor: UIColor = UIColor.systemGray4 {
         didSet { setNeedsDisplay() }
     }
-    var sliderTintColor: UIColor = UIColor.red {
+    var sliderTintColor: UIColor = UIColor.white {
         didSet { setNeedsDisplay() }
     }
     var thumbTintColor: UIColor = UIColor.white {
         didSet { setNeedsDisplay() }
     }
     private var _thumbRect: CGRect = .zero
-    private var _thumbRadius: CGFloat = 8
+    private var _thumbRadius: CGFloat = 4
     
     var isContinuous: Bool = true
     var isTouching: Bool = false
@@ -134,18 +134,7 @@ class MediaProgressView: UIControl {
 extension MediaProgressView {
     
     override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
-        let point = touches.first!.location(in: self)
-        if _thumbRect.contains(point) {
-            isTouching = true
-            setNeedsDisplay()
-        } else {
-            let point = touches.first!.location(in: self)
-            let value = point.x
-            let newValue = Float(value / (bounds.width - _thumbRadius * 2))
-            if abs(newValue - _sliderValue) < 0.01 { return }
-            sliderValue = newValue
-            sendActions(for: .valueChanged)
-        }
+        isTouching = touches.count == 1
     }
     
     override func touchesMoved(_ touches: Set<UITouch>, with event: UIEvent?) {
@@ -164,9 +153,11 @@ extension MediaProgressView {
     
     override func touchesEnded(_ touches: Set<UITouch>, with event: UIEvent?) {
         if isTouching {
-            if !isContinuous {
-                sendActions(for: .valueChanged)
-            }
+            let point = touches.first!.location(in: self)
+            let value = point.x
+            let newValue = Float(value / (bounds.width - _thumbRadius * 2))
+            sliderValue = newValue
+            sendActions(for: .valueChanged)
             isTouching = false
             setNeedsDisplay()
         }

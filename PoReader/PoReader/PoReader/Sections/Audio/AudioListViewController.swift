@@ -36,12 +36,13 @@ class AudioListViewController: BaseViewController {
     }
     
     private func setupView() {
+        playerView.alpha = 0
         view.addSubview(playerView)
         playerView.snp.makeConstraints { make in
             make.leading.equalToSuperview()
             make.trailing.equalToSuperview()
             make.bottom.equalTo(view.safeAreaLayoutGuide.snp.bottom)
-            make.height.equalTo(65)
+            make.height.equalTo(0)
         }
         
         var config = UICollectionLayoutListConfiguration(appearance: .plain)
@@ -66,17 +67,19 @@ class AudioListViewController: BaseViewController {
         
         playerView.onStop = { [weak self] (model, progress) in
             guard let self, let model else { return }
+            currentIndexPath = nil
             viewModel.updateProgress(TimeInterval(progress), forAudio: model.name)
             var snapshot = dataSource.snapshot()
-            if snapshot.itemIdentifiers.contains(model) {
-                model.progress = TimeInterval(progress)
+            if let idx = snapshot.itemIdentifiers.firstIndex(where: { $0.id == model.id }) {
+                snapshot.itemIdentifiers[idx].progress = TimeInterval(progress)
                 if #available(iOS 15.0, *) {
-                    snapshot.reconfigureItems([model])
+                    snapshot.reconfigureItems([snapshot.itemIdentifiers[idx]])
                 } else {
-                    snapshot.reloadItems([model])
+                    snapshot.reloadItems([snapshot.itemIdentifiers[idx]])
                 }
                 dataSource.apply(snapshot, animatingDifferences: true)
             }
+            showPlayer(false)
         }
     }
     
@@ -95,7 +98,7 @@ class AudioListViewController: BaseViewController {
     
     private func configureDataSource() {
         let cellRegistration = UICollectionView.CellRegistration<AudioListCell, AudioModel> { (cell, indexPath, item) in
-            cell.config(with: item)
+            cell.config(with: item, isSelected: self.currentIndexPath == indexPath)
         }
         
         dataSource = UICollectionViewDiffableDataSource<Section, AudioModel>(collectionView: collectionView) {
@@ -129,11 +132,29 @@ class AudioListViewController: BaseViewController {
         }
     }
     
+    private func showPlayer(_ show: Bool) {
+        if (show && playerView.alpha == 1) || (!show && playerView.alpha == 0) {
+            return
+        }
+        
+        playerView.snp.updateConstraints { make in
+            make.height.equalTo(show ? 65 : 0)
+        }
+        
+        UIView.animate(withDuration: 0.35, delay: 0, options: .curveEaseInOut) {
+            self.view.layoutIfNeeded()
+            self.playerView.alpha = show ? 1 : 0
+        }
+    }
+    
     // MARK: - Selectors
     @objc
     private func handleUploadAction(_ sender: UIBarButtonItem) {
         let vc = UploaderViewController(uploadType: .audio)
         navigationController?.pushViewController(vc, animated: true)
+        
+        // 跳上传界面时关闭播放器
+        playerView.stop()
     }
 
 }
@@ -142,15 +163,25 @@ class AudioListViewController: BaseViewController {
 extension AudioListViewController: UICollectionViewDelegate {
     func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
         collectionView.deselectItem(at: indexPath, animated: true)
-        
+        if indexPath == currentIndexPath { return }
+        var snapshot = dataSource.snapshot()
+        let model = snapshot.itemIdentifiers[indexPath.item]
         // 保存上一个的进度
         if let lastModel = playerView.currentModel {
             viewModel.updateProgress(TimeInterval(playerView.progressValue), forAudio: lastModel.name)
         }
         
-        let model = dataSource.snapshot().itemIdentifiers[indexPath.item]
         let progress = viewModel.progress(forAudio: model.name)
         playerView.play(with: model, progress: progress ?? 0)
+        showPlayer(true)
+        
+        if #available(iOS 15.0, *) {
+            snapshot.reconfigureItems([model])
+        } else {
+            snapshot.reloadItems([model])
+        }
+        currentIndexPath = indexPath
+        dataSource.apply(snapshot, animatingDifferences: true)
         
         // 保存打开时间
         let accessDate = Date().timeIntervalSince1970

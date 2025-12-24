@@ -54,7 +54,8 @@ class MediaProgressView: UIControl {
     private var _thumbRadius: CGFloat = 4
     
     var isContinuous: Bool = true
-    var isTouching: Bool = false
+    private(set) var isTouching: Bool = false
+    private var isTrack: Bool = false
     
     override init(frame: CGRect) {
         super.init(frame: frame)
@@ -72,7 +73,7 @@ class MediaProgressView: UIControl {
     override func draw(_ rect: CGRect) {
         guard let context = UIGraphicsGetCurrentContext() else { return }
         
-        let lineWidth: CGFloat = 1
+        let lineWidth: CGFloat = isTrack ? 3 : 1
         let width = bounds.width - _thumbRadius * 2
         let centerY = bounds.height / 2
         
@@ -87,6 +88,7 @@ class MediaProgressView: UIControl {
             context.move(to: startPoint)
             context.addLine(to: endPoint)
             context.setLineWidth(lineWidth)
+            context.setLineCap(.round)
             context.strokePath()
         }
         
@@ -100,6 +102,7 @@ class MediaProgressView: UIControl {
             context.move(to: startPoint)
             context.addLine(to: endPoint)
             context.setLineWidth(lineWidth)
+            context.setLineCap(.round)
             context.strokePath()
         }
         
@@ -113,6 +116,7 @@ class MediaProgressView: UIControl {
             context.move(to: startPoint)
             context.addLine(to: endPoint)
             context.setLineWidth(lineWidth)
+            context.setLineCap(.round)
             context.strokePath()
         }
         
@@ -120,7 +124,7 @@ class MediaProgressView: UIControl {
         defer { context.restoreGState() }
         
         let sliderX = CGFloat(sliderValue) * width
-        let radius = isTouching ? _thumbRadius * 1.3 : _thumbRadius
+        let radius = isTrack ? _thumbRadius * 1.5 : _thumbRadius
         _thumbRect = CGRect(x: sliderX, y: centerY - radius, width: radius * 2, height: radius * 2)
         context.addEllipse(in: _thumbRect)
         context.setFillColor(thumbTintColor.cgColor)
@@ -139,6 +143,7 @@ extension MediaProgressView {
     
     override func touchesMoved(_ touches: Set<UITouch>, with event: UIEvent?) {
         if isTouching {
+            isTrack = true
             let point = touches.first!.location(in: self)
             let value = point.x - _thumbRadius
             let newValue = Float(value / (bounds.width - _thumbRadius * 2))
@@ -158,15 +163,17 @@ extension MediaProgressView {
             let newValue = Float(value / (bounds.width - _thumbRadius * 2))
             sliderValue = newValue
             sendActions(for: .valueChanged)
-            isTouching = false
             setNeedsDisplay()
         }
+        isTouching = false
+        isTrack = false
     }
     
     override func touchesCancelled(_ touches: Set<UITouch>, with event: UIEvent?) {
         if isTouching {
-            isTouching = false
             setNeedsDisplay()
         }
+        isTouching = false
+        isTrack = false
     }
 }

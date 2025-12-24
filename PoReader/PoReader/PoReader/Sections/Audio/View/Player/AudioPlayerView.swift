@@ -33,6 +33,9 @@ class AudioPlayerView: UIView {
     
     private(set) var currentModel: AudioModel?
     func play(with model: AudioModel, progress: Double) {
+        if currentModel != nil {
+            stop()
+        }
         currentModel = model
         seekProgress = progress
         titleLabel.text = model.name
@@ -51,15 +54,19 @@ class AudioPlayerView: UIView {
     }
     
     private func setupUI() {
-        backgroundColor = UIColor(white: 0.5, alpha: 0.7)
+        let blurView = UIVisualEffectView(effect: UIBlurEffect(style: .systemThinMaterialDark))
+        addSubview(blurView)
+        blurView.snp.makeConstraints { make in
+            make.edges.equalToSuperview()
+        }
         
         stopButton.tintColor = .white
-        stopButton.setImage(UIImage(systemName: "xmark"), for: .normal)
+        stopButton.setImage(UIImage(systemName: "xmark.circle"), for: .normal)
         stopButton.addTarget(self, action: #selector(stopButtonHandle(_:)), for: .touchUpInside)
         addSubview(stopButton)
         stopButton.snp.makeConstraints { make in
-            make.top.equalToSuperview()
-            make.trailing.equalToSuperview()
+            make.top.equalToSuperview().offset(5)
+            make.trailing.equalToSuperview().offset(-5)
             make.width.height.equalTo(25)
         }
         

@@ -18,6 +18,13 @@ class AudioListCell: UICollectionViewCell {
         return label
     }()
     
+    private let dot: UIView = {
+        let view = UIView()
+        view.backgroundColor = UIColor(red: 0, green: 0.8, blue: 0, alpha: 1)
+        view.layer.cornerRadius = 4
+        return view
+    }()
+    
     override init(frame: CGRect) {
         super.init(frame: frame)
         setupUI()
@@ -43,9 +50,16 @@ class AudioListCell: UICollectionViewCell {
             make.leading.greaterThanOrEqualTo(titleLabel.snp.trailing).offset(20)
             make.trailing.equalToSuperview().offset(-15)
         }
+        
+        contentView.addSubview(dot)
+        dot.snp.makeConstraints { make in
+            make.trailing.equalToSuperview().offset(-3.5)
+            make.centerY.equalToSuperview()
+            make.width.height.equalTo(8)
+        }
     }
     
-    func config(with data: AudioModel) {
+    func config(with data: AudioModel, isSelected: Bool) {
         titleLabel.text = data.name
         
         if data.progress == 0 {
@@ -53,6 +67,7 @@ class AudioListCell: UICollectionViewCell {
         } else {
             progressLabel.text = String(format: "%.1f%%", data.progress * 100)
         }
+        dot.isHidden = !isSelected
     }
     
 }

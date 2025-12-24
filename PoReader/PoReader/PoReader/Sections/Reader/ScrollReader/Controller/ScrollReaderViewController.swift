@@ -13,6 +13,7 @@ class ScrollReaderViewController: BaseViewController {
     
     // MARK: - Properties
     var book: (any BookResourceProtocal)?
+    var onDeinit: (() -> Void)?
 
     private let dataSource = ReaderDataSource()
     private let bottomBar = ReaderBottomBar()
@@ -49,6 +50,7 @@ class ScrollReaderViewController: BaseViewController {
         if let observer {
             NotificationCenter.default.removeObserver(observer)
         }
+        onDeinit?()
     }
     
     override func viewDidLoad() {

@@ -9,6 +9,7 @@ class PageReaderViewController: BaseViewController {
     
     // MARK: - Properties
     var book: (any BookResourceProtocal)?
+    var onDeinit: (() -> Void)?
     
     private lazy var pageViewController: UIPageViewController = {
         let page = UIPageViewController(transitionStyle: .pageCurl, navigationOrientation: .horizontal, options: nil)
@@ -27,6 +28,7 @@ class PageReaderViewController: BaseViewController {
         if let observer {
             NotificationCenter.default.removeObserver(observer)
         }
+        onDeinit?()
     }
     
     override func viewDidLoad() {

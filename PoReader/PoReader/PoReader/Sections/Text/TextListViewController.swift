@@ -145,10 +145,16 @@ class TextListViewController: BaseViewController {
         case .pageCurl:
             let pageVC = PageReaderViewController()
             pageVC.book = viewModel.dataList[index]
+            pageVC.onDeinit = { [unowned self] in
+                transitionDelegate = nil
+            }
             vc = pageVC
         case .scroll:
             let scrollVC = ScrollReaderViewController()
             scrollVC.book = viewModel.dataList[index]
+            scrollVC.onDeinit = { [unowned self] in
+                transitionDelegate = nil
+            }
             vc = scrollVC
         }
         

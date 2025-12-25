@@ -123,7 +123,7 @@ class PoAVPlayer: NSObject {
     
     public var rate: Float {
         get { player.rate }
-        set { player.volume = newValue }
+        set { player.rate = newValue }
     }
     
     public var seekable: Bool {

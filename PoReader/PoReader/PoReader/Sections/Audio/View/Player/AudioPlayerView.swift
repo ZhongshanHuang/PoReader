@@ -132,7 +132,11 @@ class AudioPlayerView: UIView {
         if player.isPlaying {
             player.pause()
         } else {
-            player.resume()
+            if player.playStatus == .finished {
+                player.replay()
+            } else {
+                player.resume()
+            }
         }
     }
     

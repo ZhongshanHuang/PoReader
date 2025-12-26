@@ -94,6 +94,9 @@ class PoAVPlayer: NSObject {
     public private(set) var playStatus = PlaybackStatus.idle {
         didSet {
             if playStatus == oldValue { return }
+            if case .failed = playStatus {
+                isReadyToPlay = false
+            }
             if playStatus != .finished {
                 playOrPause()
             }
@@ -143,7 +146,16 @@ class PoAVPlayer: NSObject {
     private var templateObservations: [NSKeyValueObservation] = []
     
     
-    // MARK: - Override
+    deinit {
+        if let timeObserver = timeObserver {
+            player.removeTimeObserver(timeObserver)
+        }
+        if currentPlayerItem != nil {
+            stop()
+        }
+        notificationObservers.forEach({ NotificationCenter.default.removeObserver($0) })
+        NotificationCenter.default.removeObserver(self)
+    }
     
     override init() {
         super.init()
@@ -163,12 +175,12 @@ class PoAVPlayer: NSObject {
         setupAudioSession()
     }
     
-    private var interruptionObserver: (any NSObjectProtocol)?
+    private var notificationObservers: [any NSObjectProtocol] = []
     private func setupAudioSession() {
         let session = AVAudioSession.sharedInstance()
         try? session.setCategory(.playback, mode: .default)
         
-        interruptionObserver = NotificationCenter.default.addObserver(forName: AVAudioSession.interruptionNotification, object: nil, queue: .main) { [weak self] notification in
+        let interruptionObserver = NotificationCenter.default.addObserver(forName: AVAudioSession.interruptionNotification, object: session, queue: .main) { [weak self] notification in
             guard let self,
                     let typeValue = notification.userInfo?[AVAudioSessionInterruptionTypeKey] as? UInt,
                   let type = AVAudioSession.InterruptionType(rawValue: typeValue) else { return }
@@ -189,21 +201,27 @@ class PoAVPlayer: NSObject {
                 break
             }
         }
-
+        notificationObservers.append(interruptionObserver)
+        
+        let routeChangeObserver = NotificationCenter.default.addObserver(forName: AVAudioSession.routeChangeNotification, object: session, queue: .main) { [weak self] notification in
+            guard let self, let value = notification.userInfo?[AVAudioSessionRouteChangeReasonKey] as? UInt,
+                    let routeChangeReason = AVAudioSession.RouteChangeReason(rawValue: value) else { return }
+            switch routeChangeReason {
+            case .newDeviceAvailable:
+//                if session.currentRoute.outputs.contains(where: { $0.portType == .headphones || $0.portType == .bluetoothA2DP }) {
+//                    resume()
+//                }
+                break
+            case .oldDeviceUnavailable:
+                pause()
+            default:
+                break
+            }
+        }
+        notificationObservers.append(routeChangeObserver)
     }
     
-    deinit {
-        if let timeObserver = timeObserver {
-            player.removeTimeObserver(timeObserver)
-        }
-        if currentPlayerItem != nil {
-            stop()
-        }
-        if let interruptionObserver {
-            NotificationCenter.default.removeObserver(interruptionObserver)
-        }
-        NotificationCenter.default.removeObserver(self)
-    }
+    
     
     // MARK: - Public Method
     
@@ -221,10 +239,12 @@ class PoAVPlayer: NSObject {
         replaceCurrentItem(playerItem: item)
     }
     
-    /// 播放
+    /// 播放(如果finished状态，则不做任何事)
     func resume() {
         PoDebugLog("PoAVPlayer resume")
         shouldPlay = true
+        if !isReadyToPlay { return }
+        if playStatus == .finished { return }
         playStatus = .playing
     }
     
@@ -232,7 +252,16 @@ class PoAVPlayer: NSObject {
     func pause() {
         PoDebugLog("PoAVPlayer pause")
         shouldPlay = false
+        if !isReadyToPlay { return }
         playStatus = .paused
+    }
+    
+    /// 重播()
+    func replay() {
+        PoDebugLog("PoAVPlayer replay")
+        shouldPlay = true
+        if !isReadyToPlay { return }
+        seekToTime(0)
     }
     
     /// 释放当前播放资源
@@ -315,11 +344,7 @@ class PoAVPlayer: NSObject {
     private func playOrPause() {
         if playStatus == .playing {
             if isReadyToPlay {
-                if let currentTime, let duration, duration - currentTime < 1 {
-                    seekToTime(0)
-                } else {
-                    player.play()
-                }
+                player.play()
             }
         } else {
             player.pause()

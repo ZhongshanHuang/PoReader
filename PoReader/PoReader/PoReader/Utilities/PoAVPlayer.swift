@@ -91,13 +91,17 @@ class PoAVPlayer: NSObject {
         }
     }
 
-    public private(set) var playStatus = PlaybackStatus.idle {
-        didSet {
-            if playStatus == oldValue { return }
+    private var _playStatus = PlaybackStatus.idle
+    public var playStatus: PlaybackStatus {
+        get { _playStatus }
+        set {
+            if _playStatus == newValue { return }
+            _playStatus = newValue
+            
             if case .failed = playStatus {
                 isReadyToPlay = false
             }
-            if playStatus != .finished {
+            if _playStatus != .finished {
                 playOrPause()
             }
             PoDebugLog("PoAVPlayer playerItemStatusChanged: \(playStatus)")
@@ -204,18 +208,25 @@ class PoAVPlayer: NSObject {
         notificationObservers.append(interruptionObserver)
         
         let routeChangeObserver = NotificationCenter.default.addObserver(forName: AVAudioSession.routeChangeNotification, object: session, queue: .main) { [weak self] notification in
-            guard let self, let value = notification.userInfo?[AVAudioSessionRouteChangeReasonKey] as? UInt,
-                    let routeChangeReason = AVAudioSession.RouteChangeReason(rawValue: value) else { return }
-            switch routeChangeReason {
-            case .newDeviceAvailable:
-//                if session.currentRoute.outputs.contains(where: { $0.portType == .headphones || $0.portType == .bluetoothA2DP }) {
-//                    resume()
-//                }
-                break
-            case .oldDeviceUnavailable:
+//            guard let self, let value = notification.userInfo?[AVAudioSessionRouteChangeReasonKey] as? UInt,
+//                    let routeChangeReason = AVAudioSession.RouteChangeReason(rawValue: value) else { return }
+//            switch routeChangeReason {
+//            case .newDeviceAvailable:
+////                if session.currentRoute.outputs.contains(where: { $0.portType == .headphones || $0.portType == .bluetoothA2DP }) {
+////                    resume()
+////                }
+//                break
+//            case .oldDeviceUnavailable:
+//                pause()
+//            default:
+//                break
+//            }
+            guard let self,
+                    let routeDescription = notification.userInfo?[AVAudioSessionRouteChangePreviousRouteKey] as? AVAudioSessionRouteDescription else { return }
+            // 之前有耳机，现在没有耳机
+            if routeDescription.outputs.contains(where: { $0.portType == .headphones || $0.portType == .bluetoothA2DP }),
+                session.currentRoute.outputs.contains(where: { $0.portType == .headphones || $0.portType == .bluetoothA2DP }) == false {
                 pause()
-            default:
-                break
             }
         }
         notificationObservers.append(routeChangeObserver)
@@ -235,22 +246,30 @@ class PoAVPlayer: NSObject {
     /// - Parameter item: item
     private func play(with item: AVPlayerItem) {
         PoDebugLog("PoAVPlayer play: \((item.asset as? AVURLAsset)?.url, default: "")")
+        isReadyToPlay = false
         shouldPlay = autoPlayIfReady
+        playStatus = .idle
+        loadState = .idle
         replaceCurrentItem(playerItem: item)
     }
     
     /// 播放(如果finished状态，则不做任何事)
     func resume() {
         PoDebugLog("PoAVPlayer resume")
+        if !canConvertToState(from: playStatus, to: .playing) {
+            return
+        }
         shouldPlay = true
         if !isReadyToPlay { return }
-        if playStatus == .finished { return }
         playStatus = .playing
     }
     
     /// 暂停
     func pause() {
         PoDebugLog("PoAVPlayer pause")
+        if !canConvertToState(from: playStatus, to: .paused) {
+            return
+        }
         shouldPlay = false
         if !isReadyToPlay { return }
         playStatus = .paused
@@ -259,8 +278,12 @@ class PoAVPlayer: NSObject {
     /// 重播()
     func replay() {
         PoDebugLog("PoAVPlayer replay")
+        if !canConvertToState(from: playStatus, to: .playing) {
+            return
+        }
         shouldPlay = true
         if !isReadyToPlay { return }
+        playStatus = .playing
         seekToTime(0)
     }
     
@@ -291,8 +314,9 @@ class PoAVPlayer: NSObject {
         player.seek(to: CMTime(seconds: seconds, preferredTimescale: 600), toleranceBefore: tolerance, toleranceAfter: tolerance) { [weak self] success in
             guard let self else { return }
             player.play()
-            completionHandler?(success)
+            _playStatus = .playing
             delegate?.avplayer(self, playerItemStatusChanged: .playing)
+            completionHandler?(success)
             PoDebugLog("PoAVPlayer seek: \(timeInterval) \(success ? "success" : "failure")")
         }
     }
@@ -348,6 +372,20 @@ class PoAVPlayer: NSObject {
             }
         } else {
             player.pause()
+        }
+    }
+    
+    private func canConvertToState(from: PlaybackStatus, to: PlaybackStatus) -> Bool {
+        if from == to { return false }
+        switch (from, to) {
+        case (.failed, .idle):
+            return true
+        case (.failed, _):
+            return false
+        case (.finished, .failed), (.finished, .paused):
+            return false
+        default:
+            return true
         }
     }
     

@@ -37,7 +37,6 @@ final class AudioListViewModel {
     }
     
     func updateProgress(_ progress: TimeInterval, forAudio audio: String) {
-        
         Task.detached(priority: .background) {
             do {
                 try Database.shared.updateProgress(progress, forAudio: audio)

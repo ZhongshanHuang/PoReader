@@ -42,6 +42,8 @@
 		6CF2BA2829014310005408BF /* ScrollReaderViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6CF2BA2729014310005408BF /* ScrollReaderViewController.swift */; };
 		6CF2BA2A29014355005408BF /* ScrollReaderDisplayCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6CF2BA2929014355005408BF /* ScrollReaderDisplayCell.swift */; };
 		6CF2BA2C29014A09005408BF /* PageItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6CF2BA2B29014A09005408BF /* PageItem.swift */; };
+		CF0000012F00000100000001 /* TextFileDecoder.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF0000032F00000100000003 /* TextFileDecoder.swift */; };
+		CF0000022F00000100000002 /* ChineseNovelChapterParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF0000042F00000100000004 /* ChineseNovelChapterParser.swift */; };
 		CF1680FB2DBB2ED6006076A0 /* PoText in Frameworks */ = {isa = PBXBuildFile; productRef = CF1680FA2DBB2ED6006076A0 /* PoText */; };
 		CFAE55672DBF809D002E9F69 /* SettingsViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = CFAE55662DBF809D002E9F69 /* SettingsViewController.swift */; };
 		CFAE55692DBF82DF002E9F69 /* SettingsCellProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = CFAE55682DBF82DF002E9F69 /* SettingsCellProtocol.swift */; };
@@ -129,6 +131,8 @@
 		6CF2BA2729014310005408BF /* ScrollReaderViewController.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ScrollReaderViewController.swift; sourceTree = "<group>"; };
 		6CF2BA2929014355005408BF /* ScrollReaderDisplayCell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScrollReaderDisplayCell.swift; sourceTree = "<group>"; };
 		6CF2BA2B29014A09005408BF /* PageItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PageItem.swift; sourceTree = "<group>"; };
+		CF0000032F00000100000003 /* TextFileDecoder.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = TextFileDecoder.swift; sourceTree = "<group>"; };
+		CF0000042F00000100000004 /* ChineseNovelChapterParser.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ChineseNovelChapterParser.swift; sourceTree = "<group>"; };
 		CF1680F92DBB2ECA006076A0 /* PoText */ = {isa = PBXFileReference; lastKnownFileType = wrapper; name = PoText; path = ../packages/PoText; sourceTree = SOURCE_ROOT; };
 		CFAE55662DBF809D002E9F69 /* SettingsViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsViewController.swift; sourceTree = "<group>"; };
 		CFAE55682DBF82DF002E9F69 /* SettingsCellProtocol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsCellProtocol.swift; sourceTree = "<group>"; };
@@ -325,6 +329,8 @@
 			isa = PBXGroup;
 			children = (
 				6C96E1B228FD648300C887F0 /* ReaderDataSource.swift */,
+				CF0000032F00000100000003 /* TextFileDecoder.swift */,
+				CF0000042F00000100000004 /* ChineseNovelChapterParser.swift */,
 				6C96E1B328FD648300C887F0 /* ChapterModel.swift */,
 				6CF2BA2B29014A09005408BF /* PageItem.swift */,
 			);
@@ -721,6 +727,8 @@
 				CFAE556D2DBF83F8002E9F69 /* SettingsItem.swift in Sources */,
 				6CF2BA2C29014A09005408BF /* PageItem.swift in Sources */,
 				6C96E1E028FD648400C887F0 /* ReaderDataSource.swift in Sources */,
+				CF0000012F00000100000001 /* TextFileDecoder.swift in Sources */,
+				CF0000022F00000100000002 /* ChineseNovelChapterParser.swift in Sources */,
 				CFB37DA32EF8E8CA00BB2385 /* AudioModel.swift in Sources */,
 				6C96E1FA28FD648400C887F0 /* Appearance.swift in Sources */,
 				CFB37DA12EF8E4B400BB2385 /* MainTabBarController.swift in Sources */,

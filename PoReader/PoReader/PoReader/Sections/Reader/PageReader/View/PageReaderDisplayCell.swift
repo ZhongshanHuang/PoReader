@@ -16,6 +16,14 @@ class PageReaderDisplayCell: UIViewController {
         label.textColor = Appearance.readerOtherColor
         return label
     }()
+
+    private let headerLabel: UILabel = {
+        let label = UILabel()
+        label.font = .systemFont(ofSize: 10)
+        label.textColor = Appearance.readerOtherColor
+        label.lineBreakMode = .byTruncatingTail
+        return label
+    }()
     
     private let progressLabel: UILabel = {
         let label = UILabel()
@@ -69,6 +77,15 @@ class PageReaderDisplayCell: UIViewController {
             make.right.equalToSuperview().offset(-Appearance.displayRect.minX)
             make.bottom.equalToSuperview().offset(-bottomMargin)
         }
+
+        headerLabel.text = pageItem.header
+        view.addSubview(headerLabel)
+        headerLabel.snp.makeConstraints { make in
+            make.left.greaterThanOrEqualTo(timeLabel.snp.right).offset(10)
+            make.right.lessThanOrEqualTo(progressLabel.snp.left).offset(-10)
+            make.centerX.equalToSuperview()
+            make.centerY.equalTo(powerView)
+        }
     }
     
     override func traitCollectionDidChange(_ previousTraitCollection: UITraitCollection?) {
@@ -88,7 +105,8 @@ private final class TextDisplayView: UIView {
     private let textLabel: PoLabel = {
         let label = PoLabel()
         label.numberOfLines = 0
-        label.isDisplayedAsynchronously = false
+        label.isDisplayedAsynchronously = true
+        label.isFadedOnAsynchronouslyDisplay = false
         label.preferredMaxLayoutWidth = Appearance.displayRect.width
         label.textVerticalAlignment = .top
         label.lineBreakMode = .byCharWrapping

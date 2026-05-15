@@ -2,57 +2,41 @@ import UIKit
 import CryptoKit
 
 extension NSString {
-    
-//    func parseToPage(attributes: [NSAttributedString.Key: Any], constraintSize: CGSize) -> [NSRange] {
-//        var ranges = [NSRange]()
-//
-//        let attributedStr = NSAttributedString(string: self as String, attributes: attributes)
-//        
-//        let date = Date()
-//        var local = 0
-//        repeat {
-//            let length = min(999, attributedStr.length - local)
-//            let subStr = attributedStr.attributedSubstring(from: NSRange(location: local, length: length))
-//            let frameSetter = CTFramesetterCreateWithAttributedString(subStr)
-//            let path = UIBezierPath(rect: CGRect(origin: .zero, size: constraintSize))
-//            let frame = CTFramesetterCreateFrame(frameSetter, CFRangeMake(0, 0), path.cgPath, nil)
-//            let realRange = CTFrameGetVisibleStringRange(frame)
-//            let range = NSRange(location: local, length: realRange.length)
-//            ranges.append(range)
-//            print(range)
-//            local += range.length
-//        } while local < attributedStr.length
-//            print("page cost seconds: \(Date().timeIntervalSince(date))")
-//        return ranges
-//    }
-    
+
     func parseToPage(attributes: [NSAttributedString.Key: Any], constraintSize: CGSize) -> [NSRange] {
+        guard length > 0, constraintSize.width > 0, constraintSize.height > 0 else { return [] }
+
         var ranges = [NSRange]()
-//        print(self)
         let date = Date()
-        var local = 0
-        let storage = NSTextStorage(string: self as String, attributes: attributes)
         let layoutManager = NSLayoutManager()
         layoutManager.usesFontLeading = false
-        storage.addLayoutManager(layoutManager)
-        repeat {
+
+        let textStorage = NSTextStorage()
+        textStorage.addLayoutManager(layoutManager)
+        textStorage.setAttributedString(NSAttributedString(string: self as String, attributes: attributes))
+
+        var parsedLength = 0
+        while parsedLength < textStorage.length {
             let textContainer = NSTextContainer(size: constraintSize)
             textContainer.lineBreakMode = .byCharWrapping
             textContainer.lineFragmentPadding = 0
             layoutManager.addTextContainer(textContainer)
             layoutManager.ensureLayout(for: textContainer)
+
             let glyphRange = layoutManager.glyphRange(for: textContainer)
-            let range = layoutManager.characterRange(forGlyphRange: glyphRange, actualGlyphRange: nil)
-            ranges.append(range)
-            local += range.length
-//            #if DEBUG
-//            print(range)
-//            print(substring(with: range))
-//            #endif
-        } while local < storage.length
-            #if DEBUG
-            print("page cost seconds: \(Date().timeIntervalSince(date))")
-            #endif
+            let characterRange = layoutManager.characterRange(forGlyphRange: glyphRange, actualGlyphRange: nil)
+            guard characterRange.length > 0 else {
+                ranges.append(NSRange(location: parsedLength, length: textStorage.length - parsedLength))
+                break
+            }
+
+            ranges.append(characterRange)
+            parsedLength = characterRange.upperBound
+        }
+
+        #if DEBUG
+        print("page cost seconds: \(Date().timeIntervalSince(date))")
+        #endif
         return ranges
     }
     

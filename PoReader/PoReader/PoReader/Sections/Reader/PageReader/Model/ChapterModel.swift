@@ -9,8 +9,16 @@ extension ChapterModel: CustomStringConvertible {
 final class ChapterModel {
     let idx: Int
     let title: String?
-    let content: NSString
     let range: NSRange
+    private let sourceText: NSString
+    private let contentRange: NSRange
+    private var _content: NSString?
+    var content: NSString {
+        if let _content { return _content }
+        let value = sourceText.substring(with: contentRange) as NSString
+        _content = value
+        return value
+    }
     private var _subranges: [NSRange]?
     var subranges: [NSRange] {
         if _subranges == nil {
@@ -19,11 +27,21 @@ final class ChapterModel {
         return _subranges!
     }
     private var _subsizes: [CGSize]?
+    private var _subrangePrefixHeights: [CGFloat]?
     
+    init(idx: Int, title: String? = nil, sourceText: NSString, range: NSRange) {
+        self.idx = idx
+        self.title = title
+        self.sourceText = sourceText
+        self.contentRange = range
+        self.range = range
+    }
+
     init(idx: Int, title: String? = nil, content: NSString, range: NSRange) {
         self.idx = idx
         self.title = title
-        self.content = content
+        self.sourceText = content
+        self.contentRange = NSRange(location: 0, length: content.length)
         self.range = range
     }
     
@@ -35,29 +53,39 @@ final class ChapterModel {
             let subStr = content.substring(with: subranges[idx]) as NSString
             let rect = subStr.boundingRect(with: Appearance.displayRect.size, options: [.usesLineFragmentOrigin], attributes: Appearance.attributes, context: nil)
             _subsizes?[idx] = CGSize(width: rect.width, height: ceil(rect.height))
+            _subrangePrefixHeights = nil
         }
         return _subsizes![idx]
     }
     
     func totalSubrangeHeight() -> CGFloat {
-        var height: CGFloat = 0
-        for idx in 0..<subranges.count {
-            height += subSize(at: idx).height
-        }
-        return height
+        return prefixHeights().last ?? 0
     }
     
     func subrangeHeight(before idx: Int) -> CGFloat {
-        var height: CGFloat = 0
-        for i in 0..<idx {
-            height += subSize(at: i).height
-        }
-        return height
+        guard idx > 0 else { return 0 }
+        let heights = prefixHeights()
+        return heights[min(idx, heights.count) - 1]
     }
     
     /// 只需要删除之前的即可，访问时再解析
     func updateSubranges() {
         _subranges = nil
         _subsizes = nil
+        _subrangePrefixHeights = nil
+    }
+
+    private func prefixHeights() -> [CGFloat] {
+        if let _subrangePrefixHeights { return _subrangePrefixHeights }
+
+        var heights: [CGFloat] = []
+        heights.reserveCapacity(subranges.count)
+        var height: CGFloat = 0
+        for idx in subranges.indices {
+            height += subSize(at: idx).height
+            heights.append(height)
+        }
+        _subrangePrefixHeights = heights
+        return heights
     }
 }

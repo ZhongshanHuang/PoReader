@@ -12,68 +12,16 @@ final class ReaderDataSource {
     
     func parseChapter() {
         guard let sourcePath = sourcePath, let data = try? Data(contentsOf: sourcePath) else { return }
-        
-        text = NSString(data: data, encoding: String.Encoding.utf8.rawValue)
-        if text == nil {
-            text = NSString(data: data, encoding: 0x80000632) // GB18030
-        }
-        if text == nil {
-            text = NSString(data: data, encoding: 0x80000421) // Helvetica
-        }
 
-        guard let text = text else {
+        guard let text = TextFileDecoder.decode(data) else {
             print("load file faile")
             return
         }
+        self.text = text
 
-//        let pattern = #"(?<=\s)[第]?[0-9零一二三四五六七八九十百千万]+[章节集卷部篇回](?: |　|：){0,4}(?:\S)*"#
-        let pattern = #"^\s*(?:第\s*[0-9零一二三四五六七八九十百千万两]+\s*[章卷节回部篇]|序言|序章|前言|楔子|尾声|番外|后记)[^\n]{0,35}$"#
-        let expression = try! NSRegularExpression(pattern: pattern, options: .anchorsMatchLines)
-        let matchResults = expression.matches(in: text as String, options: .reportCompletion, range: NSRange(location: 0, length: text.length))
-        
-        var chapterArr = [ChapterModel]()
-        if !matchResults.isEmpty && (text.length / matchResults.count) < 20000 { // 防止章节太大，导致分页计算耗时太长
-            var lastRange = NSRange()
-            for (idx, value) in matchResults.enumerated() {
-                let range = value.range
-                if idx == 0 {
-                    if range.location - lastRange.upperBound > 100 {
-                        let aRange = NSRange(location: 0, length: range.location)
-                        let chapter = ChapterModel(idx: chapterArr.count, title: "序言", content: text.substring(with: aRange) as NSString, range: aRange)
-                        chapterArr.append(chapter)
-                        lastRange = range
-                    } else {
-                        lastRange.length = range.upperBound - lastRange.location
-                    }
-                } else {
-                    if range.location - lastRange.upperBound < 50 { // 有可能是目录页，将其合并
-                        lastRange.length = range.upperBound - lastRange.location
-                    } else {
-                        let aRange = NSRange(location: lastRange.location, length: range.location - lastRange.location)
-                        let chapter = ChapterModel(idx: chapterArr.count, title: text.substring(with: lastRange), content: text.substring(with: aRange) as NSString, range: aRange)
-                        chapterArr.append(chapter)
-                        lastRange = range
-                    }
-                }
-            }
-
-            let aRange = NSRange(location: lastRange.location, length: text.length - lastRange.location)
-            let chapter = ChapterModel(idx: chapterArr.count, title: text.substring(with: lastRange), content: text.substring(with: aRange) as NSString, range: aRange)
-            chapterArr.append(chapter)
-        } else { // 文本没有章节划分，默认按照1万字/章划分
-            let totalCount = text.length
-            var currentLocal = 0
-
-            while currentLocal < totalCount {
-                let length = min(totalCount - currentLocal, 10000)
-                let range = NSRange(location: currentLocal, length: length)
-                let chapter = ChapterModel(idx: chapterArr.count, content: text.substring(with: range) as NSString, range: range)
-                chapterArr.append(chapter)
-                currentLocal += range.length
-            }
-        }
+        let chapterArr = ChineseNovelChapterParser.parse(text: text)
         #if DEBUG
-        print("章节数: \(matchResults.count) - \(chapterArr.count)")
+        print("章节数: \(chapterArr.count)")
         chapterArr.forEach { model in
             print(model)
         }
@@ -104,8 +52,11 @@ extension ReaderDataSource {
         if subrangeIndex >= chapter.subranges.count {
             return nil
         }
-        
-        let pageItem = PageItem(chapterIndex: chapterIndex, subrangeIndex: subrangeIndex, content: (chapter.content as NSString).substring(with: chapter.subranges[subrangeIndex]), progress: progress(atChapter: chapterIndex, subrangeIndex: subrangeIndex), header: name)
+        let pageItem = PageItem(chapterIndex: chapterIndex,
+                                subrangeIndex: subrangeIndex,
+                                content: chapter.content.substring(with: chapter.subranges[subrangeIndex]),
+                                progress: progress(atChapter: chapterIndex, subrangeIndex: subrangeIndex),
+                                header: chapter.title ?? name)
         return pageItem
     }
     
@@ -145,7 +96,11 @@ extension ReaderDataSource {
         guard let (chapterIndex, subrangeIndex) = searchPageLocation(location: location) else { return nil }
         let chapter = chapters[chapterIndex]
         
-        let pageItem = PageItem(chapterIndex: chapterIndex, subrangeIndex: subrangeIndex, content: (chapter.content as NSString).substring(with: chapter.subranges[subrangeIndex]), progress: progress(atChapter: chapterIndex, subrangeIndex: subrangeIndex))
+        let pageItem = PageItem(chapterIndex: chapterIndex,
+                                subrangeIndex: subrangeIndex,
+                                content: chapter.content.substring(with: chapter.subranges[subrangeIndex]),
+                                progress: progress(atChapter: chapterIndex, subrangeIndex: subrangeIndex),
+                                header: chapter.title ?? name)
         return pageItem
     }
     
@@ -178,8 +133,8 @@ extension ReaderDataSource {
             return 1
         }
         
-        if let location = location(atChapter: chapterIndex, subrangeIndex: subrangeIndex) {
-            return Float(location) / Float(text!.length)
+        if let text, let location = location(atChapter: chapterIndex, subrangeIndex: subrangeIndex) {
+            return Float(location) / Float(text.length)
         }
         return 0
     }
@@ -245,4 +200,3 @@ extension ReaderDataSource {
         return nil
     }
 }
-

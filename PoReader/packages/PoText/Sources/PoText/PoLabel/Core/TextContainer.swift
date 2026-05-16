@@ -75,6 +75,17 @@ public struct TextContainer: @unchecked Sendable {
         self.insets = insets
     }
 
+    func snapshot() -> TextContainer {
+        if exclusionPaths == nil && tailTruncationToken == nil { return self }
+
+        var container = self
+        container.exclusionPaths = exclusionPaths?.map { path in
+            (path.copy() as? UIBezierPath) ?? path
+        }
+        container.tailTruncationToken = tailTruncationToken?.copy() as? NSAttributedString
+        return container
+    }
+
 }
 
 extension NSLineBreakMode {

@@ -29,7 +29,7 @@ extension Optional where Wrapped == NSAttributedString {
     var isEmpty: Bool {
         switch self {
         case .some(let value):
-            return value.string.isEmpty
+            return value.length == 0
         case .none:
             return true
         }

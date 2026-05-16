@@ -2,64 +2,48 @@ import UIKit
 
 @MainActor
 protocol PoAsyncLayerDelegate: CALayerDelegate {
-    func asyncLayerPrepareForRenderCtx() -> PoAsyncLayerRenderCtx
-    func asyncLayerWillDisplay(_ layer: CALayer, renderCtx: PoAsyncLayerRenderCtx)
-    nonisolated
-    func asyncLayerDisplay(renderCtx: PoAsyncLayerRenderCtx, context: CGContext, size: CGSize)
-    func asyncLayerDidDisplay(_ layer: CALayer, renderCtx: PoAsyncLayerRenderCtx, finished: Bool)
-}
-
-final class PoAsyncLayerRenderCtx: @unchecked Sendable {
-    let text: NSAttributedString
-    let container: TextContainer
-    let verticalAlignment: TextVerticalAlignment
-    let layoutNeedUpdate: Bool
-    let contentsNeedFade: Bool
-    let fadeForAsync: Bool
-    let textContainerInsets: UIEdgeInsets
-    var layout: TextLayout?
-    var layoutUpdated: Bool
-    
-    init(text: NSAttributedString, container: TextContainer, verticalAlignment: TextVerticalAlignment, layoutNeedUpdate: Bool, contentsNeedFade: Bool, fadeForAsync: Bool, textContainerInsets: UIEdgeInsets, layout: TextLayout? = nil, layoutUpdated: Bool = false) {
-        self.text = text
-        self.container = container
-        self.verticalAlignment = verticalAlignment
-        self.layoutNeedUpdate = layoutNeedUpdate
-        self.contentsNeedFade = contentsNeedFade
-        self.fadeForAsync = fadeForAsync
-        self.textContainerInsets = textContainerInsets
-        self.layout = layout
-        self.layoutUpdated = layoutUpdated
-    }
+    func asyncLayerPrepareForRenderContext() -> PoAsyncLayerRenderContext
+    func asyncLayerWillDisplay(_ layer: CALayer, renderContext: PoAsyncLayerRenderContext)
+    func asyncLayerDidDisplay(_ layer: CALayer, renderContext: PoAsyncLayerRenderContext, finished: Bool)
 }
 
 final class PoAsyncLayer: CALayer, @unchecked Sendable {
-    
+
     // MARK: - Properties - [public]
     var isDisplayedAsynchronously: Bool = true
-    
+
     // MARK: - Methods - [override]
-        
+
     override class func defaultAction(forKey event: String) -> (any CAAction)? {
         nil
     }
-    
+
     override class func defaultValue(forKey key: String) -> Any? {
-        if key == "isDispalyedsAsynchronously" {
+        if key == "isDisplayedAsynchronously" {
             true
         } else {
             super.defaultValue(forKey: key)
         }
     }
-    
+
+    override func setNeedsDisplay() {
+        _cancelAsyncDisplay()
+        super.setNeedsDisplay()
+    }
+
+    override func setNeedsDisplay(_ r: CGRect) {
+        _cancelAsyncDisplay()
+        super.setNeedsDisplay(r)
+    }
+
     override func setNeedsLayout() {
         _cancelAsyncDisplay()
         super.setNeedsLayout()
     }
-    
+
     override func display() {
         super.contents = super.contents
-        
+
         struct SafeCarrier: Sendable {
             let layer: PoAsyncLayer
         }
@@ -69,71 +53,90 @@ final class PoAsyncLayer: CALayer, @unchecked Sendable {
             carrier.layer.displayAsync(isDisplayedAsynchronously)
         }
     }
-    
+
     private var asyncTask: Task<Void, Never>?
+    private var displayGeneration: UInt64 = 0
+
     @MainActor
     private func displayAsync(_ isAsync: Bool) {
         asyncTask?.cancel()
         guard let asyncDelegate = delegate as? (any PoAsyncLayerDelegate) else { return }
-        let renderCtx = asyncDelegate.asyncLayerPrepareForRenderCtx()
-        
-        asyncDelegate.asyncLayerWillDisplay(self, renderCtx: renderCtx)
+        displayGeneration &+= 1
+        let displayGeneration = displayGeneration
+        let renderContext = asyncDelegate.asyncLayerPrepareForRenderContext()
+
+        asyncDelegate.asyncLayerWillDisplay(self, renderContext: renderContext)
         let size = bounds.size
         if size.width < 1 || size.height < 1 {
-            contents = nil
-            asyncDelegate.asyncLayerDidDisplay(self, renderCtx: renderCtx, finished: true)
+            clearContentsIfNeeded()
+            asyncDelegate.asyncLayerDidDisplay(self, renderContext: renderContext, finished: true)
             return
         }
-        
+        if !renderContext.hasRenderableContent {
+            clearContentsIfNeeded()
+            asyncDelegate.asyncLayerDidDisplay(self, renderContext: renderContext, finished: true)
+            return
+        }
+
         if isAsync {
-            asyncTask = Task(priority: .userInitiated) {
+            asyncTask = Task(priority: .userInitiated) { [weak self, renderContext, size, displayGeneration] in
                 do {
-                    let image = try await drawDisplay(asyncDelegate: asyncDelegate, renderCtx: renderCtx, inSize: size)
-                    if Task.isCancelled {
-                        asyncDelegate.asyncLayerDidDisplay(self, renderCtx: renderCtx, finished: false)
-                        return
-                    }
+                    let image = try await Self.drawDisplay(renderContext: renderContext, inSize: size)
+                    try Task.checkCancellation()
+                    guard let self, self.displayGeneration == displayGeneration else { return }
                     self.contents = image.cgImage
-                    asyncDelegate.asyncLayerDidDisplay(self, renderCtx: renderCtx, finished: true)
+                    self.asyncTask = nil
+                    guard let asyncDelegate = self.delegate as? (any PoAsyncLayerDelegate) else { return }
+                    asyncDelegate.asyncLayerDidDisplay(self, renderContext: renderContext, finished: true)
                 } catch {
-                    asyncDelegate.asyncLayerDidDisplay(self, renderCtx: renderCtx, finished: false)
+                    guard let self, self.displayGeneration == displayGeneration else { return }
+                    self.asyncTask = nil
+                    guard let asyncDelegate = self.delegate as? (any PoAsyncLayerDelegate) else { return }
+                    asyncDelegate.asyncLayerDidDisplay(self, renderContext: renderContext, finished: false)
                 }
             }
         } else {
-            let format = UIGraphicsImageRendererFormat.preferred()
-            let renderer = UIGraphicsImageRenderer(size: size, format: format)
-            let image = renderer.image { (ctx) in
-                let context = ctx.cgContext
-                asyncDelegate.asyncLayerDisplay(renderCtx: renderCtx, context: context, size: size)
+            if let image = try? Self.makeImage(renderContext: renderContext, inSize: size) {
+                contents = image.cgImage
+                asyncDelegate.asyncLayerDidDisplay(self, renderContext: renderContext, finished: true)
+            } else {
+                asyncDelegate.asyncLayerDidDisplay(self, renderContext: renderContext, finished: false)
             }
-            contents = image.cgImage
-            asyncDelegate.asyncLayerDidDisplay(self, renderCtx: renderCtx, finished: true)
         }
-        
+
     }
-    
+
 #if swift(>=6.1)
     @concurrent
 #endif
     nonisolated
-    private func drawDisplay(asyncDelegate: any PoAsyncLayerDelegate, renderCtx: PoAsyncLayerRenderCtx, inSize size: CGSize) async throws -> UIImage {
+    private static func drawDisplay(renderContext: PoAsyncLayerRenderContext, inSize size: CGSize) async throws -> UIImage {
+        try makeImage(renderContext: renderContext, inSize: size)
+    }
+
+    nonisolated
+    private static func makeImage(renderContext: PoAsyncLayerRenderContext, inSize size: CGSize) throws -> UIImage {
         try Task.checkCancellation()
 
         let format = UIGraphicsImageRendererFormat.preferred()
         let renderer = UIGraphicsImageRenderer(size: size, format: format)
         let image = renderer.image { (ctx) in
             let context = ctx.cgContext
-            asyncDelegate.asyncLayerDisplay(renderCtx: renderCtx, context: context, size: size)
+            renderContext.draw(in: context, size: size)
         }
         return image
     }
-    
+
     private func _cancelAsyncDisplay() {
+        guard asyncTask != nil else { return }
         asyncTask?.cancel()
+        asyncTask = nil
+        displayGeneration &+= 1
     }
-    
-    private func _clear() {
-        _cancelAsyncDisplay()
-        contents = nil
+
+    private func clearContentsIfNeeded() {
+        if contents != nil {
+            contents = nil
+        }
     }
 }

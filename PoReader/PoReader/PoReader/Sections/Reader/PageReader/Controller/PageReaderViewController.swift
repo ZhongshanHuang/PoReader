@@ -90,7 +90,8 @@ class PageReaderViewController: BaseViewController {
     }
     
     private func showPageItem(atChapter chapterIndex: Int, subrangeIndex: Int, animated: Bool = false) {
-        if let pageDisplayItem = pageDisplayItem(atChapter: chapterIndex, subrangeIndex: subrangeIndex) {
+        guard let location = dataSource.resolvedPageLocation(chapterIndex: chapterIndex, subrangeIndex: subrangeIndex) else { return }
+        if let pageDisplayItem = pageDisplayItem(atChapter: location.chapterIndex, subrangeIndex: location.subrangeIndex) {
             pageViewController.setViewControllers([pageDisplayItem], direction: .forward, animated: animated, completion: nil)
         }
     }
@@ -301,5 +302,4 @@ extension PageReaderViewController: ReaderBottomBarDelegate {
     }
     
 }
-
 

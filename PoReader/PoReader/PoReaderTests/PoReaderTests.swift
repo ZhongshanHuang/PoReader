@@ -88,6 +88,43 @@ final class PoReaderTests: XCTestCase {
         XCTAssertTrue(dataSource.chapters.first?.content.contains("芭蕉") == true)
     }
 
+    func testTextFileDecoderPrefersBig5OverGB18030Gibberish() throws {
+        let text = """
+        第一章 萬柳山莊
+        這是繁體中文小說內容。
+        """
+        let encoding = String.Encoding(rawValue: CFStringConvertEncodingToNSStringEncoding(CFStringEncoding(CFStringEncodings.big5.rawValue)))
+        let data = try XCTUnwrap(text.data(using: encoding))
+
+        let decoded = try XCTUnwrap(TextFileDecoder.decode(data))
+
+        XCTAssertEqual(decoded as String, text)
+    }
+
+    func testTextFileDecoderDecodesUTF16LittleEndianWithoutBOM() throws {
+        let text = """
+        第一章 万柳山庄
+        这是中文小说内容。
+        """
+        let data = try XCTUnwrap(text.data(using: .utf16LittleEndian))
+
+        let decoded = try XCTUnwrap(TextFileDecoder.decode(data))
+
+        XCTAssertEqual(decoded as String, text)
+    }
+
+    func testTextFileDecoderKeepsASCIIUTF8Readable() throws {
+        let text = """
+        Chapter 1
+        ASCII only text.
+        """
+        let data = try XCTUnwrap(text.data(using: .utf8))
+
+        let decoded = try XCTUnwrap(TextFileDecoder.decode(data))
+
+        XCTAssertEqual(decoded as String, text)
+    }
+
     func testPaginationRangesAreContiguous() {
         let text = NSString(string: String(repeating: "这一页需要连续分页，不能反复回到开头。\n", count: 120))
         let ranges = text.parseToPage(attributes: [.font: UIFont.systemFont(ofSize: 18)],

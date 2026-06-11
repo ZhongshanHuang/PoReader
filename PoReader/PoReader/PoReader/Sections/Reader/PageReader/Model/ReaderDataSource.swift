@@ -45,11 +45,11 @@ extension ReaderDataSource {
     ///   - subrangeIndex: 章节内部分页索引
     /// - Returns: pageItem
     func pageItem(atChapter chapterIndex: Int, subrangeIndex: Int) -> PageItem? {
-        if chapterIndex >= chapters.count {
+        if chapterIndex < 0 || chapterIndex >= chapters.count {
             return nil
         }
         let chapter = chapters[chapterIndex]
-        if subrangeIndex >= chapter.subranges.count {
+        if subrangeIndex < 0 || subrangeIndex >= chapter.subranges.count {
             return nil
         }
         let pageItem = PageItem(chapterIndex: chapterIndex,
@@ -67,7 +67,7 @@ extension ReaderDataSource {
     ///   - sublocation: 章节内部分页的一个字符位置
     /// - Returns: subrangeIndex
     func chapterSubrangeIndex(atChapter chapterIndex: Int, sublocation: Int) -> Int? {
-        if chapterIndex >= chapters.count { return nil }
+        if chapterIndex < 0 || chapterIndex >= chapters.count { return nil }
         let chapter = chapters[chapterIndex]
         if sublocation >= chapter.range.length { return nil }
         
@@ -111,11 +111,11 @@ extension ReaderDataSource {
     ///   - subrangeIndex: 章节内部分页索引
     /// - Returns: location
     func location(atChapter chapterIndex: Int, subrangeIndex: Int) -> Int? {
-        if chapterIndex >= chapters.count {
+        if chapterIndex < 0 || chapterIndex >= chapters.count {
             return nil
         }
         let chapter = chapters[chapterIndex]
-        if subrangeIndex >= chapter.subranges.count {
+        if subrangeIndex < 0 || subrangeIndex >= chapter.subranges.count {
             return nil
         }
         let subrange = chapter.subranges[subrangeIndex]
@@ -146,14 +146,37 @@ extension ReaderDataSource {
     ///   - subrangeIndex: 章节内部分页索引
     /// - Returns: sublocation
     func chapterSublocation(atChapter chapterIndex: Int, subrangeIndex: Int) -> Int? {
-        if chapterIndex >= chapters.count {
+        if chapterIndex < 0 || chapterIndex >= chapters.count {
             return nil
         }
         let chapter = chapters[chapterIndex]
-        if subrangeIndex >= chapter.subranges.count {
+        if subrangeIndex < 0 || subrangeIndex >= chapter.subranges.count {
             return nil
         }
         return chapter.subranges[subrangeIndex].location
+    }
+
+    /// 将数据库里保存的阅读位置映射到当前解析结果中可展示的位置。
+    func resolvedPageLocation(chapterIndex: Int, subrangeIndex: Int) -> (chapterIndex: Int, subrangeIndex: Int)? {
+        guard !chapters.isEmpty else { return nil }
+        guard chapterIndex >= 0, chapterIndex < chapters.count else {
+            return firstReadablePageLocation()
+        }
+
+        let subranges = chapters[chapterIndex].subranges
+        guard !subranges.isEmpty else {
+            return firstReadablePageLocation()
+        }
+
+        let resolvedSubrangeIndex = min(max(subrangeIndex, 0), subranges.count - 1)
+        return (chapterIndex, resolvedSubrangeIndex)
+    }
+
+    private func firstReadablePageLocation() -> (chapterIndex: Int, subrangeIndex: Int)? {
+        for chapter in chapters where !chapter.subranges.isEmpty {
+            return (chapter.idx, 0)
+        }
+        return nil
     }
     
     

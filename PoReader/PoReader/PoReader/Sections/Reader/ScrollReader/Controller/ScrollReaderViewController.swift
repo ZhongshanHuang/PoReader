@@ -66,11 +66,13 @@ class ScrollReaderViewController: BaseViewController {
         super.viewDidAppear(animated)
         if !isFirstDidAppear { return }
         
-        isFirstDidAppear = true
-        if let book = self.book, let pageLocation = try? Database.shared.pageLocation(forBook: book.name) {
-            if pageLocation.subrangeIndex < dataList[0].subranges.count {
-                collectionView.setContentOffset(CGPoint(x: 0, y: dataList[0].subrangeHeight(before: pageLocation.subrangeIndex)), animated: true)
-            }
+        isFirstDidAppear = false
+        if let book = self.book,
+           let pageLocation = try? Database.shared.pageLocation(forBook: book.name),
+           let location = dataSource.resolvedPageLocation(chapterIndex: pageLocation.chapterIndex, subrangeIndex: pageLocation.subrangeIndex),
+           let firstChapter = dataList.first,
+           firstChapter.idx == location.chapterIndex {
+            collectionView.setContentOffset(CGPoint(x: 0, y: firstChapter.subrangeHeight(before: location.subrangeIndex)), animated: true)
         }
     }
     
@@ -110,18 +112,18 @@ class ScrollReaderViewController: BaseViewController {
     }
     
     private func showPageItem(chapterIndex: Int, subrangeIndex: Int) {
-        if chapterIndex >= dataSource.chapters.count || subrangeIndex >= dataSource.chapters[chapterIndex].subranges.count { return }
+        guard let location = dataSource.resolvedPageLocation(chapterIndex: chapterIndex, subrangeIndex: subrangeIndex) else { return }
         
         // 为保持章节顺序，必须先清除原来的章节
         dataList.removeAll()
         
-        let chapter = dataSource.chapters[chapterIndex]
+        let chapter = dataSource.chapters[location.chapterIndex]
         dataList.append(chapter)
-        if subrangeIndex >= chapter.subranges.count - 2, chapter.idx + 1 < dataSource.chapters.count {
+        if location.subrangeIndex >= chapter.subranges.count - 2, chapter.idx + 1 < dataSource.chapters.count {
             dataList.append(dataSource.chapters[chapter.idx + 1])
         }
         collectionView.reloadData()
-        collectionView.setContentOffset(CGPoint(x: 0, y: dataList[0].subrangeHeight(before: subrangeIndex)), animated: false)
+        collectionView.setContentOffset(CGPoint(x: 0, y: dataList[0].subrangeHeight(before: location.subrangeIndex)), animated: false)
     }
     
     // 观察应用事件，保存当前文章页码
@@ -328,4 +330,3 @@ extension ScrollReaderViewController: ReaderBottomBarDelegate {
     }
     
 }
-

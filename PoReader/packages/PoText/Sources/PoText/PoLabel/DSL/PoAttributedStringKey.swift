@@ -188,12 +188,6 @@ public struct PoTextAttributesScopes: Sendable {
     
 }
 
-extension NSUnderlineStyle: @retroactive Hashable {
-    public func hash(into hasher: inout Hasher) {
-        hasher.combine(rawValue)
-    }
-}
-
 extension CGAffineTransform:  @retroactive Hashable {
     public func hash(into hasher: inout Hasher) {
         hasher.combine(a)

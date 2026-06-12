@@ -1,10 +1,3 @@
-//
-//  UIApplication+Ext.swift
-//  PoReader
-//
-//  Created by HzS on 2022/11/3.
-//
-
 import UIKit
 
 extension UIApplication {

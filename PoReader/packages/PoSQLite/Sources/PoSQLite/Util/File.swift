@@ -1,6 +1,6 @@
 import Foundation
 
-final class File {
+enum File {
     static func remove(files: [String]) throws {
         let fileManager = FileManager.default
         try files.forEach { (file) in

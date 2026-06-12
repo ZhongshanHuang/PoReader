@@ -4,23 +4,35 @@ import UIKit
 import Foundation
 import SQLite3
 
-public final class SQLiteDatabase {
-    private let recyclableHandlePool: RecyclableHandlePool
+public final class SQLiteDatabase: @unchecked Sendable {
+    private let handlePoolReference: SQLiteHandlePoolReference
     
     private var handlePool: SQLiteHandlePool {
-        recyclableHandlePool.rawValue
+        handlePoolReference.pool
     }
     
     public var path: String {
         handlePool.path
     }
-    
-    public convenience init(path: String) {
-        self.init(fileURL: URL(fileURLWithPath: path))
+
+    public var configuration: SQLiteConfiguration {
+        handlePool.configuration
     }
     
-    public init(fileURL: URL) {
-        self.recyclableHandlePool = SQLiteHandlePool.getHandlePool(with: fileURL.standardizedFileURL.path)
+    private var identity: SQLiteHandlePool.Key {
+        handlePool.key
+    }
+    
+    public convenience init(path: String, configuration: SQLiteConfiguration = .mobile) {
+        self.init(resolvedPath: Self.resolvePath(path, configuration: configuration), configuration: configuration)
+    }
+    
+    public convenience init(fileURL: URL, configuration: SQLiteConfiguration = .mobile) {
+        self.init(resolvedPath: fileURL.standardizedFileURL.path, configuration: configuration)
+    }
+
+    private init(resolvedPath path: String, configuration: SQLiteConfiguration) {
+        self.handlePoolReference = SQLiteHandlePool.getHandlePool(with: path, configuration: configuration)
 
 #if canImport(UIKit)
         DispatchQueue.once(name: "com.potato.sqlite.swift.purge", {
@@ -38,59 +50,51 @@ public final class SQLiteDatabase {
 #endif
     }
     
-    private static var threadedHandles = ThreadLocal<[String: RecyclableHandle]>(defaultValue: [:])
+    private static let threadedHandles = ThreadLocal<[SQLiteHandlePool.Key: SQLitePooledHandleLease]>(defaultValue: [:])
+    private static let threadedTransactionDepths = ThreadLocal<[SQLiteHandlePool.Key: Int]>(defaultValue: [:])
     
-    func flowOut() throws -> RecyclableHandle {
-        if let handle = Self.threadedHandles.value[path] {
-            return handle
+    func flowOut() throws -> SQLitePooledHandleLease {
+        if let handleLease = Self.threadedHandles.value[identity] {
+            return handleLease
         }
-        let handle = try handlePool.flowOut()
-        return handle
+        let handleLease = try handlePool.flowOut()
+        return handleLease
     }
 
-    /// Since It is using lazy initialization,
-    /// `init(withPath:)`, `init(withFileURL:)` never failed even the database can't open.
-    /// So you can call this to check whether the database can be opened.
-    /// Return false if an error occurs during sqlite handle initialization.
-    public var canOpen: Bool {
-        return !handlePool.isDrained || ((try? handlePool.fillOne()) != nil)
-    }
-
-    /// Check database is already opened.
-    public var isOpened: Bool {
-        return !handlePool.isDrained
-    }
-
-    /// Check whether database is blockaded.
-    public var isBlockaded: Bool {
-        return handlePool.isBlockaded
+    /// Check whether the database currently has at least one opened connection.
+    public var isOpen: Bool {
+        return !handlePool.isClosed && !handlePool.isDrained
     }
     
-    public typealias OnClosed = () throws -> Void
-    
-    public func close(onClosed: OnClosed) rethrows {
-        try handlePool.drain(onDrained: onClosed)
+    /// Force lazy connection initialization and surface the underlying SQLite error if opening fails.
+    public func open() throws {
+        if handlePool.isClosed || handlePool.isDrained {
+            try handlePool.fillOne()
+        }
+    }
+
+    private typealias OnClosed = () throws -> Void
+
+    private func close(onClosed: OnClosed) throws {
+        if Self.threadedHandles.value[identity] != nil {
+            throw SQLiteError(
+                code: SQLITE_BUSY,
+                description: "Cannot close database while the current thread holds active statements or a transaction.",
+                operation: "close"
+            )
+        }
+        try handlePool.close(onClosed: onClosed)
     }
 
     /// Close the database.
-    public func close() {
-        handlePool.drain()
-    }
-
-    /// Blockade the database.
-    public func blockade() {
-        handlePool.blockade()
-    }
-
-    /// Unblockade the database.
-    public func unblockade() {
-        handlePool.unblockade()
+    public func close() throws {
+        try close(onClosed: {})
     }
 
     /// Purge all unused memory of this database.
     /// It will cache and reuse some sqlite handles to improve performance.
-    /// The max count of free sqlite handles is same
-    /// as the number of concurrent threads supported by the hardware implementation.
+    /// The max count of free sqlite handles is controlled by
+    /// `SQLiteConfiguration.maximumIdleConnectionCount`.
     /// You can call it to save some memory.
     public func purge() {
         handlePool.purgeFreeHandles()
@@ -104,128 +108,295 @@ public final class SQLiteDatabase {
     
 }
 
+public enum SQLiteStatementAccess: Sendable {
+    case read
+    case write
+}
+
+private extension SQLiteDatabase {
+    var isInTransactionOnCurrentThread: Bool {
+        (Self.threadedTransactionDepths.value[identity] ?? 0) > 0
+    }
+
+    func withWriteLock<T>(_ body: () throws -> T) throws -> T {
+        if isInTransactionOnCurrentThread {
+            return try body()
+        }
+
+        return try handlePool.withWriteLock(body)
+    }
+
+    func incrementTransactionDepth() {
+        var depths = Self.threadedTransactionDepths.value
+        depths[identity, default: 0] += 1
+        Self.threadedTransactionDepths.value = depths
+    }
+
+    func decrementTransactionDepth() {
+        var depths = Self.threadedTransactionDepths.value
+        let nextDepth = (depths[identity] ?? 0) - 1
+        if nextDepth > 0 {
+            depths[identity] = nextDepth
+        } else {
+            depths.removeValue(forKey: identity)
+        }
+        Self.threadedTransactionDepths.value = depths
+    }
+
+    func releaseThreadedHandle(_ handleLease: SQLitePooledHandleLease) {
+        handleLease.refCount -= 1
+        if handleLease.refCount == 0 {
+            Self.threadedHandles.value.removeValue(forKey: identity)
+        }
+    }
+
+    static func makeSavepointName() -> String {
+        let suffix = UUID().uuidString.replacingOccurrences(of: "-", with: "_")
+        return "posqlite_savepoint_\(suffix)"
+    }
+
+    static func resolvePath(_ path: String, configuration: SQLiteConfiguration) -> String {
+        if path == ":memory:" || configuration.usesURI {
+            return path
+        }
+        return URL(fileURLWithPath: path).standardizedFileURL.path
+    }
+}
+
 // MARK: - Base Operations
 extension SQLiteDatabase {
     
-    public func prepare(statement stat: String) throws -> SQLiteStmt {
-        let recyclableHandle = try flowOut()
-        var stat = try recyclableHandle.rawValue.prepare(statement: stat)
-        let path = path
-        stat.onFinalize = {
-            recyclableHandle.refCount -= 1
-            if recyclableHandle.refCount == 0 {
-                Self.threadedHandles.value.removeValue(forKey: path)
-            }
+    private func makeStatement(_ statement: String) throws -> SQLiteStmt {
+        let handleLease = try flowOut()
+        var stat = try handleLease.handle.prepare(statement: statement)
+        let identity = identity
+        handleLease.refCount += 1
+        if handleLease.refCount == 1 {
+            Self.threadedHandles.value[identity] = handleLease
         }
-        recyclableHandle.refCount += 1
-        if recyclableHandle.refCount == 1 {
-            Self.threadedHandles.value[path] = recyclableHandle
+        stat.lease = SQLiteStatementLease {
+            handleLease.refCount -= 1
+            if handleLease.refCount == 0 {
+                Self.threadedHandles.value.removeValue(forKey: identity)
+            }
         }
         return stat
     }
-    
-    // write: CREATE TABLE, DELETE, ALTER; INSERT, UPDATE, REPLACE
-    public func execute(sql: String, isWrite: Bool) throws {
-        if isWrite { handlePool.wLock() }
-        defer { if isWrite { handlePool.wUnlock() } }
-        let recyclableHandle = try flowOut()
-        try recyclableHandle.rawValue.execute(sql: sql)
+
+    public func prepare(_ sql: SQL) throws -> SQLiteStmt {
+        let statement = try makeStatement(sql.statement)
+        if !sql.parameters.isEmpty {
+            try statement.bind(sql.parameters)
+        }
+        return statement
+    }
+
+    private func prepareBound(_ sql: SQL) throws -> SQLiteStmt {
+        let statement = try makeStatement(sql.statement)
+        try statement.bind(sql.parameters)
+        return statement
     }
     
-    public func begin(_ transaction: SQLiteTransaction) throws {
-        let recyclableHandle = try flowOut()
-        try recyclableHandle.rawValue.begin(transaction)
-        recyclableHandle.refCount += 1
-        if recyclableHandle.refCount == 1 {
-            Self.threadedHandles.value[path] = recyclableHandle
+    private func begin(_ transaction: SQLiteTransaction) throws {
+        let handleLease = try flowOut()
+        try handleLease.handle.begin(transaction)
+        handleLease.refCount += 1
+        if handleLease.refCount == 1 {
+            Self.threadedHandles.value[identity] = handleLease
         }
     }
     
-    public func commit() throws {
-        let recyclableHandle = try flowOut()
-        try recyclableHandle.rawValue.commit()
-        recyclableHandle.refCount -= 1
-        if recyclableHandle.refCount == 0 {
-            Self.threadedHandles.value.removeValue(forKey: path)
+    private func commit() throws {
+        let handleLease = try flowOut()
+        try handleLease.handle.commit()
+        releaseThreadedHandle(handleLease)
+    }
+    
+    private func rollback() throws {
+        let handleLease = try flowOut()
+        defer {
+            releaseThreadedHandle(handleLease)
         }
+        try handleLease.handle.rollback()
     }
     
-    public func rollback() throws {
-        let recyclableHandle = try flowOut()
-        try recyclableHandle.rawValue.rollback()
-        recyclableHandle.refCount -= 1
-        if recyclableHandle.refCount == 0 {
-            Self.threadedHandles.value.removeValue(forKey: path)
-        }
-    }
-    
-    public func lastInsertRowID() throws -> Int {
-        let recyclableHandle = try flowOut()
-        return recyclableHandle.rawValue.lastInsertRowID()
-    }
-    
-    /// 自数据库链接被打开起，通过insert，update，delete语句所影响的数据行数
-    public func totalChanges() throws -> Int {
-        let recyclableHandle = try flowOut()
-        return recyclableHandle.rawValue.totalChanges()
+    private func lastInsertRowID() throws -> Int {
+        let handleLease = try flowOut()
+        return handleLease.handle.lastInsertRowID()
     }
     
     /// 最近一条insert，update，delete语句所影响的数据行数
-    public func changes() throws -> Int {
-        let recyclableHandle = try flowOut()
-        return recyclableHandle.rawValue.changes()
+    private func changes() throws -> Int {
+        let handleLease = try flowOut()
+        return handleLease.handle.changes()
     }
-    
-    public func errCode() throws -> Int {
-        let recyclableHandle = try flowOut()
-        return recyclableHandle.rawValue.errCode()
-    }
-    
-    public func errMsg() throws -> String? {
-        let recyclableHandle = try flowOut()
-        return recyclableHandle.rawValue.errMsg()
-    }
-    
 }
 
 // MARK: - Convenience Operations
 extension SQLiteDatabase {
-    /// write multi
-    public func executeUpdatesInTransaction(_ transaction: SQLiteTransaction = .immediate, statement: String, doUpdatings: (_ stmt: borrowing SQLiteStmt) throws -> Void) throws {
-        handlePool.wLock()
-        defer { handlePool.wUnlock() }
-        
-        let stat = try prepare(statement: statement)
-        do {
-            try begin(transaction)
-            try doUpdatings(stat)
-            try commit()
-        } catch {
-            try? rollback()
+    public func withPreparedStatement<T>(
+        _ sql: SQL,
+        access: SQLiteStatementAccess = .read,
+        _ body: (_ statement: borrowing SQLiteStmt) throws -> T
+    ) throws -> T {
+        switch access {
+        case .read:
+            var statement = try prepare(sql)
+            defer { try? statement.finalize() }
+            return try body(statement)
+        case .write:
+            return try withWriteLock {
+                var statement = try self.prepare(sql)
+                defer { try? statement.finalize() }
+                return try body(statement)
+            }
         }
     }
-    
-    /// write single
-    public func executeUpdate(statement: String, doUpdating: (borrowing SQLiteStmt) throws -> Void) throws {
-        handlePool.wLock()
-        defer { handlePool.wUnlock() }
-        
-        let stat = try prepare(statement: statement)
-        try doUpdating(stat)
-        try stat.step()
-    }
-    
-    /// read
-    public func executeQuery(statement: String, doBindings: (_ stmt: borrowing SQLiteStmt) throws -> Void, handleRow: (_ stmt: borrowing SQLiteStmt) throws -> Void) throws {
-        var stat = try prepare(statement: statement)
-        defer { try? stat.finalize() }
-        try doBindings(stat)
-        var res = try stat.step()
-        
-        while res == SQLITE_ROW {
-            try handleRow(stat)
-            res = try stat.step()
-        }
-    }
-}
 
+    private func withBoundPreparedStatement<T>(
+        _ sql: SQL,
+        access: SQLiteStatementAccess = .read,
+        _ body: (_ statement: borrowing SQLiteStmt) throws -> T
+    ) throws -> T {
+        switch access {
+        case .read:
+            var statement = try prepareBound(sql)
+            defer { try? statement.finalize() }
+            return try body(statement)
+        case .write:
+            return try withWriteLock {
+                var statement = try self.prepareBound(sql)
+                defer { try? statement.finalize() }
+                return try body(statement)
+            }
+        }
+    }
+
+    public func executeScript(_ sql: String) throws {
+        try withWriteLock {
+            let handleLease = try flowOut()
+            try handleLease.handle.execute(sql: sql)
+        }
+    }
+
+    @discardableResult
+    public func execute(_ sql: SQL) throws -> SQLiteExecutionResult {
+        try withBoundPreparedStatement(sql, access: .write) { statement in
+            let result = try statement.step()
+            guard result == .done else {
+                throw SQLiteError(
+                    code: SQLITE_MISUSE,
+                    description: "Use fetch APIs for statements that return rows.",
+                    operation: "execute",
+                    sql: sql.statement
+                )
+            }
+
+            return SQLiteExecutionResult(
+                changes: try changes(),
+                lastInsertRowID: try lastInsertRowID()
+            )
+        }
+    }
+
+    public func fetch<T>(_ sql: SQL, map: (SQLiteRow) throws -> T) throws -> [T] {
+        var rows: [T] = []
+        try forEachRow(sql) { row in
+            rows.append(try map(row))
+        }
+        return rows
+    }
+
+    public func fetch(_ sql: SQL) throws -> [SQLiteRow] {
+        try fetch(sql) { $0 }
+    }
+
+    public func forEachRow(_ sql: SQL, _ body: (SQLiteRow) throws -> Void) throws {
+        try withBoundPreparedStatement(sql) { statement in
+            var result = try statement.step()
+            while result == .row {
+                try body(try SQLiteRow(statement: statement))
+                result = try statement.step()
+            }
+        }
+    }
+
+    public func fetchOne(_ sql: SQL) throws -> SQLiteRow? {
+        try withBoundPreparedStatement(sql) { statement in
+            guard try statement.step() == .row else {
+                return nil
+            }
+            return try SQLiteRow(statement: statement)
+        }
+    }
+
+    public func scalar(_ sql: SQL) throws -> SQLiteValue? {
+        try fetchOne(sql)?[0]
+    }
+
+    @discardableResult
+    public func transaction<T>(_ mode: SQLiteTransaction = .immediate, _ body: (_ transaction: borrowing SQLiteTransactionContext) throws -> T) throws -> T {
+        try _transaction(mode) {
+            try body(SQLiteTransactionContext(database: self))
+        }
+    }
+
+    private func _transaction<T>(_ mode: SQLiteTransaction, _ body: () throws -> T) throws -> T {
+        if isInTransactionOnCurrentThread {
+            return try _savepoint(body)
+        }
+
+        return try handlePool.withWriteLock {
+            try begin(mode)
+            incrementTransactionDepth()
+            do {
+                let result = try body()
+                try commit()
+                decrementTransactionDepth()
+                return result
+            } catch {
+                let rollbackError: (any Error)?
+                do {
+                    try rollback()
+                    rollbackError = nil
+                } catch {
+                    rollbackError = error
+                }
+                decrementTransactionDepth()
+                if let rollbackError {
+                    throw SQLiteTransactionError(primaryError: error, rollbackError: rollbackError)
+                }
+                throw error
+            }
+        }
+    }
+
+    private func _savepoint<T>(_ body: () throws -> T) throws -> T {
+        let savepointName = Self.makeSavepointName()
+        let handleLease = try flowOut()
+
+        try handleLease.handle.savepoint(savepointName)
+        incrementTransactionDepth()
+        do {
+            let result = try body()
+            try handleLease.handle.releaseSavepoint(savepointName)
+            decrementTransactionDepth()
+            return result
+        } catch {
+            let rollbackError: (any Error)?
+            do {
+                try handleLease.handle.rollbackToSavepoint(savepointName)
+                try handleLease.handle.releaseSavepoint(savepointName)
+                rollbackError = nil
+            } catch {
+                rollbackError = error
+            }
+            decrementTransactionDepth()
+            if let rollbackError {
+                throw SQLiteTransactionError(primaryError: error, rollbackError: rollbackError)
+            }
+            throw error
+        }
+    }
+
+}

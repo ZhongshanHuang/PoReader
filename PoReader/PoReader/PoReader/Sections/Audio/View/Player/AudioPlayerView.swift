@@ -116,7 +116,8 @@ class AudioPlayerView: UIView {
             make.height.equalTo(30)
         }
         
-        NotificationCenter.default.addObserver(forName: UIApplication.willTerminateNotification, object: nil, queue: nil) { [unowned self] _ in
+        NotificationCenter.default.addObserver(forName: UIApplication.willTerminateNotification, object: nil, queue: nil) { [weak self] _ in
+            guard let self else { return }
             onStop?(currentModel, progressValue)
         }
     }

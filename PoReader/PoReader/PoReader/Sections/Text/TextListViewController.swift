@@ -137,7 +137,7 @@ class TextListViewController: BaseViewController {
         }
     }
     
-    private var transitionDelegate: NavigationTransitionDelegate!
+    private var transitionDelegate: NavigationTransitionDelegate?
     private func openBook(at index: Int) {
         guard viewModel.dataList.count > index else { return }
         let vc: UIViewController
@@ -145,30 +145,31 @@ class TextListViewController: BaseViewController {
         case .pageCurl:
             let pageVC = PageReaderViewController()
             pageVC.book = viewModel.dataList[index]
-            pageVC.onDeinit = { [unowned self] in
-                transitionDelegate = nil
+            pageVC.onDeinit = { [weak self] in
+                self?.transitionDelegate = nil
             }
             vc = pageVC
         case .scroll:
             let scrollVC = ScrollReaderViewController()
             scrollVC.book = viewModel.dataList[index]
-            scrollVC.onDeinit = { [unowned self] in
-                transitionDelegate = nil
+            scrollVC.onDeinit = { [weak self] in
+                self?.transitionDelegate = nil
             }
             vc = scrollVC
         }
         
         if let cell = collectionView.cellForItem(at: IndexPath(item: index, section: 0)) as? BookCell {
-            transitionDelegate = NavigationTransitionDelegate()
+            let transitionDelegate = NavigationTransitionDelegate()
             let animator = OpenBookTransitionAnimationConfig()
             animator.targetView = cell.animationView
-            animator.onCompletion = { [unowned self] isPresent in
+            animator.onCompletion = { [weak self] isPresent in
                 if !isPresent {
-                    transitionDelegate = nil
+                    self?.transitionDelegate = nil
                 }
             }
             transitionDelegate.set(animatorConfig: animator, for: .push)
             transitionDelegate.set(animatorConfig: animator, for: .pop)
+            self.transitionDelegate = transitionDelegate
             navigationController?.delegate = transitionDelegate
         }
         navigationController?.pushViewController(vc, animated: true)

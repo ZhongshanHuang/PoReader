@@ -4,7 +4,7 @@ import UIKit
 import Foundation
 import SQLite3
 
-public final class SQLiteDatabase: @unchecked Sendable {
+public final class SQLiteDatabase: SQLiteExecutor, @unchecked Sendable {
     private let handlePoolReference: SQLiteHandlePoolReference
     
     private var handlePool: SQLiteHandlePool {
@@ -43,7 +43,7 @@ public final class SQLiteDatabase: @unchecked Sendable {
                 queue: nil,
                 using: { (_) in
                     purgeFreeHandleQueue.async {
-                        SQLiteDatabase.purge()
+                        SQLiteDatabase.purgeAllIdleConnections()
                     }
                 })
         })
@@ -96,21 +96,16 @@ public final class SQLiteDatabase: @unchecked Sendable {
     /// The max count of free sqlite handles is controlled by
     /// `SQLiteConfiguration.maximumIdleConnectionCount`.
     /// You can call it to save some memory.
-    public func purge() {
+    public func purgeIdleConnections() {
         handlePool.purgeFreeHandles()
     }
 
     /// Purge all unused memory of all databases.
     /// Note that It will call this interface automatically while it receives memory warning on iOS.
-    public static func purge() {
+    public static func purgeAllIdleConnections() {
         SQLiteHandlePool.purgeFreeHandlesInAllPools()
     }
     
-}
-
-public enum SQLiteStatementAccess: Sendable {
-    case read
-    case write
 }
 
 private extension SQLiteDatabase {
@@ -197,7 +192,7 @@ extension SQLiteDatabase {
         return statement
     }
     
-    private func begin(_ transaction: SQLiteTransaction) throws {
+    private func begin(_ transaction: SQLiteTransactionMode) throws {
         let handleLease = try flowOut()
         try handleLease.handle.begin(transaction)
         handleLease.refCount += 1
@@ -236,43 +231,37 @@ extension SQLiteDatabase {
 extension SQLiteDatabase {
     public func withPreparedStatement<T>(
         _ sql: SQL,
-        access: SQLiteStatementAccess = .read,
         _ body: (_ statement: borrowing SQLiteStmt) throws -> T
     ) throws -> T {
-        switch access {
-        case .read:
-            var statement = try prepare(sql)
-            defer { try? statement.finalize() }
+        var statement = try prepare(sql)
+        defer { try? statement.finalize() }
+
+        if try statement.isReadOnly() {
             return try body(statement)
-        case .write:
-            return try withWriteLock {
-                var statement = try self.prepare(sql)
-                defer { try? statement.finalize() }
-                return try body(statement)
-            }
+        }
+
+        return try withWriteLock {
+            try body(statement)
         }
     }
 
     private func withBoundPreparedStatement<T>(
         _ sql: SQL,
-        access: SQLiteStatementAccess = .read,
         _ body: (_ statement: borrowing SQLiteStmt) throws -> T
     ) throws -> T {
-        switch access {
-        case .read:
-            var statement = try prepareBound(sql)
-            defer { try? statement.finalize() }
+        var statement = try prepareBound(sql)
+        defer { try? statement.finalize() }
+
+        if try statement.isReadOnly() {
             return try body(statement)
-        case .write:
-            return try withWriteLock {
-                var statement = try self.prepareBound(sql)
-                defer { try? statement.finalize() }
-                return try body(statement)
-            }
+        }
+
+        return try withWriteLock {
+            try body(statement)
         }
     }
 
-    public func executeScript(_ sql: String) throws {
+    public func executeRawScript(_ sql: String) throws {
         try withWriteLock {
             let handleLease = try flowOut()
             try handleLease.handle.execute(sql: sql)
@@ -281,7 +270,7 @@ extension SQLiteDatabase {
 
     @discardableResult
     public func execute(_ sql: SQL) throws -> SQLiteExecutionResult {
-        try withBoundPreparedStatement(sql, access: .write) { statement in
+        try withBoundPreparedStatement(sql) { statement in
             let result = try statement.step()
             guard result == .done else {
                 throw SQLiteError(
@@ -299,49 +288,14 @@ extension SQLiteDatabase {
         }
     }
 
-    public func fetch<T>(_ sql: SQL, map: (SQLiteRow) throws -> T) throws -> [T] {
-        var rows: [T] = []
-        try forEachRow(sql) { row in
-            rows.append(try map(row))
-        }
-        return rows
-    }
-
-    public func fetch(_ sql: SQL) throws -> [SQLiteRow] {
-        try fetch(sql) { $0 }
-    }
-
-    public func forEachRow(_ sql: SQL, _ body: (SQLiteRow) throws -> Void) throws {
-        try withBoundPreparedStatement(sql) { statement in
-            var result = try statement.step()
-            while result == .row {
-                try body(try SQLiteRow(statement: statement))
-                result = try statement.step()
-            }
-        }
-    }
-
-    public func fetchOne(_ sql: SQL) throws -> SQLiteRow? {
-        try withBoundPreparedStatement(sql) { statement in
-            guard try statement.step() == .row else {
-                return nil
-            }
-            return try SQLiteRow(statement: statement)
-        }
-    }
-
-    public func scalar(_ sql: SQL) throws -> SQLiteValue? {
-        try fetchOne(sql)?[0]
-    }
-
     @discardableResult
-    public func transaction<T>(_ mode: SQLiteTransaction = .immediate, _ body: (_ transaction: borrowing SQLiteTransactionContext) throws -> T) throws -> T {
-        try _transaction(mode) {
+    public func withTransaction<T>(_ mode: SQLiteTransactionMode = .immediate, _ body: (_ transaction: borrowing SQLiteTransactionContext) throws -> T) throws -> T {
+        try _withTransaction(mode) {
             try body(SQLiteTransactionContext(database: self))
         }
     }
 
-    private func _transaction<T>(_ mode: SQLiteTransaction, _ body: () throws -> T) throws -> T {
+    private func _withTransaction<T>(_ mode: SQLiteTransactionMode, _ body: () throws -> T) throws -> T {
         if isInTransactionOnCurrentThread {
             return try _savepoint(body)
         }

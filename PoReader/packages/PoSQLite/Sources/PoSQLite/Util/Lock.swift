@@ -27,11 +27,24 @@ final class ConditionLock: @unchecked Sendable {
     }
 
     func wait(timeout: TimeInterval) {
-        let integerPart = Int(timeout.nextDown)
-        let fractionalPart = timeout - Double(integerPart)
-        var ts = timespec(tv_sec: integerPart, tv_nsec: Int(fractionalPart * 1000000000))
+        var ts = Self.relativeTimespec(timeout: timeout)
 
         unsafe pthread_cond_timedwait_relative_np(&cond, &mutex, &ts)
+    }
+
+    static func relativeTimespec(timeout: TimeInterval) -> timespec {
+        guard timeout.isFinite, timeout > 0 else {
+            return timespec(tv_sec: 0, tv_nsec: 0)
+        }
+
+        let wholeSeconds = timeout.rounded(.down)
+        guard wholeSeconds < Double(Int.max) else {
+            return timespec(tv_sec: Int.max, tv_nsec: 999_999_999)
+        }
+
+        let seconds = Int(wholeSeconds)
+        let nanoseconds = Int(((timeout - wholeSeconds) * 1_000_000_000).rounded(.down))
+        return timespec(tv_sec: seconds, tv_nsec: min(max(nanoseconds, 0), 999_999_999))
     }
 
     func signal() {

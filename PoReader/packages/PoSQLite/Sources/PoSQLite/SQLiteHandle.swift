@@ -6,7 +6,7 @@ typealias SQLite3Statement = OpaquePointer
 
 /// 未加锁(UNLOCKED)、共享 (SHARED)、保留(RESERVED)、未决(PENDING)、排它(EXCLUSIVE)
 /// 事务获取锁的模式
-public enum SQLiteTransaction: String, Sendable {
+public enum SQLiteTransactionMode: String, Sendable {
     case deferred = "BEGIN DEFERRED TRANSACTION" // UNLOCKED
     case immediate = "BEGIN IMMEDIATE TRANSACTION" // RESERVED
     case exclusive = "BEGIN EXCLUSIVE TRANSACTION" // EXCLUSIVE
@@ -61,7 +61,7 @@ extension SQLiteHandle {
         try _execute(sql: sql)
     }
     
-    public func begin(_ transaction: SQLiteTransaction) throws {
+    public func begin(_ transaction: SQLiteTransactionMode) throws {
         try execute(sql: transaction.rawValue)
     }
     

@@ -11,8 +11,8 @@ final class Database {
         let path = (Constants.databaseDirectory as NSString).appendingPathComponent("reader.db")
         let dababase = SQLiteDatabase(path: path)
         do {
-            try dababase.executeScript(BookModel.scheme)
-            try dababase.executeScript(AudioModel.scheme)
+            try dababase.executeRawScript(BookModel.scheme)
+            try dababase.executeRawScript(AudioModel.scheme)
         } catch {
             print("创建表格失败")
         }

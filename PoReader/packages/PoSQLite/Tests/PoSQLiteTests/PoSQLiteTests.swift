@@ -174,6 +174,31 @@ final class PoSQLiteTests: XCTestCase {
         XCTAssertEqual(try database.scalar("PRAGMA journal_size_limit"), .integer(16 * 1024 * 1024))
     }
 
+    func testReadOnlyConfigurationSkipsJournalModePragma() throws {
+        let createConfiguration = SQLiteConfiguration(journalMode: nil)
+        let (writer, url) = makeDatabase(configuration: createConfiguration)
+        defer { cleanup(database: writer, url: url) }
+
+        try writer.execute("CREATE TABLE items (id INTEGER PRIMARY KEY, name TEXT NOT NULL);")
+        try writer.execute("INSERT INTO items (name) VALUES (\("stored"))")
+        try writer.close()
+
+        let readOnlyConfiguration = SQLiteConfiguration(accessMode: .readOnly)
+        XCTAssertNil(readOnlyConfiguration.journalMode)
+        XCTAssertFalse(readOnlyConfiguration.connectionPreparationStatements.contains { $0.contains("journal_mode") })
+
+        let reader = SQLiteDatabase(fileURL: url, configuration: readOnlyConfiguration)
+        defer { cleanup(database: reader, url: url) }
+
+        XCTAssertEqual(try reader.scalar("PRAGMA journal_mode"), .text("delete"))
+        XCTAssertEqual(try reader.scalar("SELECT COUNT(*) FROM items"), .integer(1))
+        XCTAssertThrowsError(try reader.execute("INSERT INTO items (name) VALUES (\("blocked"))")) { error in
+            let sqliteError = error as? SQLiteError
+            XCTAssertEqual(sqliteError?.code, SQLITE_READONLY)
+            XCTAssertEqual(sqliteError?.operation, "step")
+        }
+    }
+
     func testClosePreventsFurtherUseAndAllowsFreshDatabaseForSamePath() throws {
         let (database, url) = makeDatabase()
         try database.execute("CREATE TABLE items (id INTEGER PRIMARY KEY, name TEXT NOT NULL);")
@@ -235,7 +260,7 @@ final class PoSQLiteTests: XCTestCase {
         );
         """)
 
-        try database.transaction { transaction in
+        try database.withTransaction { transaction in
             try transaction.execute("""
             INSERT INTO users (name, age, payload)
             VALUES (\("Grace"), \(nil as Int?), \(payload))
@@ -280,7 +305,7 @@ final class PoSQLiteTests: XCTestCase {
         try database.execute("INSERT INTO items (name) VALUES (\("existing"))")
 
         XCTAssertThrowsError(
-            try database.transaction { transaction in
+            try database.withTransaction { transaction in
                 try transaction.execute("INSERT INTO items (name) VALUES (\("pending"))")
                 throw TestFailure.expected
             }
@@ -303,8 +328,8 @@ final class PoSQLiteTests: XCTestCase {
         try database.execute("CREATE TABLE items (name TEXT NOT NULL);")
 
         XCTAssertThrowsError(
-            try database.transaction { transaction in
-                try transaction.withPreparedStatement("INSERT INTO items (name) VALUES (?)", access: .write) { statement in
+            try database.withTransaction { transaction in
+                try transaction.withPreparedStatement("INSERT INTO items (name) VALUES (?)") { statement in
                     try statement.bind(position: 1, "pending")
                     try statement.step()
                 }
@@ -321,9 +346,9 @@ final class PoSQLiteTests: XCTestCase {
 
         try database.execute("CREATE TABLE items (name TEXT NOT NULL);")
 
-        try database.transaction { transaction in
+        try database.withTransaction { transaction in
             try transaction.execute("INSERT INTO items (name) VALUES (\("outer"))")
-            try transaction.transaction { nestedTransaction in
+            try transaction.withTransaction { nestedTransaction in
                 try nestedTransaction.execute("INSERT INTO items (name) VALUES (\("inner"))")
             }
             try transaction.execute("INSERT INTO items (name) VALUES (\("after"))")
@@ -345,10 +370,10 @@ final class PoSQLiteTests: XCTestCase {
 
         try database.execute("CREATE TABLE items (name TEXT NOT NULL);")
 
-        try database.transaction { transaction in
+        try database.withTransaction { transaction in
             try transaction.execute("INSERT INTO items (name) VALUES (\("outer"))")
             XCTAssertThrowsError(
-                try transaction.transaction { nestedTransaction in
+                try transaction.withTransaction { nestedTransaction in
                     try nestedTransaction.execute("INSERT INTO items (name) VALUES (\("pending"))")
                     throw TestFailure.expected
                 }
@@ -398,7 +423,7 @@ final class PoSQLiteTests: XCTestCase {
         let emptyPayload: [UInt8] = []
         try database.execute("CREATE TABLE blobs (id INTEGER PRIMARY KEY AUTOINCREMENT, payload BLOB);")
         try database.execute("INSERT INTO blobs (payload) VALUES (\(emptyPayload))")
-        try database.withPreparedStatement("INSERT INTO blobs (payload) VALUES (?)", access: .write) { statement in
+        try database.withPreparedStatement("INSERT INTO blobs (payload) VALUES (?)") { statement in
             try statement.bind(position: 1, Data())
             try statement.step()
         }
@@ -422,7 +447,7 @@ final class PoSQLiteTests: XCTestCase {
 
         let payload: [UInt8] = [3, 1, 4, 1, 5, 9]
         try database.execute("CREATE TABLE blobs (payload BLOB NOT NULL);")
-        try database.withPreparedStatement("INSERT INTO blobs (payload) VALUES (?)", access: .write) { statement in
+        try database.withPreparedStatement("INSERT INTO blobs (payload) VALUES (?)") { statement in
             try payload.withUnsafeBufferPointer { buffer in
                 try statement.bindBlob(position: 1, bytes: unsafe Span(_unsafeElements: buffer))
             }
@@ -547,6 +572,20 @@ final class PoSQLiteTests: XCTestCase {
         XCTAssertEqual(error.operation, "open_handle")
     }
 
+    func testConditionLockRelativeTimespecKeepsNanosecondsInRange() {
+        let oneSecond = ConditionLock.relativeTimespec(timeout: 1)
+        XCTAssertEqual(oneSecond.tv_sec, 1)
+        XCTAssertEqual(oneSecond.tv_nsec, 0)
+
+        let fractional = ConditionLock.relativeTimespec(timeout: 1.5)
+        XCTAssertEqual(fractional.tv_sec, 1)
+        XCTAssertEqual(fractional.tv_nsec, 500_000_000)
+
+        let subsecond = ConditionLock.relativeTimespec(timeout: 0.999_999_999_9)
+        XCTAssertEqual(subsecond.tv_sec, 0)
+        XCTAssertLessThanOrEqual(subsecond.tv_nsec, 999_999_999)
+    }
+
     func testConcurrentReadsAndWritesUsePoolSafely() throws {
         let (database, url) = makeDatabase()
         defer { cleanup(database: database, url: url) }
@@ -650,6 +689,14 @@ final class PoSQLiteTests: XCTestCase {
             XCTAssertEqual(sqliteError?.operation, "bind_parameter_count")
         }
 
+        XCTAssertThrowsError(
+            try database.scalar("SELECT ?")
+        ) { error in
+            let sqliteError = error as? SQLiteError
+            XCTAssertEqual(sqliteError?.code, SQLITE_RANGE)
+            XCTAssertEqual(sqliteError?.operation, "bind_parameter_count")
+        }
+
         XCTAssertEqual(try database.scalar("SELECT COUNT(*) FROM items"), .integer(0))
     }
 
@@ -708,6 +755,19 @@ final class PoSQLiteTests: XCTestCase {
         XCTAssertEqual(try database.scalar("SELECT 1; -- trailing comment"), .integer(1))
     }
 
+    func testExecuteRawScriptAllowsMultipleStatements() throws {
+        let (database, url) = makeDatabase()
+        defer { cleanup(database: database, url: url) }
+
+        try database.executeRawScript("""
+        CREATE TABLE items (name TEXT NOT NULL);
+        INSERT INTO items (name) VALUES ('first');
+        INSERT INTO items (name) VALUES ('second');
+        """)
+
+        XCTAssertEqual(try database.scalar("SELECT COUNT(*) FROM items"), .integer(2))
+    }
+
     func testExecuteRejectsStatementsThatReturnRows() throws {
         let (database, url) = makeDatabase()
         defer { cleanup(database: database, url: url) }
@@ -732,7 +792,7 @@ final class PoSQLiteTests: XCTestCase {
         try database.execute("CREATE TABLE items (name TEXT NOT NULL);")
 
         do {
-            try database.transaction { transaction in
+            try database.withTransaction { transaction in
                 try transaction.execute("INSERT INTO items (name) VALUES (\("pending"))")
                 try transaction.execute("ROLLBACK TRANSACTION;")
                 throw TestFailure.expected

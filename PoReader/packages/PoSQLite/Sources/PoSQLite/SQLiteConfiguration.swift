@@ -99,7 +99,8 @@ public struct SQLiteConfiguration: Hashable, Sendable {
         self.connectionCheckoutTimeoutMilliseconds = connectionCheckoutTimeoutMilliseconds.map { max(0, $0) }
         self.maximumConnectionCount = connectionCount
         self.maximumIdleConnectionCount = max(0, min(maximumIdleConnectionCount, connectionCount))
-        self.journalMode = journalMode
+        // SQLite cannot change journal mode through a read-only handle.
+        self.journalMode = accessMode == .readOnly ? nil : journalMode
         self.synchronous = synchronous
         self.foreignKeys = foreignKeys
         self.walAutoCheckpointPages = walAutoCheckpointPages.map { max(0, $0) }
@@ -149,7 +150,7 @@ extension SQLiteConfiguration {
     var connectionPreparationStatements: [String] {
         var statements: [String] = []
 
-        if let journalMode {
+        if accessMode != .readOnly, let journalMode {
             statements.append("PRAGMA journal_mode=\(journalMode.rawValue);")
         }
         if let synchronous {

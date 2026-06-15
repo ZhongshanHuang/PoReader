@@ -201,6 +201,10 @@ public enum SQLiteStepResult: Int32, Sendable {
         try _withColumnBlob(position: sqlitePosition(position), body)
     }
 
+    func isReadOnly() throws -> Bool {
+        unsafe sqlite3_stmt_readonly(try _statement()) != 0
+    }
+
     private func _reset() throws -> Int32 {
         unsafe sqlite3_reset(try _statement())
     }

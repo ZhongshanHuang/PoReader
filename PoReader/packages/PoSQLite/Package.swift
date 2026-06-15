@@ -28,14 +28,16 @@ let package = Package(
             path: "./Sources/PoSQLite",
             swiftSettings: [
                 .swiftLanguageMode(.v6),
-                .strictMemorySafety()
+                .strictMemorySafety(),
+                .treatAllWarnings(as: .error)
             ]),
         .testTarget(
             name: "PoSQLiteTests",
             dependencies: ["PoSQLite"],
             swiftSettings: [
                 .swiftLanguageMode(.v6),
-                .strictMemorySafety()
+                .strictMemorySafety(),
+                .treatAllWarnings(as: .error)
             ]),
     ],
     swiftLanguageModes: [.v6]

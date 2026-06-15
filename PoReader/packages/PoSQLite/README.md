@@ -67,7 +67,7 @@ let rows = try database.fetch("SELECT \(raw: "COUNT(*)") FROM \(identifier: tabl
 Transactions keep all writes on the same SQLite handle and roll back on any thrown error:
 
 ```swift
-try database.transaction { transaction in
+try database.withTransaction { transaction in
     try transaction.execute("INSERT INTO users (name, age) VALUES (\("Grace"), \(40))")
     try transaction.execute("INSERT INTO users (name, age) VALUES (\("Linus"), \(nil as Int?))")
 
@@ -78,16 +78,16 @@ try database.transaction { transaction in
 
 Nested transactions use SQLite savepoints, so an inner rollback does not automatically roll back the outer transaction.
 
-Use `withPreparedStatement(_:access:_:)` when you need direct statement control with automatic finalization. Use `prepare(_:)` only when you need to manage the statement lifetime manually:
+Use `withPreparedStatement(_:_:)` when you need direct statement control with automatic finalization. It automatically serializes statements that can write. Use `prepare(_:)` only when you need to manage the statement lifetime manually:
 
 ```swift
-try database.withPreparedStatement("INSERT INTO users (name) VALUES (?)", access: .write) { statement in
+try database.withPreparedStatement("INSERT INTO users (name) VALUES (?)") { statement in
     try statement.bind(position: 1, "Manual")
     try statement.step()
 }
 ```
 
-`execute`, `fetch`, `fetchOne`, and `scalar` require every SQL placeholder to be bound by `SQL` interpolation or explicit `SQL("...", parameters:)`. Use `executeScript(_:)` only for raw multi-statement scripts; it does not bind values.
+`execute`, `fetch`, `fetchOne`, and `scalar` require every SQL placeholder to be bound by `SQL` interpolation or explicit `SQL("...", parameters:)`. Use `executeRawScript(_:)` only for raw multi-statement scripts; it does not bind values.
 
 ## Configuration
 

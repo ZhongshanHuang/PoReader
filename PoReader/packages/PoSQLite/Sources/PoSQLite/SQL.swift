@@ -3,6 +3,9 @@ import Foundation
 public struct SQL: Equatable, Sendable, CustomStringConvertible {
     public let statement: String
     public let parameters: [SQLiteValue]
+    /// Named SQLite bind values keyed by their complete placeholder names.
+    /// `nil` indicates positional binding.
+    public let namedParameters: [String: SQLiteValue]?
 
     public var description: String {
         statement
@@ -11,10 +14,30 @@ public struct SQL: Equatable, Sendable, CustomStringConvertible {
     public init(_ statement: String, parameters: [SQLiteValue] = []) {
         self.statement = statement
         self.parameters = parameters
+        self.namedParameters = nil
+    }
+
+    /// Creates a statement whose values are bound by SQLite parameter name.
+    public init(_ statement: String, namedParameters: [String: SQLiteValue]) {
+        self.statement = statement
+        self.parameters = []
+        self.namedParameters = namedParameters
     }
 
     public static func quoteIdentifier(_ identifier: String) -> String {
         "\"\(identifier.replacingOccurrences(of: "\"", with: "\"\""))\""
+    }
+
+    var hasBoundParameters: Bool {
+        !parameters.isEmpty || namedParameters != nil
+    }
+
+    func bind(to statement: borrowing SQLiteStmt) throws {
+        if let namedParameters {
+            try statement.bind(namedParameters)
+        } else {
+            try statement.bind(parameters)
+        }
     }
 }
 
@@ -52,7 +75,7 @@ extension SQL: ExpressibleByStringInterpolation {
             appendValue(value?.sqliteValue ?? .null)
         }
 
-        public mutating func appendInterpolation(raw sql: String) {
+        public mutating func appendInterpolation(unsafeRaw sql: String) {
             statement += sql
         }
 
@@ -65,9 +88,4 @@ extension SQL: ExpressibleByStringInterpolation {
             parameters.append(value)
         }
     }
-}
-
-public struct SQLiteExecutionResult: Equatable, Sendable {
-    public let changes: Int
-    public let lastInsertRowID: Int
 }

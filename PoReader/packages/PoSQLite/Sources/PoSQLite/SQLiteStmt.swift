@@ -19,17 +19,19 @@ public enum SQLiteStepResult: Int32, Sendable {
 @safe public struct SQLiteStmt: ~Copyable {
     @unsafe private var stat: SQLite3Statement!
     private let sql: String?
+    private let disposal: SQLiteStatementDisposal
     var lease: SQLiteStatementLease?
     
     deinit {
-        if unsafe self.stat != nil {
-            unsafe sqlite3_finalize(self.stat)
+        if let statement = unsafe self.stat {
+            unsafe _ = _dispose(statement)
         }
     }
     
-    internal init(stat: SQLite3Statement, sql: String? = nil) {
+    internal init(stat: SQLite3Statement, sql: String? = nil, disposal: SQLiteStatementDisposal = .finalize) {
         unsafe self.stat = stat
         self.sql = sql
+        self.disposal = disposal
     }
     
     public func reset(clearBindings: Bool = false) throws {
@@ -52,8 +54,13 @@ public enum SQLiteStepResult: Int32, Sendable {
     @discardableResult
     public func step() throws -> SQLiteStepResult {
         let res = try _step()
-        try _checkResult(res, isStep: true, operation: "step")
-        guard let result = SQLiteStepResult(rawValue: res) else {
+        switch res {
+        case SQLITE_ROW:
+            return .row
+        case SQLITE_DONE:
+            return .done
+        default:
+            try _checkResult(res, isStep: true, operation: "step")
             throw SQLiteError(
                 code: SQLITE_MISUSE,
                 description: "Unexpected sqlite3_step result: \(res).",
@@ -61,7 +68,6 @@ public enum SQLiteStepResult: Int32, Sendable {
                 sql: sql
             )
         }
-        return result
     }
 
     private func checkedBindPosition(_ position: Int) throws -> Int32 {
@@ -77,8 +83,18 @@ public enum SQLiteStepResult: Int32, Sendable {
         return sqlitePosition
     }
 
-    private func sqlitePosition(_ position: Int) -> Int32 {
-        Int32(exactly: position) ?? (position < 0 ? Int32.min : Int32.max)
+    private func checkedColumnPosition(_ position: Int) throws -> Int32 {
+        let statement = try unsafe _statement()
+        let count = unsafe Int(sqlite3_column_count(statement))
+        guard position >= 0, position < count, let sqlitePosition = Int32(exactly: position) else {
+            throw SQLiteError(
+                code: SQLITE_RANGE,
+                description: "Column index \(position) is out of range.",
+                operation: "column",
+                sql: sql
+            )
+        }
+        return sqlitePosition
     }
     
     public func bindBlob(position: Int, bytes: Span<UInt8>) throws {
@@ -107,6 +123,10 @@ public enum SQLiteStepResult: Int32, Sendable {
 
     func bindSQLiteValue(position: Int, _ value: SQLiteValue) throws {
         let sqlitePosition = try checkedBindPosition(position)
+        try bindSQLiteValue(sqlitePosition: sqlitePosition, originalPosition: position, value)
+    }
+
+    func bindSQLiteValue(sqlitePosition: Int32, originalPosition: Int, _ value: SQLiteValue) throws {
         let result: Int32
         switch value {
         case .null:
@@ -120,7 +140,7 @@ public enum SQLiteStepResult: Int32, Sendable {
         case .blob(let value):
             result = try _bindBlob(position: sqlitePosition, data: value)
         }
-        try _checkResult(result, operation: "bind", bind: .position(position))
+        try _checkResult(result, operation: "bind", bind: .position(originalPosition))
     }
 
     func bindSQLiteValue(name: String, _ value: SQLiteValue) throws {
@@ -164,16 +184,16 @@ public enum SQLiteStepResult: Int32, Sendable {
         try _bindParameterName(position: checkedBindPosition(position))
     }
     
-    public func columnName(position: Int) -> String {
-        _columnName(position: sqlitePosition(position))
+    public func columnName(position: Int) throws -> String {
+        _columnName(position: try checkedColumnPosition(position))
     }
     
-    public func columnDeclaredType(position: Int) -> String {
-        _columnDeclaredType(position: sqlitePosition(position))
+    public func columnDeclaredType(position: Int) throws -> String {
+        _columnDeclaredType(position: try checkedColumnPosition(position))
     }
     
-    public func columnType(position: Int) -> SQLiteType {
-        let res = _columnType(position: sqlitePosition(position))
+    public func columnType(position: Int) throws -> SQLiteType {
+        let res = _columnType(position: try checkedColumnPosition(position))
         return SQLiteType(rawValue: res) ?? .null
     }
     
@@ -181,9 +201,12 @@ public enum SQLiteStepResult: Int32, Sendable {
         Int(_columnCount())
     }
 
-    public func columnValue(position: Int) -> SQLiteValue {
-        let sqlitePosition = sqlitePosition(position)
-        switch columnType(position: position) {
+    public func columnValue(position: Int) throws -> SQLiteValue {
+        columnValue(sqlitePosition: try checkedColumnPosition(position))
+    }
+
+    func columnValue(sqlitePosition: Int32) -> SQLiteValue {
+        switch columnType(sqlitePosition: sqlitePosition) {
         case .integer:
             return .integer(_columnInt64(position: sqlitePosition))
         case .float:
@@ -197,8 +220,24 @@ public enum SQLiteStepResult: Int32, Sendable {
         }
     }
 
-    public func withColumnBlob<R>(position: Int, _ body: (Span<UInt8>) throws -> R) rethrows -> R {
-        try _withColumnBlob(position: sqlitePosition(position), body)
+    private func columnType(sqlitePosition: Int32) -> SQLiteType {
+        SQLiteType(rawValue: _columnType(position: sqlitePosition)) ?? .null
+    }
+
+    public func withColumnBlob<R>(position: Int, _ body: (Span<UInt8>) throws -> R) throws -> R {
+        try _withColumnBlob(position: checkedColumnPosition(position), body)
+    }
+
+    func columnName(sqlitePosition: Int32) -> String {
+        _columnName(position: sqlitePosition)
+    }
+
+    func withBorrowedRow<R>(
+        metadata: SQLiteRowMetadata,
+        _ body: (_ row: borrowing SQLiteBorrowedRow) throws -> R
+    ) throws -> R {
+        let row = try unsafe SQLiteBorrowedRow(statement: _statement(), metadata: metadata)
+        return try body(row)
     }
 
     func isReadOnly() throws -> Bool {
@@ -216,11 +255,32 @@ public enum SQLiteStepResult: Int32, Sendable {
     private mutating func _finalize() throws {
         guard let statement = unsafe self.stat else { return }
 
-        let database = unsafe sqlite3_db_handle(statement)
-        let result = unsafe sqlite3_finalize(statement)
         unsafe self.stat = nil
+        let result = unsafe _dispose(statement)
 
-        try unsafe Self._checkResult(result, database: database, fallback: "sqlite3_finalize", operation: "finalize", sql: sql)
+        try unsafe Self._checkResult(
+            result.code,
+            database: result.database,
+            fallback: result.fallback,
+            operation: result.operation,
+            sql: sql
+        )
+    }
+
+    private func _dispose(_ statement: SQLite3Statement) -> SQLiteStatementDisposalResult {
+        switch disposal {
+        case .finalize:
+            let database = unsafe sqlite3_db_handle(statement)
+            let result = unsafe sqlite3_finalize(statement)
+            return unsafe SQLiteStatementDisposalResult(
+                code: result,
+                database: database,
+                operation: "finalize",
+                fallback: "sqlite3_finalize failed."
+            )
+        case .cache(let cache, let sql):
+            return unsafe cache.store(statement, sql: sql)
+        }
     }
 
     private func _step() throws -> Int32 {

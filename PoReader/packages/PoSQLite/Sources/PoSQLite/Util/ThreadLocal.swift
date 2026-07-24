@@ -10,7 +10,7 @@ final class ThreadLocal<Value>: @unchecked Sendable {
     }
     
     @unsafe private var key = pthread_key_t()
-    private var defaultValue: Value
+    private let defaultValue: Value
     
     init(defaultValue: Value) {
         self.defaultValue = defaultValue
@@ -24,15 +24,39 @@ final class ThreadLocal<Value>: @unchecked Sendable {
     }
     
     var value: Value {
-        get {
-            guard let pointer = unsafe pthread_getspecific(key) else { return defaultValue }
-            return unsafe Unmanaged<Wrapper>.fromOpaque(pointer).takeUnretainedValue().rawValue
-        }
-        set {
-            if let pointer = unsafe pthread_getspecific(key)  {
-                unsafe Unmanaged<AnyObject>.fromOpaque(pointer).release()
+        @inline(__always)
+        _read {
+            guard let pointer = unsafe pthread_getspecific(key) else {
+                yield defaultValue
+                return
             }
-            unsafe pthread_setspecific(key, unsafe Unmanaged.passRetained(Wrapper(rawValue: newValue)).toOpaque())
+            let wrapper = unsafe Unmanaged<Wrapper>.fromOpaque(pointer).takeUnretainedValue()
+            yield wrapper.rawValue
         }
+
+        @inline(__always)
+        _modify {
+            let wrapper: Wrapper
+            if let pointer = unsafe pthread_getspecific(key) {
+                wrapper = unsafe Unmanaged<Wrapper>.fromOpaque(pointer).takeUnretainedValue()
+            } else {
+                wrapper = Wrapper(rawValue: defaultValue)
+                unsafe pthread_setspecific(key, unsafe Unmanaged.passRetained(wrapper).toOpaque())
+            }
+            yield &wrapper.rawValue
+        }
+    }
+
+    @discardableResult
+    @inline(__always)
+    func withValue<Result>(_ body: (inout Value) throws -> Result) rethrows -> Result {
+        let wrapper: Wrapper
+        if let pointer = unsafe pthread_getspecific(key) {
+            wrapper = unsafe Unmanaged<Wrapper>.fromOpaque(pointer).takeUnretainedValue()
+        } else {
+            wrapper = Wrapper(rawValue: defaultValue)
+            unsafe pthread_setspecific(key, unsafe Unmanaged.passRetained(wrapper).toOpaque())
+        }
+        return try body(&wrapper.rawValue)
     }
 }

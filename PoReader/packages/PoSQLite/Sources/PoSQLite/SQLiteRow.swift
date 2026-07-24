@@ -1,35 +1,83 @@
 import Foundation
 import SQLite3
 
+final class SQLiteRowMetadata: Sendable {
+    let columnNames: [String]
+    private let columnIndexes: [String: Int]
+
+    init(columnNames: [String], valueCount: Int) {
+        self.columnNames = columnNames
+
+        var columnIndexes: [String: Int] = [:]
+        columnIndexes.reserveCapacity(min(columnNames.count, valueCount))
+        for (index, name) in columnNames.enumerated() where index < valueCount && columnIndexes[name] == nil {
+            columnIndexes[name] = index
+        }
+        self.columnIndexes = columnIndexes
+    }
+
+    init(statement: borrowing SQLiteStmt) {
+        let count = statement.columnCount()
+        var columnNames: [String] = []
+        columnNames.reserveCapacity(count)
+
+        var sqlitePosition: Int32 = 0
+        for _ in 0..<count {
+            columnNames.append(statement.columnName(sqlitePosition: sqlitePosition))
+            sqlitePosition &+= 1
+        }
+
+        self.columnNames = columnNames
+
+        var columnIndexes: [String: Int] = [:]
+        columnIndexes.reserveCapacity(count)
+        for (index, name) in columnNames.enumerated() where columnIndexes[name] == nil {
+            columnIndexes[name] = index
+        }
+        self.columnIndexes = columnIndexes
+    }
+
+    @inline(__always)
+    func columnIndex(named name: String) -> Int? {
+        columnIndexes[name]
+    }
+}
+
 public struct SQLiteRow: Equatable, Sendable {
-    public let columnNames: [String]
     public let values: [SQLiteValue]
 
-    private let columnIndexes: [String: Int]
+    private let metadata: SQLiteRowMetadata
+
+    public var columnNames: [String] {
+        metadata.columnNames
+    }
 
     public var count: Int {
         values.count
     }
 
     public subscript(position: Int) -> SQLiteValue? {
-        guard values.indices.contains(position) else { return nil }
+        guard position >= 0, position < values.count else { return nil }
         return values[position]
     }
 
     public subscript(name: String) -> SQLiteValue? {
-        guard let position = columnIndexes[name] else { return nil }
+        guard let position = metadata.columnIndex(named: name) else { return nil }
         return values[position]
     }
 
     public init(columnNames: [String], values: [SQLiteValue]) {
-        self.columnNames = columnNames
         self.values = values
+        self.metadata = SQLiteRowMetadata(columnNames: columnNames, valueCount: values.count)
+    }
 
-        var columnIndexes: [String: Int] = [:]
-        for (index, name) in columnNames.enumerated() where index < values.count && columnIndexes[name] == nil {
-            columnIndexes[name] = index
-        }
-        self.columnIndexes = columnIndexes
+    init(metadata: SQLiteRowMetadata, values: [SQLiteValue]) {
+        self.values = values
+        self.metadata = metadata
+    }
+
+    public static func == (lhs: SQLiteRow, rhs: SQLiteRow) -> Bool {
+        lhs.columnNames == rhs.columnNames && lhs.values == rhs.values
     }
 
     public func value(at position: Int) throws -> SQLiteValue {
@@ -130,20 +178,19 @@ public protocol SQLiteValueDecodable {
 }
 
 extension SQLiteRow {
-    init(statement: borrowing SQLiteStmt) throws {
-        var names: [String] = []
+    init(statement: borrowing SQLiteStmt, metadata: SQLiteRowMetadata) throws {
         var values: [SQLiteValue] = []
-        let count = statement.columnCount()
+        let count = metadata.columnNames.count
 
-        names.reserveCapacity(count)
         values.reserveCapacity(count)
 
-        for position in 0..<count {
-            names.append(statement.columnName(position: position))
-            values.append(statement.columnValue(position: position))
+        var sqlitePosition: Int32 = 0
+        for _ in 0..<count {
+            values.append(statement.columnValue(sqlitePosition: sqlitePosition))
+            sqlitePosition &+= 1
         }
 
-        self.init(columnNames: names, values: values)
+        self.init(metadata: metadata, values: values)
     }
 }
 

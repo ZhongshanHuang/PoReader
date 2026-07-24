@@ -3,8 +3,11 @@ import Foundation
 public protocol SQLiteExecutor: ~Copyable {
     var path: String { get }
 
-    @discardableResult
-    func execute(_ sql: SQL) throws -> SQLiteExecutionResult
+    /// Executes one statement that does not return rows.
+    func execute(_ sql: SQL) throws
+
+    /// Executes one statement that does not return rows and returns its connection-local result.
+    func executeResult(_ sql: SQL) throws -> SQLiteExecutionResult
 
     func withPreparedStatement<T>(
         _ sql: SQL,
@@ -27,26 +30,77 @@ public extension SQLiteExecutor where Self: ~Copyable {
 
     func forEachRow(_ sql: SQL, _ body: (SQLiteRow) throws -> Void) throws {
         try withPreparedStatement(SQL(sql.statement)) { statement in
-            try statement.bind(sql.parameters)
+            try sql.bind(to: statement)
             var result = try statement.step()
+            var metadata: SQLiteRowMetadata?
             while result == .row {
-                try body(try SQLiteRow(statement: statement))
+                let rowMetadata: SQLiteRowMetadata
+                if let metadata {
+                    rowMetadata = metadata
+                } else {
+                    rowMetadata = SQLiteRowMetadata(statement: statement)
+                    metadata = rowMetadata
+                }
+                try body(try SQLiteRow(statement: statement, metadata: rowMetadata))
                 result = try statement.step()
             }
         }
     }
 
-    func fetchOne(_ sql: SQL) throws -> SQLiteRow? {
+    func forEachBorrowedRow(_ sql: SQL, _ body: (_ row: borrowing SQLiteBorrowedRow) throws -> Void) throws {
         try withPreparedStatement(SQL(sql.statement)) { statement in
-            try statement.bind(sql.parameters)
+            try sql.bind(to: statement)
+            var result = try statement.step()
+            var metadata: SQLiteRowMetadata?
+            while result == .row {
+                let rowMetadata: SQLiteRowMetadata
+                if let metadata {
+                    rowMetadata = metadata
+                } else {
+                    rowMetadata = SQLiteRowMetadata(statement: statement)
+                    metadata = rowMetadata
+                }
+                try statement.withBorrowedRow(metadata: rowMetadata, body)
+                result = try statement.step()
+            }
+        }
+    }
+
+    func fetchBorrowed<T>(_ sql: SQL, map: (_ row: borrowing SQLiteBorrowedRow) throws -> T) throws -> [T] {
+        var rows: [T] = []
+        try forEachBorrowedRow(sql) { row in
+            rows.append(try map(row))
+        }
+        return rows
+    }
+
+    func fetchOneBorrowed<T>(_ sql: SQL, map: (_ row: borrowing SQLiteBorrowedRow) throws -> T) throws -> T? {
+        try withPreparedStatement(SQL(sql.statement)) { statement in
+            try sql.bind(to: statement)
             guard try statement.step() == .row else {
                 return nil
             }
-            return try SQLiteRow(statement: statement)
+            return try statement.withBorrowedRow(metadata: SQLiteRowMetadata(statement: statement), map)
+        }
+    }
+
+    func fetchOne(_ sql: SQL) throws -> SQLiteRow? {
+        try withPreparedStatement(SQL(sql.statement)) { statement in
+            try sql.bind(to: statement)
+            guard try statement.step() == .row else {
+                return nil
+            }
+            return try SQLiteRow(statement: statement, metadata: SQLiteRowMetadata(statement: statement))
         }
     }
 
     func scalar(_ sql: SQL) throws -> SQLiteValue? {
-        try fetchOne(sql)?[0]
+        try withPreparedStatement(SQL(sql.statement)) { statement in
+            try sql.bind(to: statement)
+            guard try statement.step() == .row else {
+                return nil
+            }
+            return try statement.columnValue(position: 0)
+        }
     }
 }

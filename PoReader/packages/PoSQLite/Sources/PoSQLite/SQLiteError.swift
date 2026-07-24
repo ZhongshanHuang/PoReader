@@ -1,6 +1,6 @@
 import Foundation
 
-public extension SQLiteError {
+extension SQLiteError {
     
     static func warning(_ msg: String) {
 #if DEBUG

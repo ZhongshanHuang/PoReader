@@ -4,12 +4,15 @@ enum TextFileDecoder {
     static func decode(_ data: Data) -> NSString? {
         if data.isEmpty { return nil }
 
-        if let bomEncoding = bomEncoding(for: data),
-           let string = String(data: data, encoding: bomEncoding) {
-            return normalize(string) as NSString
-        }
+        guard let encoding = preferredEncoding(for: data),
+              let string = String(data: data, encoding: encoding) else { return nil }
+        return normalize(string) as NSString
+    }
 
-        return preferredDecodedString(from: data).map { normalize($0) as NSString }
+    private static func preferredEncoding(for data: Data) -> String.Encoding? {
+        if let encoding = bomEncoding(for: data) { return encoding }
+        if let encoding = likelyUTF16Encoding(for: data) { return encoding }
+        return bestSampledEncoding(for: sampleData(from: data))
     }
 
     private static func bomEncoding(for data: Data) -> String.Encoding? {
@@ -17,66 +20,6 @@ enum TextFileDecoder {
         if data.starts(with: [0xFF, 0xFE]) { return .utf16LittleEndian }
         if data.starts(with: [0xFE, 0xFF]) { return .utf16BigEndian }
         return nil
-    }
-
-    private static func preferredDecodedString(from data: Data) -> String? {
-        let commonEncodings = uniqueEncodings([
-            .utf8,
-            .gb18030,
-            .windowsSimplifiedChinese,
-            .big5Chinese
-        ])
-        if let utf16Encoding = likelyUTF16Encoding(for: data) {
-            if let string = String(data: data, encoding: utf16Encoding) {
-                return string
-            }
-        }
-
-        var candidates = decodedCandidates(from: data, encodings: commonEncodings, priorityOffset: 0)
-        if shouldTryUTF16Fallback(candidates) {
-            candidates.append(contentsOf: decodedCandidates(from: data,
-                                                            encodings: [.utf16LittleEndian, .utf16BigEndian],
-                                                            priorityOffset: commonEncodings.count))
-        }
-
-        return candidates.max { lhs, rhs in
-            if lhs.score == rhs.score {
-                return lhs.priority > rhs.priority
-            }
-            return lhs.score < rhs.score
-        }?
-        .string
-    }
-
-    private static func decodedCandidates(from data: Data, encodings: [String.Encoding], priorityOffset: Int) -> [DecodedCandidate] {
-        encodings.enumerated().compactMap { index, encoding -> DecodedCandidate? in
-            guard let string = String(data: data, encoding: encoding) else { return nil }
-            return DecodedCandidate(encoding: encoding,
-                                    string: string,
-                                    score: score(string),
-                                    priority: priorityOffset + index)
-        }
-    }
-
-    private static func shouldTryUTF16Fallback(_ candidates: [DecodedCandidate]) -> Bool {
-        guard !candidates.contains(where: { $0.encoding == .utf8 }) else { return false }
-        return candidates.map(\.score).max() ?? Int.min < 0
-    }
-
-    private static func uniqueEncodings(_ encodings: [String.Encoding]) -> [String.Encoding] {
-        var result: [String.Encoding] = []
-        result.reserveCapacity(encodings.count)
-        for encoding in encodings where !result.contains(encoding) {
-            result.append(encoding)
-        }
-        return result
-    }
-
-    private struct DecodedCandidate {
-        let encoding: String.Encoding
-        let string: String
-        let score: Int
-        let priority: Int
     }
 
     private static func likelyUTF16Encoding(for data: Data) -> String.Encoding? {
@@ -99,15 +42,71 @@ enum TextFileDecoder {
         return nil
     }
 
-    private static func score(_ string: String) -> Int {
+    private static func bestSampledEncoding(for sample: Data) -> String.Encoding? {
+        let legacyCandidates = decodedSamples(from: sample,
+                                              encodings: legacyEncodings,
+                                              priorityOffset: 0)
+
+        if let bestLegacyCandidate = bestDecodedSample(in: legacyCandidates),
+           bestLegacyCandidate.readabilityScore >= 0 {
+            return bestLegacyCandidate.encoding
+        }
+
+        let utf16Candidates = decodedSamples(from: sample,
+                                             encodings: utf16Encodings,
+                                             priorityOffset: legacyEncodings.count)
+        return bestDecodedSample(in: legacyCandidates + utf16Candidates)?.encoding
+    }
+
+    private static func decodedSamples(from sample: Data,
+                                       encodings: [String.Encoding],
+                                       priorityOffset: Int) -> [DecodedSample] {
+        encodings.enumerated().compactMap { index, encoding in
+            guard let string = decodeSample(sample, using: encoding) else { return nil }
+            return DecodedSample(encoding: encoding,
+                                 readabilityScore: readabilityScore(of: string),
+                                 priority: priorityOffset + index)
+        }
+    }
+
+    private static func bestDecodedSample(in candidates: [DecodedSample]) -> DecodedSample? {
+        candidates.max { lhs, rhs in
+            if lhs.readabilityScore == rhs.readabilityScore {
+                return lhs.priority > rhs.priority
+            }
+            return lhs.readabilityScore < rhs.readabilityScore
+        }
+    }
+
+    private static func sampleData(from data: Data) -> Data {
+        Data(data.prefix(sampleByteLimit))
+    }
+
+    private static func decodeSample(_ sample: Data, using encoding: String.Encoding) -> String? {
+        if let string = String(data: sample, encoding: encoding) {
+            return string
+        }
+
+        guard sample.count > 1 else { return nil }
+        for trimCount in 1...min(4, sample.count - 1) {
+            let trimmedSample = sample.prefix(sample.count - trimCount)
+            if let string = String(data: trimmedSample, encoding: encoding) {
+                return string
+            }
+        }
+        return nil
+    }
+
+    /// Scores a small decoded sample so encodings that technically succeed but produce gibberish
+    /// lose to encodings that produce readable Chinese/ASCII text.
+    private static func readabilityScore(of string: String) -> Int {
         var totalScore = 0
         var scalarCount = 0
-        let maxSampleCount = 4096
 
         for scalar in string.unicodeScalars {
             scalarCount += 1
-            totalScore += score(scalar)
-            if scalarCount >= maxSampleCount {
+            totalScore += readabilityScore(of: scalar)
+            if scalarCount >= sampleScalarLimit {
                 break
             }
         }
@@ -115,7 +114,7 @@ enum TextFileDecoder {
         return totalScore
     }
 
-    private static func score(_ scalar: Unicode.Scalar) -> Int {
+    private static func readabilityScore(of scalar: Unicode.Scalar) -> Int {
         let value = scalar.value
 
         switch value {
@@ -149,10 +148,29 @@ enum TextFileDecoder {
         }
         return value
     }
+
+    private static let sampleByteLimit = 64 * 1024
+    private static let sampleScalarLimit = 4096
+
+    private static let legacyEncodings: [String.Encoding] = [
+        .utf8,
+        .gb18030,
+        .big5Chinese
+    ]
+
+    private static let utf16Encodings: [String.Encoding] = [
+        .utf16LittleEndian,
+        .utf16BigEndian
+    ]
+
+    private struct DecodedSample {
+        let encoding: String.Encoding
+        let readabilityScore: Int
+        let priority: Int
+    }
 }
 
 private extension String.Encoding {
     static let gb18030 = String.Encoding(rawValue: CFStringConvertEncodingToNSStringEncoding(CFStringEncoding(CFStringEncodings.GB_18030_2000.rawValue)))
-    static let windowsSimplifiedChinese = String.Encoding(rawValue: CFStringConvertEncodingToNSStringEncoding(CFStringEncoding(CFStringEncodings.dosChineseSimplif.rawValue)))
     static let big5Chinese = String.Encoding(rawValue: CFStringConvertEncodingToNSStringEncoding(CFStringEncoding(CFStringEncodings.big5.rawValue)))
 }

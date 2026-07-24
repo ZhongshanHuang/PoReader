@@ -42,16 +42,25 @@ public struct SQLiteConfiguration: Hashable, Sendable {
     }
 
     public static var defaultMaximumConnectionCount: Int {
-        min(max(ProcessInfo.processInfo.processorCount, 4), 8)
+        min(max(ProcessInfo.processInfo.processorCount, 2), 4)
     }
 
     public static var defaultMaximumIdleConnectionCount: Int {
-        min(max(ProcessInfo.processInfo.processorCount / 2, 2), 4)
+        min(max(ProcessInfo.processInfo.processorCount / 4, 1), 2)
     }
 
     public static let defaultConnectionCheckoutTimeoutMilliseconds = 5_000
 
     public static let mobile = SQLiteConfiguration()
+
+    /// A smaller connection and cache budget for memory-constrained processes.
+    public static let mobileLowMemory = SQLiteConfiguration(
+        maximumConnectionCount: 2,
+        maximumIdleConnectionCount: 1,
+        mmapSizeBytes: 16 * 1024 * 1024,
+        pageCacheSizeKiBPerConnection: 2 * 1024,
+        statementCacheCapacityPerConnection: 8
+    )
 
     public var accessMode: AccessMode
     public var mutexMode: MutexMode
@@ -66,9 +75,12 @@ public struct SQLiteConfiguration: Hashable, Sendable {
     public var foreignKeys: Bool?
     public var walAutoCheckpointPages: Int?
     public var mmapSizeBytes: Int64?
-    public var cacheSizeKiB: Int?
+    /// SQLite page-cache target for each opened connection.
+    public var pageCacheSizeKiBPerConnection: Int?
     public var tempStore: TempStore?
     public var journalSizeLimitBytes: Int64?
+    /// Maximum prepared statements retained by each opened connection.
+    public var statementCacheCapacityPerConnection: Int
     public var additionalPragmas: [String]
 
     public init(
@@ -84,10 +96,11 @@ public struct SQLiteConfiguration: Hashable, Sendable {
         synchronous: Synchronous? = .normal,
         foreignKeys: Bool? = true,
         walAutoCheckpointPages: Int? = 1_000,
-        mmapSizeBytes: Int64? = 64 * 1024 * 1024,
-        cacheSizeKiB: Int? = 8 * 1024,
-        tempStore: TempStore? = .memory,
+        mmapSizeBytes: Int64? = 32 * 1024 * 1024,
+        pageCacheSizeKiBPerConnection: Int? = 4 * 1024,
+        tempStore: TempStore? = nil,
         journalSizeLimitBytes: Int64? = 16 * 1024 * 1024,
+        statementCacheCapacityPerConnection: Int = 16,
         additionalPragmas: [String] = []
     ) {
         let connectionCount = max(1, maximumConnectionCount)
@@ -95,7 +108,7 @@ public struct SQLiteConfiguration: Hashable, Sendable {
         self.mutexMode = mutexMode
         self.cacheMode = cacheMode
         self.usesURI = usesURI
-        self.busyTimeoutMilliseconds = busyTimeoutMilliseconds.map { max(0, $0) }
+        self.busyTimeoutMilliseconds = busyTimeoutMilliseconds.map { min(max(0, $0), Int(Int32.max)) }
         self.connectionCheckoutTimeoutMilliseconds = connectionCheckoutTimeoutMilliseconds.map { max(0, $0) }
         self.maximumConnectionCount = connectionCount
         self.maximumIdleConnectionCount = max(0, min(maximumIdleConnectionCount, connectionCount))
@@ -105,9 +118,10 @@ public struct SQLiteConfiguration: Hashable, Sendable {
         self.foreignKeys = foreignKeys
         self.walAutoCheckpointPages = walAutoCheckpointPages.map { max(0, $0) }
         self.mmapSizeBytes = mmapSizeBytes.map { max(0, $0) }
-        self.cacheSizeKiB = cacheSizeKiB
+        self.pageCacheSizeKiBPerConnection = pageCacheSizeKiBPerConnection.map { max(0, $0) }
         self.tempStore = tempStore
         self.journalSizeLimitBytes = journalSizeLimitBytes.map { max(0, $0) }
+        self.statementCacheCapacityPerConnection = max(0, statementCacheCapacityPerConnection)
         self.additionalPragmas = additionalPragmas
     }
 }
@@ -165,9 +179,8 @@ extension SQLiteConfiguration {
         if let mmapSizeBytes {
             statements.append("PRAGMA mmap_size=\(mmapSizeBytes);")
         }
-        if let cacheSizeKiB {
-            let cacheSize = cacheSizeKiB > 0 ? -cacheSizeKiB : cacheSizeKiB
-            statements.append("PRAGMA cache_size=\(cacheSize);")
+        if let pageCacheSizeKiBPerConnection {
+            statements.append("PRAGMA cache_size=\(-pageCacheSizeKiBPerConnection);")
         }
         if let walAutoCheckpointPages {
             statements.append("PRAGMA wal_autocheckpoint=\(walAutoCheckpointPages);")

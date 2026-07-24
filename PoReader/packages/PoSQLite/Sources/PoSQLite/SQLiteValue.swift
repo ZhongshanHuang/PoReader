@@ -126,13 +126,15 @@ public extension SQLiteStmt {
 
     func bind(_ values: [SQLiteValue]) throws {
         try validatePositionalBindCount(values.count)
-        for (offset, value) in values.enumerated() {
-            try bind(position: offset + 1, value)
+        var sqlitePosition: Int32 = 1
+        for value in values {
+            try bindSQLiteValue(sqlitePosition: sqlitePosition, originalPosition: Int(sqlitePosition), value)
+            sqlitePosition &+= 1
         }
     }
 
     func bind(_ values: [String: SQLiteValue]) throws {
-        try validateNamedBindParameters(values.keys)
+        try validateNamedBindParameters(values)
         for (name, value) in values {
             try bind(name: name, value)
         }
@@ -149,22 +151,30 @@ public extension SQLiteStmt {
         }
     }
 
-    private func validateNamedBindParameters(_ names: Dictionary<String, SQLiteValue>.Keys) throws {
+    private func validateNamedBindParameters(_ values: [String: SQLiteValue]) throws {
         let expectedCount = try bindParameterCount()
-        guard expectedCount > 0 || names.isEmpty else {
+        guard expectedCount > 0 || values.isEmpty else {
             throw SQLiteError(
                 code: SQLITE_RANGE,
-                description: "Expected 0 bind parameters, got \(names.count).",
+                description: "Expected 0 bind parameters, got \(values.count).",
                 operation: "bind_parameter_count"
             )
         }
 
-        var expectedNames = Set<String>()
+        var seenNames = Set<String>()
+        seenNames.reserveCapacity(expectedCount)
+        var expectedUniqueNameCount = 0
+        var missingName: String?
         var hasAnonymousParameters = false
         if expectedCount > 0 {
             for position in 1...expectedCount {
                 if let name = try bindParameterName(position: position) {
-                    expectedNames.insert(name)
+                    if seenNames.insert(name).inserted {
+                        expectedUniqueNameCount += 1
+                        if values[name] == nil {
+                            missingName = missingName ?? name
+                        }
+                    }
                 } else {
                     hasAnonymousParameters = true
                 }
@@ -179,20 +189,10 @@ public extension SQLiteStmt {
             )
         }
 
-        let providedNames = Set(names)
-        let missingNames = expectedNames.subtracting(providedNames).sorted()
-        let extraNames = providedNames.subtracting(expectedNames).sorted()
-        guard missingNames.isEmpty, extraNames.isEmpty else {
-            var parts: [String] = []
-            if !missingNames.isEmpty {
-                parts.append("missing: \(missingNames.joined(separator: ", "))")
-            }
-            if !extraNames.isEmpty {
-                parts.append("extra: \(extraNames.joined(separator: ", "))")
-            }
+        guard missingName == nil, values.count == expectedUniqueNameCount else {
             throw SQLiteError(
                 code: SQLITE_RANGE,
-                description: "Named bind parameters do not match SQL parameters (\(parts.joined(separator: "; "))).",
+                description: "Named bind parameters do not match SQL parameters.",
                 operation: "bind_parameter_names"
             )
         }

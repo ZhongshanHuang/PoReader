@@ -19,8 +19,8 @@ public final class SQLiteDatabase: SQLiteExecutor, @unchecked Sendable {
         handlePool.configuration
     }
     
-    private var identity: SQLiteHandlePool.Key {
-        handlePool.key
+    private var identity: ObjectIdentifier {
+        ObjectIdentifier(handlePool)
     }
     
     public convenience init(path: String, configuration: SQLiteConfiguration = .mobile) {
@@ -32,17 +32,16 @@ public final class SQLiteDatabase: SQLiteExecutor, @unchecked Sendable {
     }
 
     private init(resolvedPath path: String, configuration: SQLiteConfiguration) {
-        self.handlePoolReference = SQLiteHandlePool.getHandlePool(with: path, configuration: configuration)
+        self.handlePoolReference = SQLiteHandlePool.makeHandlePool(with: path, configuration: configuration)
 
 #if canImport(UIKit)
         DispatchQueue.once(name: "com.potato.sqlite.swift.purge", {
-            let purgeFreeHandleQueue: DispatchQueue = DispatchQueue(label: "com.potato.sqlite.swift.purge")
             _ = NotificationCenter.default.addObserver(
                 forName: UIApplication.didReceiveMemoryWarningNotification,
                 object: nil,
                 queue: nil,
                 using: { (_) in
-                    purgeFreeHandleQueue.async {
+                    DispatchQueue.global(qos: .userInteractive).async {
                         SQLiteDatabase.purgeAllIdleConnections()
                     }
                 })
@@ -50,8 +49,8 @@ public final class SQLiteDatabase: SQLiteExecutor, @unchecked Sendable {
 #endif
     }
     
-    private static let threadedHandles = ThreadLocal<[SQLiteHandlePool.Key: SQLitePooledHandleLease]>(defaultValue: [:])
-    private static let threadedTransactionDepths = ThreadLocal<[SQLiteHandlePool.Key: Int]>(defaultValue: [:])
+    private static let threadedHandles = ThreadLocal<[ObjectIdentifier: SQLitePooledHandleLease]>(defaultValue: [:])
+    private static let threadedTransactionDepths = ThreadLocal<[ObjectIdentifier: Int]>(defaultValue: [:])
     
     func flowOut() throws -> SQLitePooledHandleLease {
         if let handleLease = Self.threadedHandles.value[identity] {
@@ -100,10 +99,20 @@ public final class SQLiteDatabase: SQLiteExecutor, @unchecked Sendable {
         handlePool.purgeFreeHandles()
     }
 
+    /// Purge cached prepared statements held by idle connections of this database.
+    public func purgeStatementCache() {
+        handlePool.purgeStatementCaches()
+    }
+
     /// Purge all unused memory of all databases.
     /// Note that It will call this interface automatically while it receives memory warning on iOS.
     public static func purgeAllIdleConnections() {
         SQLiteHandlePool.purgeFreeHandlesInAllPools()
+    }
+
+    /// Purge cached prepared statements held by idle connections of all databases.
+    public static func purgeAllStatementCaches() {
+        SQLiteHandlePool.purgeStatementCachesInAllPools()
     }
     
 }
@@ -122,20 +131,18 @@ private extension SQLiteDatabase {
     }
 
     func incrementTransactionDepth() {
-        var depths = Self.threadedTransactionDepths.value
-        depths[identity, default: 0] += 1
-        Self.threadedTransactionDepths.value = depths
+        Self.threadedTransactionDepths.value[identity, default: 0] += 1
     }
 
     func decrementTransactionDepth() {
-        var depths = Self.threadedTransactionDepths.value
-        let nextDepth = (depths[identity] ?? 0) - 1
-        if nextDepth > 0 {
-            depths[identity] = nextDepth
-        } else {
-            depths.removeValue(forKey: identity)
+        Self.threadedTransactionDepths.withValue { depths in
+            let nextDepth = (depths[identity] ?? 0) - 1
+            if nextDepth > 0 {
+                depths[identity] = nextDepth
+            } else {
+                depths.removeValue(forKey: identity)
+            }
         }
-        Self.threadedTransactionDepths.value = depths
     }
 
     func releaseThreadedHandle(_ handleLease: SQLitePooledHandleLease) {
@@ -161,9 +168,11 @@ private extension SQLiteDatabase {
 // MARK: - Base Operations
 extension SQLiteDatabase {
     
-    private func makeStatement(_ statement: String) throws -> SQLiteStmt {
+    private func makeStatement(_ statement: String, cached: Bool) throws -> SQLiteStmt {
         let handleLease = try flowOut()
-        var stat = try handleLease.handle.prepare(statement: statement)
+        var stat = cached
+            ? try handleLease.handle.prepareCached(statement: statement)
+            : try handleLease.handle.prepare(statement: statement)
         let identity = identity
         handleLease.refCount += 1
         if handleLease.refCount == 1 {
@@ -178,17 +187,22 @@ extension SQLiteDatabase {
         return stat
     }
 
-    public func prepare(_ sql: SQL) throws -> SQLiteStmt {
-        let statement = try makeStatement(sql.statement)
-        if !sql.parameters.isEmpty {
-            try statement.bind(sql.parameters)
+    /// Prepare a statement for manual lifetime management.
+    ///
+    /// This is an advanced escape hatch. Prefer `withPreparedStatement(_:_:)`,
+    /// `execute(_:)`, and `fetch` APIs so PoSQLite can serialize writes and
+    /// reuse cached statements safely.
+    public func unsafePrepare(_ sql: SQL) throws -> SQLiteStmt {
+        let statement = try makeStatement(sql.statement, cached: false)
+        if sql.hasBoundParameters {
+            try sql.bind(to: statement)
         }
         return statement
     }
 
     private func prepareBound(_ sql: SQL) throws -> SQLiteStmt {
-        let statement = try makeStatement(sql.statement)
-        try statement.bind(sql.parameters)
+        let statement = try makeStatement(sql.statement, cached: true)
+        try sql.bind(to: statement)
         return statement
     }
     
@@ -215,16 +229,6 @@ extension SQLiteDatabase {
         try handleLease.handle.rollback()
     }
     
-    private func lastInsertRowID() throws -> Int {
-        let handleLease = try flowOut()
-        return handleLease.handle.lastInsertRowID()
-    }
-    
-    /// 最近一条insert，update，delete语句所影响的数据行数
-    private func changes() throws -> Int {
-        let handleLease = try flowOut()
-        return handleLease.handle.changes()
-    }
 }
 
 // MARK: - Convenience Operations
@@ -233,7 +237,10 @@ extension SQLiteDatabase {
         _ sql: SQL,
         _ body: (_ statement: borrowing SQLiteStmt) throws -> T
     ) throws -> T {
-        var statement = try prepare(sql)
+        var statement = try makeStatement(sql.statement, cached: true)
+        if sql.hasBoundParameters {
+            try sql.bind(to: statement)
+        }
         defer { try? statement.finalize() }
 
         if try statement.isReadOnly() {
@@ -268,11 +275,12 @@ extension SQLiteDatabase {
         }
     }
 
-    @discardableResult
-    public func execute(_ sql: SQL) throws -> SQLiteExecutionResult {
+    private func executeStatement<Result>(
+        _ sql: SQL,
+        result: () throws -> Result
+    ) throws -> Result {
         try withBoundPreparedStatement(sql) { statement in
-            let result = try statement.step()
-            guard result == .done else {
+            guard statement.columnCount() == 0 else {
                 throw SQLiteError(
                     code: SQLITE_MISUSE,
                     description: "Use fetch APIs for statements that return rows.",
@@ -281,9 +289,31 @@ extension SQLiteDatabase {
                 )
             }
 
+            let stepResult = try statement.step()
+            guard stepResult == .done else {
+                throw SQLiteError(
+                    code: SQLITE_MISUSE,
+                    description: "Use fetch APIs for statements that return rows.",
+                    operation: "execute",
+                    sql: sql.statement
+                )
+            }
+
+            return try result()
+        }
+    }
+
+    public func execute(_ sql: SQL) throws {
+        try executeStatement(sql) {}
+    }
+
+    public func executeResult(_ sql: SQL) throws -> SQLiteExecutionResult {
+        try executeStatement(sql) {
+            // The active statement keeps this lease thread-local until finalization.
+            let handleLease = try flowOut()
             return SQLiteExecutionResult(
-                changes: try changes(),
-                lastInsertRowID: try lastInsertRowID()
+                changes: handleLease.handle.changes(),
+                lastInsertRowID: handleLease.handle.lastInsertRowID()
             )
         }
     }
@@ -353,4 +383,10 @@ extension SQLiteDatabase {
         }
     }
 
+}
+
+extension SQLiteDatabase {
+    var cachedStatementCount: Int {
+        handlePool.cachedStatementCount
+    }
 }

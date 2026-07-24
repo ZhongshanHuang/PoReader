@@ -14,6 +14,9 @@ let package = Package(
         .library(
             name: "PoSQLite",
             targets: ["PoSQLite"]),
+        .executable(
+            name: "PoSQLiteBenchmark",
+            targets: ["PoSQLiteBenchmark"]),
     ],
     dependencies: [
         // Dependencies declare other packages that this package depends on.
@@ -34,6 +37,15 @@ let package = Package(
         .testTarget(
             name: "PoSQLiteTests",
             dependencies: ["PoSQLite"],
+            swiftSettings: [
+                .swiftLanguageMode(.v6),
+                .strictMemorySafety(),
+                .treatAllWarnings(as: .error)
+            ]),
+        .executableTarget(
+            name: "PoSQLiteBenchmark",
+            dependencies: ["PoSQLite"],
+            path: "./Benchmarks/PoSQLiteBenchmark",
             swiftSettings: [
                 .swiftLanguageMode(.v6),
                 .strictMemorySafety(),

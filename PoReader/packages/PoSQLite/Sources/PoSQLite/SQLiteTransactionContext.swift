@@ -11,9 +11,12 @@ public struct SQLiteTransactionContext: SQLiteExecutor, ~Copyable {
         database.path
     }
 
-    @discardableResult
-    public func execute(_ sql: SQL) throws -> SQLiteExecutionResult {
+    public func execute(_ sql: SQL) throws {
         try database.execute(sql)
+    }
+
+    public func executeResult(_ sql: SQL) throws -> SQLiteExecutionResult {
+        try database.executeResult(sql)
     }
 
     public func withPreparedStatement<T>(

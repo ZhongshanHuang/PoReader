@@ -3,10 +3,19 @@ import CryptoKit
 
 extension NSString {
 
+    struct PageLayout {
+        let range: NSRange
+        let usedSize: CGSize
+    }
+
     func parseToPage(attributes: [NSAttributedString.Key: Any], constraintSize: CGSize) -> [NSRange] {
+        parseToPageLayouts(attributes: attributes, constraintSize: constraintSize).map(\.range)
+    }
+
+    func parseToPageLayouts(attributes: [NSAttributedString.Key: Any], constraintSize: CGSize) -> [PageLayout] {
         guard length > 0, constraintSize.width > 0, constraintSize.height > 0 else { return [] }
 
-        var ranges = [NSRange]()
+        var pages = [PageLayout]()
         let date = Date()
         let layoutManager = NSLayoutManager()
         layoutManager.usesFontLeading = false
@@ -26,18 +35,21 @@ extension NSString {
             let glyphRange = layoutManager.glyphRange(for: textContainer)
             let characterRange = layoutManager.characterRange(forGlyphRange: glyphRange, actualGlyphRange: nil)
             guard characterRange.length > 0 else {
-                ranges.append(NSRange(location: parsedLength, length: textStorage.length - parsedLength))
+                pages.append(PageLayout(range: NSRange(location: parsedLength, length: textStorage.length - parsedLength),
+                                        usedSize: constraintSize))
                 break
             }
 
-            ranges.append(characterRange)
+            let usedRect = layoutManager.usedRect(for: textContainer)
+            pages.append(PageLayout(range: characterRange,
+                                    usedSize: CGSize(width: ceil(usedRect.width), height: ceil(usedRect.height))))
             parsedLength = characterRange.upperBound
         }
 
         #if DEBUG
         print("page cost seconds: \(Date().timeIntervalSince(date))")
         #endif
-        return ranges
+        return pages
     }
     
 }

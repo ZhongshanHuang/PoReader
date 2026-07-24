@@ -1,4 +1,4 @@
-import Foundation
+import UIKit
 
 extension ChapterModel: CustomStringConvertible {
     var description: String {
@@ -7,6 +7,35 @@ extension ChapterModel: CustomStringConvertible {
 }
 
 final class ChapterModel {
+    private struct LayoutSignature: Equatable {
+        let constraintSize: CGSize
+        let fontName: String?
+        let fontSize: CGFloat
+        let lineBreakMode: NSLineBreakMode
+        let lineSpacing: CGFloat
+        let paragraphSpacing: CGFloat
+        let alignment: NSTextAlignment
+
+        init(attributes: [NSAttributedString.Key: Any], constraintSize: CGSize) {
+            let font = attributes[.font] as? UIFont
+            let paragraphStyle = attributes[.paragraphStyle] as? NSParagraphStyle
+
+            self.constraintSize = constraintSize
+            self.fontName = font?.fontName
+            self.fontSize = font?.pointSize ?? 0
+            self.lineBreakMode = paragraphStyle?.lineBreakMode ?? .byCharWrapping
+            self.lineSpacing = paragraphStyle?.lineSpacing ?? 0
+            self.paragraphSpacing = paragraphStyle?.paragraphSpacing ?? 0
+            self.alignment = paragraphStyle?.alignment ?? .natural
+        }
+    }
+
+    private struct PageCache {
+        let signature: LayoutSignature
+        let layouts: [NSString.PageLayout]
+        let ranges: [NSRange]
+    }
+
     let idx: Int
     let title: String?
     let range: NSRange
@@ -19,14 +48,27 @@ final class ChapterModel {
         _content = value
         return value
     }
-    private var _subranges: [NSRange]?
-    var subranges: [NSRange] {
-        if _subranges == nil {
-            _subranges = content.parseToPage(attributes: Appearance.attributes, constraintSize: Appearance.displayRect.size)
+    private var pageCache: PageCache?
+    private var currentPageCache: PageCache {
+        let attributes = Appearance.attributes
+        let constraintSize = Appearance.displayRect.size
+        let signature = LayoutSignature(attributes: attributes, constraintSize: constraintSize)
+
+        if let pageCache, pageCache.signature == signature {
+            return pageCache
         }
-        return _subranges!
+
+        let layouts = content.parseToPageLayouts(attributes: attributes, constraintSize: constraintSize)
+        let cache = PageCache(signature: signature,
+                              layouts: layouts,
+                              ranges: layouts.map(\.range))
+        pageCache = cache
+        _subrangePrefixHeights = nil
+        return cache
     }
-    private var _subsizes: [CGSize]?
+    var subranges: [NSRange] {
+        currentPageCache.ranges
+    }
     private var _subrangePrefixHeights: [CGFloat]?
     
     init(idx: Int, title: String? = nil, sourceText: NSString, range: NSRange) {
@@ -46,16 +88,7 @@ final class ChapterModel {
     }
     
     func subSize(at idx: Int) -> CGSize {
-        if _subsizes == nil {
-            _subsizes = Array(repeating: CGSize.zero, count: subranges.count)
-        }
-        if _subsizes![idx].height == 0 {
-            let subStr = content.substring(with: subranges[idx]) as NSString
-            let rect = subStr.boundingRect(with: Appearance.displayRect.size, options: [.usesLineFragmentOrigin], attributes: Appearance.attributes, context: nil)
-            _subsizes?[idx] = CGSize(width: rect.width, height: ceil(rect.height))
-            _subrangePrefixHeights = nil
-        }
-        return _subsizes![idx]
+        currentPageCache.layouts[idx].usedSize
     }
     
     func totalSubrangeHeight() -> CGFloat {
@@ -70,19 +103,19 @@ final class ChapterModel {
     
     /// 只需要删除之前的即可，访问时再解析
     func updateSubranges() {
-        _subranges = nil
-        _subsizes = nil
+        pageCache = nil
         _subrangePrefixHeights = nil
     }
 
     private func prefixHeights() -> [CGFloat] {
+        let layouts = currentPageCache.layouts
         if let _subrangePrefixHeights { return _subrangePrefixHeights }
 
         var heights: [CGFloat] = []
-        heights.reserveCapacity(subranges.count)
+        heights.reserveCapacity(layouts.count)
         var height: CGFloat = 0
-        for idx in subranges.indices {
-            height += subSize(at: idx).height
+        for layout in layouts {
+            height += layout.usedSize.height
             heights.append(height)
         }
         _subrangePrefixHeights = heights

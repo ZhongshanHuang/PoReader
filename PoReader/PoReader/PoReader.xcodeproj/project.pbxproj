@@ -7,6 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		CE1420260000000000000003 /* PoAVPlayerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE1420260000000000000004 /* PoAVPlayerTests.swift */; };
+		CE1420260000000000000001 /* ChineseNovelChapterParserTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE1420260000000000000002 /* ChineseNovelChapterParserTests.swift */; };
 		6C4FAB4A2913BDE20045981D /* UIApplication+Ext.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6C4FAB492913BDE20045981D /* UIApplication+Ext.swift */; };
 		6C928E2028FD7EE300903640 /* GCDWebServerSPM in Frameworks */ = {isa = PBXBuildFile; productRef = 6C928E1F28FD7EE300903640 /* GCDWebServerSPM */; };
 		6C928E2328FDAE1E00903640 /* PoNavigationBar in Frameworks */ = {isa = PBXBuildFile; productRef = 6C928E2228FDAE1E00903640 /* PoNavigationBar */; };
@@ -92,6 +94,8 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		CE1420260000000000000004 /* PoAVPlayerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PoAVPlayerTests.swift; sourceTree = "<group>"; };
+		CE1420260000000000000002 /* ChineseNovelChapterParserTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChineseNovelChapterParserTests.swift; sourceTree = "<group>"; };
 		6C4FAB492913BDE20045981D /* UIApplication+Ext.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UIApplication+Ext.swift"; sourceTree = "<group>"; };
 		6C928E1E28FD7ECB00903640 /* GCDWebServerSPM */ = {isa = PBXFileReference; lastKnownFileType = wrapper; name = GCDWebServerSPM; path = ../packages/GCDWebServerSPM; sourceTree = "<group>"; };
 		6C928E2128FDAE1100903640 /* PoNavigationBar */ = {isa = PBXFileReference; lastKnownFileType = wrapper; name = PoNavigationBar; path = ../packages/PoNavigationBar; sourceTree = "<group>"; };
@@ -282,6 +286,8 @@
 			isa = PBXGroup;
 			children = (
 				6C96E19428FD62EC00C887F0 /* PoReaderTests.swift */,
+				CE1420260000000000000004 /* PoAVPlayerTests.swift */,
+				CE1420260000000000000002 /* ChineseNovelChapterParserTests.swift */,
 			);
 			path = PoReaderTests;
 			sourceTree = "<group>";
@@ -772,6 +778,8 @@
 			buildActionMask = 2147483647;
 			files = (
 				6C96E19528FD62EC00C887F0 /* PoReaderTests.swift in Sources */,
+				CE1420260000000000000003 /* PoAVPlayerTests.swift in Sources */,
+				CE1420260000000000000001 /* ChineseNovelChapterParserTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

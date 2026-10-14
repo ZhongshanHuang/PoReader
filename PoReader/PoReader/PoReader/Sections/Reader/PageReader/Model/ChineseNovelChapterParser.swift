@@ -21,41 +21,60 @@ enum ChineseNovelChapterParser {
     private static let specialTitleExpression = try! NSRegularExpression(
         pattern: #"^(?:正文\s*)?(?:序章|序言|前言|楔子|引子|尾声|后记|终章|大结局|作品相关|上架感言|番外(?:篇|卷)?(?:\s*[\#(chapterNumberToken)]+)?)(?:\s*[:：、.．·\-—－]\s*|\s+)?\#(titleTailToken)$"#
     )
+    // This superset must include the initial character of every title form above.
+    private static let chapterTitleInitials = Set((chapterNumberToken + "第正序前楔引尾后终大作上番").utf16)
 
     static func parse(text: NSString) -> [ChapterModel] {
         let markers = removeCatalogMarkers(from: collectMarkers(in: text), textLength: text.length)
-        if !markers.isEmpty {
-            return buildChapters(from: markers, text: text)
-        }
-        return buildFallbackChapters(in: text)
+        return buildChapters(from: markers, text: text)
     }
 
     private static func collectMarkers(in text: NSString) -> [Marker] {
-        let fullRange = NSRange(location: 0, length: text.length)
         var markers: [Marker] = []
-
-        text.enumerateSubstrings(in: fullRange, options: [.byLines, .substringNotRequired]) { _, lineRange, _, _ in
+        var location = 0
+        while location < text.length {
+            // Keep Foundation's line-separator rules without bridging the whole
+            // book through Swift's substring enumeration.
+            var end = 0
+            var contentsEnd = 0
+            text.getLineStart(nil, end: &end, contentsEnd: &contentsEnd,
+                              for: NSRange(location: location, length: 0))
+            let lineRange = NSRange(location: location, length: contentsEnd - location)
+            location = end
             let titleRange = trimmedRange(in: text, range: lineRange)
-            guard titleRange.length > 0, titleRange.length <= maxTitleLength else { return }
+            guard titleRange.length > 0, titleRange.length <= maxTitleLength else { continue }
 
+            guard canStartChapterTitle(in: text, range: titleRange) else { continue }
             let title = text.substring(with: titleRange)
-            guard isChapterTitle(title) else { return }
+            guard isChapterTitle(title) else { continue }
             markers.append(Marker(title: title, titleRange: titleRange))
         }
         return markers
     }
 
+    // This is only a rejection filter; the existing expressions still decide matches.
+    private static func canStartChapterTitle(in text: NSString, range: NSRange) -> Bool {
+        var location = range.location
+        while location < range.upperBound {
+            let character = text.character(at: location)
+            switch character {
+            case 48...57, 0xFF10...0xFF19:
+                return true
+            default:
+                if chapterTitleInitials.contains(character) { return true }
+                guard let scalar = UnicodeScalar(UInt32(character)),
+                      CharacterSet.whitespacesAndNewlines.contains(scalar) else { return false }
+                location += 1
+            }
+        }
+        return false
+    }
+
     private static func isChapterTitle(_ title: String) -> Bool {
         let value = title.replacingOccurrences(of: "　", with: " ")
             .trimmingCharacters(in: .whitespacesAndNewlines)
-        let nsValue = value as NSString
-        let range = NSRange(location: 0, length: nsValue.length)
-        guard range.length > 0, range.length <= maxTitleLength else { return false }
-
-        if value.localizedCaseInsensitiveContains("http") ||
-            value.localizedCaseInsensitiveContains("www.") {
-            return false
-        }
+        // collectMarkers already limits the length; normalization only shortens it.
+        let range = NSRange(location: 0, length: (value as NSString).length)
 
         return numberedTitleExpression.firstMatch(in: value, range: range) != nil ||
             specialTitleExpression.firstMatch(in: value, range: range) != nil
@@ -81,14 +100,7 @@ enum ChineseNovelChapterParser {
 
         for idx in 1..<markers.count {
             let distance = markers[idx].titleRange.location - markers[idx - 1].titleRange.upperBound
-            if distance <= catalogDistance, clusterTitles.contains(markers[idx].title) {
-                closeCluster(at: idx - 1)
-                clusterStart = idx
-                clusterTitles = [markers[idx].title]
-                continue
-            }
-
-            if distance > catalogDistance {
+            if distance > catalogDistance || clusterTitles.contains(markers[idx].title) {
                 closeCluster(at: idx - 1)
                 clusterStart = idx
                 clusterTitles = [markers[idx].title]
@@ -103,7 +115,12 @@ enum ChineseNovelChapterParser {
 
     private static func buildChapters(from markers: [Marker], text: NSString) -> [ChapterModel] {
         var chapters: [ChapterModel] = []
-        var firstStart = markers[0].titleRange.location
+        guard let first = markers.first else {
+            appendSplitChapters(title: nil, sourceText: text,
+                                range: NSRange(location: 0, length: text.length), to: &chapters)
+            return chapters
+        }
+        var firstStart = first.titleRange.location
         let prefixContainsCatalog = firstStart > 0 && text.substring(with: NSRange(location: 0, length: firstStart)).contains("目录")
 
         if firstStart > 100, !prefixContainsCatalog {
@@ -121,29 +138,19 @@ enum ChineseNovelChapterParser {
         return chapters
     }
 
-    private static func buildFallbackChapters(in text: NSString) -> [ChapterModel] {
-        var chapters: [ChapterModel] = []
-        var location = 0
-
-        while location < text.length {
-            let split = splitLocation(in: text, from: location, upperBound: text.length)
-            appendChapter(title: nil,
-                          sourceText: text,
-                          range: NSRange(location: location, length: split - location),
-                          to: &chapters)
-            location = split
-        }
-        return chapters
-    }
-
     private static func appendChapter(title: String?, sourceText: NSString, range: NSRange, to chapters: inout [ChapterModel]) {
         guard range.length > 0 else { return }
 
         if range.length <= maxChapterLength {
             chapters.append(ChapterModel(idx: chapters.count, title: title, sourceText: sourceText, range: range))
-            return
+        } else {
+            appendSplitChapters(title: title, sourceText: sourceText, range: range, to: &chapters)
         }
+    }
 
+    // Unrecognized text always uses targetChapterLength. Recognized chapters only
+    // enter this path above maxChapterLength, preserving their existing boundaries.
+    private static func appendSplitChapters(title: String?, sourceText: NSString, range: NSRange, to chapters: inout [ChapterModel]) {
         var location = range.location
         let upperBound = range.upperBound
         while location < upperBound {
@@ -176,21 +183,9 @@ enum ChineseNovelChapterParser {
     }
 
     private static func lineBreakLocation(in text: NSString, from start: Int, through end: Int, upperBound: Int, reversed: Bool) -> Int? {
-        if reversed {
-            var idx = start
-            while idx >= end {
-                if let location = locationAfterLineBreak(in: text, at: idx, upperBound: upperBound) {
-                    return location
-                }
-                idx -= 1
-            }
-        } else {
-            var idx = start
-            while idx <= end {
-                if let location = locationAfterLineBreak(in: text, at: idx, upperBound: upperBound) {
-                    return location
-                }
-                idx += 1
+        for idx in stride(from: start, through: end, by: reversed ? -1 : 1) {
+            if let location = locationAfterLineBreak(in: text, at: idx, upperBound: upperBound) {
+                return location
             }
         }
         return nil

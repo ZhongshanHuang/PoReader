@@ -13,13 +13,16 @@ class AudioPlayerView: UIView {
     private let playButton: UIButton = UIButton(type: .custom)
     private let stopButton: UIButton = UIButton(type: .custom)
     private let progress: MediaProgressView = MediaProgressView()
-    private var isIgnorePeriod: Bool = false
     private var seekProgress: TimeInterval?
+    private var terminationObserver: NSObjectProtocol?
+    private var remoteTargets: [(MPRemoteCommand, Any)] = []
+    private var remoteRegistration = UUID()
     
     var progressValue: Float { progress.sliderValue }
     
     deinit {
-        NotificationCenter.default.removeObserver(self)
+        if let terminationObserver { NotificationCenter.default.removeObserver(terminationObserver) }
+        remoteTargets.forEach { $0.0.removeTarget($0.1) }
     }
     
     override init(frame: CGRect) {
@@ -45,6 +48,7 @@ class AudioPlayerView: UIView {
     
     func stop() {
         player.stop()
+        removeRemote()
         onStop?(currentModel, progressValue)
         
         currentModel = nil
@@ -116,7 +120,7 @@ class AudioPlayerView: UIView {
             make.height.equalTo(30)
         }
         
-        NotificationCenter.default.addObserver(forName: UIApplication.willTerminateNotification, object: nil, queue: nil) { [weak self] _ in
+        terminationObserver = NotificationCenter.default.addObserver(forName: UIApplication.willTerminateNotification, object: nil, queue: .main) { [weak self] _ in
             guard let self else { return }
             onStop?(currentModel, progressValue)
         }
@@ -130,7 +134,7 @@ class AudioPlayerView: UIView {
     
     @objc
     private func playButtonHandle(_ sender: UIButton) {
-        if player.isPlaying {
+        if player.wantsToPlay {
             player.pause()
         } else {
             if player.playStatus == .finished {
@@ -145,19 +149,8 @@ class AudioPlayerView: UIView {
     private func progressChangeHandle(_ sender: MediaProgressView) {
         guard let duration = player.duration else { return }
         
-        let isPlaying = player.isPlaying
-        if isPlaying {
-            isIgnorePeriod = true
-        }
-        
-        let target = Double(sender.sliderValue) *  duration
-        player.seekToTime(target) { (finished) in
-            if finished && isPlaying {
-                self.player.resume()
-                self.playButton.isSelected = true
-                self.isIgnorePeriod = false
-            }
-        }
+        let target = Double(sender.sliderValue) * duration
+        player.seekToTime(target)
     }
     
     // MARK: - helper
@@ -185,151 +178,48 @@ extension AudioPlayerView {
         UIApplication.shared.beginReceivingRemoteControlEvents()
         registerRemoteControllEvent()
         
-        do {
-            let audioSession = AVAudioSession.sharedInstance()
-            try audioSession.setCategory(.playback, mode: .default)
-            try audioSession.setActive(true)
-        } catch {
-            print("Failed to set audio session: \(error)")
-        }
-        
         var playingInfo = [String: Any]()
         playingInfo[MPMediaItemPropertyTitle] = title
-//        playingInfo[MPMediaItemPropertyAlbumTitle] = title
         MPNowPlayingInfoCenter.default().nowPlayingInfo = playingInfo
     }
     
     private func updateNowPlayingInfo(current: TimeInterval, duration: TimeInterval) {
-        MPNowPlayingInfoCenter.default().nowPlayingInfo?[MPNowPlayingInfoPropertyElapsedPlaybackTime] = Int(current)
-        MPNowPlayingInfoCenter.default().nowPlayingInfo?[MPMediaItemPropertyPlaybackDuration] = Int(duration)
+        guard current.isFinite, duration.isFinite else { return }
+        MPNowPlayingInfoCenter.default().nowPlayingInfo?[MPNowPlayingInfoPropertyElapsedPlaybackTime] = current
+        MPNowPlayingInfoCenter.default().nowPlayingInfo?[MPMediaItemPropertyPlaybackDuration] = duration
+        MPNowPlayingInfoCenter.default().nowPlayingInfo?[MPNowPlayingInfoPropertyPlaybackRate] = player.isPlaying ? player.rate : 0
     }
     
     func removeRemote() {
-        do {
-            let audioSession = AVAudioSession.sharedInstance()
-            try audioSession.setActive(false)
-        } catch {
-            print("Failed to set audio session: \(error)")
-        }
-        
+        guard !remoteTargets.isEmpty else { return }
+        remoteRegistration = UUID()
+        remoteTargets.forEach { $0.0.removeTarget($0.1) }
+        remoteTargets.removeAll()
         UIApplication.shared.endReceivingRemoteControlEvents()
-        
         MPNowPlayingInfoCenter.default().nowPlayingInfo = nil
-        MPRemoteCommandCenter.shared().playCommand.removeTarget(nil)
-        MPRemoteCommandCenter.shared().pauseCommand.removeTarget(nil)
-        MPRemoteCommandCenter.shared().togglePlayPauseCommand.removeTarget(nil)
-        MPRemoteCommandCenter.shared().stopCommand.removeTarget(nil)
-//        MPRemoteCommandCenter.shared().nextTrackCommand.removeTarget(nil)
-//        MPRemoteCommandCenter.shared().previousTrackCommand.removeTarget(nil)
-//        MPRemoteCommandCenter.shared().changeRepeatModeCommand.removeTarget(nil)
-//        MPRemoteCommandCenter.shared().changePlaybackRateCommand.removeTarget(nil)
-//        MPRemoteCommandCenter.shared().skipForwardCommand.removeTarget(nil)
-//        MPRemoteCommandCenter.shared().skipBackwardCommand.removeTarget(nil)
-        MPRemoteCommandCenter.shared().changePlaybackPositionCommand.removeTarget(nil)
-//        MPRemoteCommandCenter.shared().enableLanguageOptionCommand.removeTarget(nil)
     }
     
-    public func registerRemoteControllEvent() {
-        let remoteCommand = MPRemoteCommandCenter.shared()
-        
-        remoteCommand.playCommand.addTarget { [weak self] _ in
-            guard let self else {
-                return .commandFailed
+    private func registerRemoteControllEvent() {
+        guard remoteTargets.isEmpty else { return }
+        let registration = remoteRegistration
+        let commands = MPRemoteCommandCenter.shared()
+        func register(_ command: MPRemoteCommand, action: @escaping @MainActor (AudioPlayerView) -> Void) {
+            let token = command.addTarget { [weak self] _ in
+                guard let self else { return .commandFailed }
+                Task { @MainActor [weak self] in
+                    guard let self, self.currentModel != nil, self.remoteRegistration == registration else { return }
+                    action(self)
+                }
+                return .success
             }
-            self.player.resume()
-            return .success
+            remoteTargets.append((command, token))
         }
-        remoteCommand.pauseCommand.addTarget { [weak self] _ in
-            guard let self else {
-                return .commandFailed
-            }
-            self.player.pause()
-            return .success
+        register(commands.playCommand) { $0.player.resume() }
+        register(commands.pauseCommand) { $0.player.pause() }
+        register(commands.togglePlayPauseCommand) {
+            if $0.player.wantsToPlay { $0.player.pause() } else { $0.player.resume() }
         }
-        remoteCommand.togglePlayPauseCommand.addTarget { [weak self] _ in
-            guard let self else {
-                return .commandFailed
-            }
-            if self.player.isPlaying {
-                self.player.pause()
-            } else {
-                self.player.resume()
-            }
-            return .success
-        }
-        remoteCommand.stopCommand.addTarget { [weak self] _ in
-            guard let self else {
-                return .commandFailed
-            }
-            self.player.stop()
-            return .success
-        }
-//        remoteCommand.nextTrackCommand.addTarget { [weak self] _ in
-//            guard let self else {
-//                return .commandFailed
-//            }
-//            self.nextPlayer()
-//            return .success
-//        }
-//        remoteCommand.previousTrackCommand.addTarget { [weak self] _ in
-//            guard let self else {
-//                return .commandFailed
-//            }
-//            self.previousPlayer()
-//            return .success
-//        }
-//        remoteCommand.changeRepeatModeCommand.addTarget { [weak self] event in
-//            guard let self, let event = event as? MPChangeRepeatModeCommandEvent else {
-//                return .commandFailed
-//            }
-//            self.options.isLoopPlay = event.repeatType != .off
-//            return .success
-//        }
-//        remoteCommand.changeShuffleModeCommand.isEnabled = false
-        // remoteCommand.changeShuffleModeCommand.addTarget {})
-//        remoteCommand.changePlaybackRateCommand.supportedPlaybackRates = [0.5, 1, 1.5, 2]
-//        remoteCommand.changePlaybackRateCommand.addTarget { [weak self] event in
-//            guard let self, let event = event as? MPChangePlaybackRateCommandEvent else {
-//                return .commandFailed
-//            }
-//            self.player.playbackRate = event.playbackRate
-//            return .success
-//        }
-//        remoteCommand.skipForwardCommand.preferredIntervals = [15]
-//        remoteCommand.skipForwardCommand.addTarget { [weak self] event in
-//            guard let self, let event = event as? MPSkipIntervalCommandEvent else {
-//                return .commandFailed
-//            }
-//            self.seek(time: self.player.currentPlaybackTime + event.interval)
-//            return .success
-//        }
-//        remoteCommand.skipBackwardCommand.preferredIntervals = [15]
-//        remoteCommand.skipBackwardCommand.addTarget { [weak self] event in
-//            guard let self, let event = event as? MPSkipIntervalCommandEvent else {
-//                return .commandFailed
-//            }
-//            self.seek(time: self.player.currentPlaybackTime - event.interval)
-//            return .success
-//        }
-//        remoteCommand.changePlaybackPositionCommand.addTarget { [weak self] event in
-//            guard let self, let event = event as? MPChangePlaybackPositionCommandEvent else {
-//                return .commandFailed
-//            }
-//            self.seek(time: event.positionTime)
-//            return .success
-//        }
-//        remoteCommand.enableLanguageOptionCommand.addTarget { [weak self] event in
-//            guard let self, let event = event as? MPChangeLanguageOptionCommandEvent else {
-//                return .commandFailed
-//            }
-//            let selectLang = event.languageOption
-//            if selectLang.languageOptionType == .audible,
-//               let trackToSelect = self.player.tracks(mediaType: .audio).first(where: { $0.name == selectLang.displayName })
-//            {
-//                self.player.select(track: trackToSelect)
-//            }
-//            return .success
-//        }
+        register(commands.stopCommand) { $0.stop() }
     }
 }
 
@@ -348,8 +238,13 @@ extension AudioPlayerView: PoAVPlayerDelegate {
     
     func avplayer(_ player: PoAVPlayer, playerItemStatusChanged status: PoAVPlayer.PlaybackStatus) {
         switch status {
-        case .idle, .paused, .finished:
+        case .idle:
             playButton.isSelected = false
+            removeRemote()
+        case .paused, .finished:
+            playButton.isSelected = false
+        case .waiting:
+            playButton.isSelected = player.wantsToPlay
         case .playing:
             playButton.isSelected = true
         case .failed(let error):
@@ -357,13 +252,14 @@ extension AudioPlayerView: PoAVPlayerDelegate {
             removeRemote()
             PoDebugLog(error)
         }
+        MPNowPlayingInfoCenter.default().nowPlayingInfo?[MPNowPlayingInfoPropertyPlaybackRate] = player.isPlaying ? player.rate : 0
     }
     
     /// 缓冲到了哪儿
     func avplayer(_ player: PoAVPlayer, loadedTimeRange range: CMTimeRange) {
         let loaded = range.end.seconds
-        let duration = player.duration!
-        progress.progressValue = Float(loaded / duration)
+        guard loaded.isFinite, let duration = player.duration, duration > 0 else { return }
+        progress.progressValue = Float(min(max(loaded / duration, 0), 1))
     }
     
     /// 缓冲数据是否够用
@@ -380,8 +276,9 @@ extension AudioPlayerView: PoAVPlayerDelegate {
     func avplayer(_ player: PoAVPlayer, periodicallyInvoke time: CMTime) {
         guard let duration = player.duration, duration.isNormal, duration > 0 else { return }
         let current = time.seconds
+        guard current.isFinite else { return }
         
-        if !progress.isTouching && !isIgnorePeriod {
+        if !progress.isTouching && !player.isSeeking {
             progress.sliderValue = Float(current / duration)
         }
         updateTime(current: current, duration: duration)

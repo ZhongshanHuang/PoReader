@@ -25,6 +25,7 @@ extension NSString {
         textStorage.setAttributedString(NSAttributedString(string: self as String, attributes: attributes))
 
         var parsedLength = 0
+        var parsedGlyphLength = 0
         while parsedLength < textStorage.length {
             let textContainer = NSTextContainer(size: constraintSize)
             textContainer.lineBreakMode = .byCharWrapping
@@ -32,9 +33,23 @@ extension NSString {
             layoutManager.addTextContainer(textContainer)
             layoutManager.ensureLayout(for: textContainer)
 
-            let glyphRange = layoutManager.glyphRange(for: textContainer)
+            // The previous page gives us this page's first glyph. Querying its
+            // container avoids the expensive reverse lookup in glyphRange(for:).
+            // Keep glyph and UTF-16 character offsets separate (emoji/ligatures).
+            var glyphRange = NSRange(location: NSNotFound, length: 0)
+            var resolvedContainer: NSTextContainer?
+            if parsedGlyphLength < layoutManager.firstUnlaidGlyphIndex() {
+                resolvedContainer = layoutManager.textContainer(forGlyphAt: parsedGlyphLength,
+                                                               effectiveRange: &glyphRange,
+                                                               withoutAdditionalLayout: true)
+            }
+            if resolvedContainer !== textContainer || glyphRange.location != parsedGlyphLength || glyphRange.length == 0 {
+                glyphRange = layoutManager.glyphRange(for: textContainer)
+            }
             let characterRange = layoutManager.characterRange(forGlyphRange: glyphRange, actualGlyphRange: nil)
-            guard characterRange.length > 0 else {
+            // Very small containers can return the previous range again. Use the
+            // existing remainder fallback instead of appending containers forever.
+            guard characterRange.length > 0, characterRange.upperBound > parsedLength else {
                 pages.append(PageLayout(range: NSRange(location: parsedLength, length: textStorage.length - parsedLength),
                                         usedSize: constraintSize))
                 break
@@ -44,6 +59,7 @@ extension NSString {
             pages.append(PageLayout(range: characterRange,
                                     usedSize: CGSize(width: ceil(usedRect.width), height: ceil(usedRect.height))))
             parsedLength = characterRange.upperBound
+            parsedGlyphLength = glyphRange.upperBound
         }
 
         #if DEBUG

@@ -30,6 +30,29 @@ final class ChineseNovelChapterParserTests: XCTestCase {
         XCTAssertEqual(actual.map(\.range), [NSRange(location: 0, length: 9)])
     }
 
+    func testUnicodeTitleRegressionsMatchLegacy() {
+        for title in [
+            "\u{200B}第一章 起风\u{200B}",
+            "第\u{000B}一章 起风", "第一章 风\u{000B}起",
+            "正文\u{000B}第一章 起风", "番外\u{000B}一",
+            // Zero-width spaces are trimmed at the edges, not accepted inside a title.
+            "第\u{200B}一章 起风", "第一章 风\u{200B}起",
+        ] {
+            assertMatchesLegacy(title + "\n正文")
+        }
+        // Include Han characters outside the CJK extension blocks, block boundaries,
+        // unassigned gaps and non-Han supplementary characters. ICU is the oracle.
+        for scalar: UInt32 in [
+            0x16FE2, 0x16FE3, 0x16FF0, 0x1F600, 0x20000,
+            0x2A6DF, 0x2A6E0, 0x2EE60, 0x2F800, 0x2FA1D, 0x2FA1E, 0x2FA1F,
+            0x30000, 0x323AF, 0x323B0,
+        ] {
+            let character = String(UnicodeScalar(scalar)!)
+            assertMatchesLegacy("第一章 " + character + "\n正文")
+            assertMatchesLegacy("番外 " + character + "\n正文")
+        }
+    }
+
     // URL-related words are now allowed in valid titles, intentionally differing
     // from the frozen legacy parser used by the equivalence tests.
     func testTitlesContainingURLWordsAreAccepted() {

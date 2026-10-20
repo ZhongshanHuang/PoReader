@@ -8,15 +8,45 @@ extension NSString {
         let usedSize: CGSize
     }
 
+    /// Ranges only: skips `usedRect(for:)` and the intermediate `[PageLayout]` array.
     func parseToPage(attributes: [NSAttributedString.Key: Any], constraintSize: CGSize) -> [NSRange] {
-        parseToPageLayouts(attributes: attributes, constraintSize: constraintSize).map(\.range)
+        var ranges = [NSRange]()
+        enumeratePageLayouts(attributes: attributes, constraintSize: constraintSize, computesUsedSize: false) { page in
+            ranges.append(page.range)
+            return true
+        }
+        return ranges
     }
 
     func parseToPageLayouts(attributes: [NSAttributedString.Key: Any], constraintSize: CGSize) -> [PageLayout] {
-        guard length > 0, constraintSize.width > 0, constraintSize.height > 0 else { return [] }
-
         var pages = [PageLayout]()
-        let date = Date()
+        enumeratePageLayouts(attributes: attributes, constraintSize: constraintSize) { page in
+            pages.append(page)
+            return true
+        }
+        return pages
+    }
+
+    // MARK: - Streaming core
+
+    /// Lays out one page at a time and hands each finished page to `body` right away.
+    ///
+    /// - Return `false` from `body` to stop early (e.g. the user changed the font size and this job is stale).
+    /// - `body` runs synchronously on the calling thread.
+    /// - Pass `computesUsedSize: false` if only ranges are needed; `usedSize` is then `.zero`.
+    /// - Returns: `true` if every page was produced, `false` if `body` stopped the enumeration.
+    @discardableResult
+    func enumeratePageLayouts(attributes: [NSAttributedString.Key: Any],
+                              constraintSize: CGSize,
+                              computesUsedSize: Bool = true,
+                              _ body: (PageLayout) -> Bool) -> Bool {
+        guard length > 0, constraintSize.width > 0, constraintSize.height > 0 else { return true }
+
+        #if DEBUG
+        let startDate = Date()
+        defer { print("page cost seconds: \(Date().timeIntervalSince(startDate))") }
+        #endif
+
         let layoutManager = NSLayoutManager()
         layoutManager.usesFontLeading = false
 
@@ -24,9 +54,10 @@ extension NSString {
         textStorage.addLayoutManager(layoutManager)
         textStorage.setAttributedString(NSAttributedString(string: self as String, attributes: attributes))
 
+        let totalLength = textStorage.length
         var parsedLength = 0
         var parsedGlyphLength = 0
-        while parsedLength < textStorage.length {
+        while parsedLength < totalLength {
             let textContainer = NSTextContainer(size: constraintSize)
             textContainer.lineBreakMode = .byCharWrapping
             textContainer.lineFragmentPadding = 0
@@ -47,30 +78,29 @@ extension NSString {
                 glyphRange = layoutManager.glyphRange(for: textContainer)
             }
             let characterRange = layoutManager.characterRange(forGlyphRange: glyphRange, actualGlyphRange: nil)
+
             // Very small containers can return the previous range again. Use the
             // existing remainder fallback instead of appending containers forever.
             guard characterRange.length > 0, characterRange.upperBound > parsedLength else {
-                pages.append(PageLayout(range: NSRange(location: parsedLength, length: textStorage.length - parsedLength),
-                                        usedSize: constraintSize))
-                break
+                let rest = PageLayout(range: NSRange(location: parsedLength, length: totalLength - parsedLength),
+                                      usedSize: computesUsedSize ? constraintSize : .zero)
+                return body(rest)
             }
 
-            let usedRect = layoutManager.usedRect(for: textContainer)
-            pages.append(PageLayout(range: characterRange,
-                                    usedSize: CGSize(width: ceil(usedRect.width), height: ceil(usedRect.height))))
+            var usedSize = CGSize.zero
+            if computesUsedSize {
+                let usedRect = layoutManager.usedRect(for: textContainer)
+                usedSize = CGSize(width: ceil(usedRect.width), height: ceil(usedRect.height))
+            }
+            guard body(PageLayout(range: characterRange, usedSize: usedSize)) else { return false }
+
             parsedLength = characterRange.upperBound
             parsedGlyphLength = glyphRange.upperBound
         }
-
-        #if DEBUG
-        print("page cost seconds: \(Date().timeIntervalSince(date))")
-        #endif
-        return pages
+        return true
     }
-    
 }
 
-// https://github.com/krzyzanowskim/CryptoSwift
 // MARK: - String - MD5
 extension String {
     public var md5: String {

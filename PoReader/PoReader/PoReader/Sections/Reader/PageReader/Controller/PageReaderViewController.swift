@@ -34,7 +34,6 @@ class PageReaderViewController: BaseViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
 
-        // Do any additional setup after loading the view.
         setupUI()
         setupDataSource()
         registerForNotification()
@@ -81,14 +80,14 @@ class PageReaderViewController: BaseViewController {
     private func setupDataSource() {
         dataSource.name = book?.name
         dataSource.sourcePath = book?.localPath
-        
+
         dataSource.parseChapter()
         if let book = self.book {
             let pageLocation = try? Database.shared.pageLocation(forBook: book.name)
             self.showPageItem(atChapter: pageLocation?.chapterIndex ?? 0, subrangeIndex: pageLocation?.subrangeIndex ?? 0)
         }
     }
-    
+
     private func showPageItem(atChapter chapterIndex: Int, subrangeIndex: Int, animated: Bool = false) {
         guard let location = dataSource.resolvedPageLocation(chapterIndex: chapterIndex, subrangeIndex: subrangeIndex) else { return }
         if let pageDisplayItem = pageDisplayItem(atChapter: location.chapterIndex, subrangeIndex: location.subrangeIndex) {

@@ -56,7 +56,6 @@ class ScrollReaderViewController: BaseViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
 
-        // Do any additional setup after loading the view.
         setupUI()
         setupDataSource()
         registerForNotification()
@@ -103,14 +102,14 @@ class ScrollReaderViewController: BaseViewController {
     private func setupDataSource() {
         dataSource.name = book?.name
         dataSource.sourcePath = book?.localPath
-        
+
         dataSource.parseChapter()
         if let book = self.book {
             let pageLocation = try? Database.shared.pageLocation(forBook: book.name)
             showPageItem(chapterIndex: pageLocation?.chapterIndex ?? 0, subrangeIndex: pageLocation?.subrangeIndex ?? 0)
         }
     }
-    
+
     private func showPageItem(chapterIndex: Int, subrangeIndex: Int) {
         guard let location = dataSource.resolvedPageLocation(chapterIndex: chapterIndex, subrangeIndex: subrangeIndex) else { return }
         

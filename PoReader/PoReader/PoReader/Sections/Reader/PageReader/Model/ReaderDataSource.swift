@@ -18,17 +18,9 @@ final class ReaderDataSource {
             return
         }
         self.text = text
-
-        let chapterArr = ChineseNovelChapterParser.parse(text: text)
-        #if DEBUG
-        print("章节数: \(chapterArr.count)")
-        chapterArr.forEach { model in
-            print(model)
-        }
-        #endif
-        chapters = chapterArr
+        chapters = ChineseNovelChapterParser.parse(text: text)
     }
-    
+
     // 重新计算章节内部分页(因为采用的懒加载，所以这儿其实只删除了之前的分页结果)
     func updateChapterSubrange() {
         chapters.forEach({ $0.updateSubranges() })

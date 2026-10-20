@@ -2,11 +2,8 @@ import Foundation
 
 enum TextFileDecoder {
     static func decode(_ data: Data) -> NSString? {
-        if data.isEmpty { return nil }
-
-        guard let encoding = preferredEncoding(for: data),
-              let string = String(data: data, encoding: encoding) else { return nil }
-        return normalize(string) as NSString
+        guard !data.isEmpty, let encoding = preferredEncoding(for: data) else { return nil }
+        return NSString(data: data, encoding: encoding.rawValue)
     }
 
     private static func preferredEncoding(for data: Data) -> String.Encoding? {
@@ -137,16 +134,6 @@ enum TextFileDecoder {
         default:
             return 0
         }
-    }
-
-    private static func normalize(_ string: String) -> String {
-        var value = string
-            .replacingOccurrences(of: "\r\n", with: "\n")
-            .replacingOccurrences(of: "\r", with: "\n")
-        if value.first == "\u{feff}" {
-            value.removeFirst()
-        }
-        return value
     }
 
     private static let sampleByteLimit = 64 * 1024

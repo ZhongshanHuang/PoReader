@@ -1,5 +1,6 @@
 import Foundation
 
+/* 此解析功能对编译优化非常敏感，真实性能请使用release测试，可能会相差几十倍 */
 enum ChineseNovelChapterParser {
     private struct Marker {
         let location: Int

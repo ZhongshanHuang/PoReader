@@ -212,7 +212,8 @@ enum ChineseNovelChapterParser {
     }
 
     // Index of the first line terminator at or after `start`, or `count` if there is none.
-    // Scans 16 UTF-16 units per step with SIMD, then finishes inside that block with scalar code.
+    // Scans 16 UTF-16 units per step. Resolve short lines directly from the SIMD mask;
+    // on longer lines, a scalar finish avoids extra vector reductions.
     @inline(__always)
     private static func findLineEnd(_ base: UnsafePointer<unichar>, from start: Int, count: Int) -> Int {
         var i = start
@@ -223,19 +224,19 @@ enum ChineseNovelChapterParser {
         let ls = SIMD8<UInt16>(repeating: 0x2028)
         let ps = SIMD8<UInt16>(repeating: 0x2029)
 
+        let lanes = SIMD8<UInt16>(0, 1, 2, 3, 4, 5, 6, 7)
         while i + 16 <= count {
             let low = raw.loadUnaligned(fromByteOffset: i * 2, as: SIMD8<UInt16>.self)
             let high = raw.loadUnaligned(fromByteOffset: i * 2 + 16, as: SIMD8<UInt16>.self)
-            var hit = (low .== lf) .| (low .== cr)
-            hit = hit .| (low .== nel)
-            hit = hit .| (low .== ls)
-            hit = hit .| (low .== ps)
-            hit = hit .| (high .== lf)
-            hit = hit .| (high .== cr)
-            hit = hit .| (high .== nel)
-            hit = hit .| (high .== ls)
-            hit = hit .| (high .== ps)
-            if any(hit) { break }
+            let lowHit = (low .== lf) .| (low .== cr) .| (low .== nel) .| (low .== ls) .| (low .== ps)
+            let highHit = (high .== lf) .| (high .== cr) .| (high .== nel) .| (high .== ls) .| (high .== ps)
+            if any(lowHit .| highHit) {
+                if i != start { break }
+                if any(lowHit) {
+                    return i + Int(SIMD8<UInt16>(repeating: 8).replacing(with: lanes, where: lowHit).min())
+                }
+                return i + 8 + Int(SIMD8<UInt16>(repeating: 8).replacing(with: lanes, where: highHit).min())
+            }
             i += 16
         }
         while i < count, !isLineBreak(base[i]) { i += 1 }
@@ -333,7 +334,10 @@ enum ChineseNovelChapterParser {
             let prefixed = origin | star(word(origin, Self.prefixWord), Flag.regexSpace)
 
             let ends = numberedHeadEnds(from: prefixed) | specialHeadEnds(from: prefixed)
-            for position in 0...units.count where ends & bit(position) != 0 {
+            var pending = ends
+            while pending != 0 {
+                let position = pending.trailingZeroBitCount
+                pending &= pending - 1
                 if suffixMatches(from: position) { return true }
             }
             return false
@@ -440,18 +444,31 @@ enum ChineseNovelChapterParser {
         // Consume exactly one unit that satisfies `predicate`.
         private func step(_ set: UInt64, where predicate: (unichar) -> Bool) -> UInt64 {
             var result: UInt64 = 0
-            for i in 0..<units.count where set & bit(i) != 0 && predicate(units[i]) {
-                result |= bit(i + 1)
+            // Only visit active positions. Bit units.count is an accepting position,
+            // not an input index, and must not be dereferenced.
+            var pending = set & (bit(units.count) - 1)
+            while pending != 0 {
+                let i = pending.trailingZeroBitCount
+                pending &= pending - 1
+                if predicate(units[i]) { result |= bit(i + 1) }
             }
             return result
         }
 
-        // Consume zero or more units that satisfy `predicate`. A single forward pass is enough
-        // because positions only ever move forward.
+        // Consume zero or more matching units. Process the lowest active bit first;
+        // a newly reached position can only be ahead of the one just consumed.
         private func star(_ set: UInt64, where predicate: (unichar) -> Bool) -> UInt64 {
             var result = set
-            for i in 0..<units.count where result & bit(i) != 0 && predicate(units[i]) {
-                result |= bit(i + 1)
+            let inputMask = bit(units.count) - 1
+            var pending = set & inputMask
+            while pending != 0 {
+                let i = pending.trailingZeroBitCount
+                pending &= pending - 1
+                if predicate(units[i]) {
+                    let next = bit(i + 1)
+                    result |= next
+                    pending |= next & inputMask
+                }
             }
             return result
         }
@@ -471,6 +488,7 @@ enum ChineseNovelChapterParser {
         private func word(_ set: UInt64, _ text: [unichar]) -> UInt64 {
             var current = set
             for unit in text {
+                guard current != 0 else { return 0 }
                 current = step(current, where: { $0 == unit })
             }
             return current

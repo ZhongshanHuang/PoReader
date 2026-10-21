@@ -113,6 +113,35 @@ final class ChineseNovelChapterParserTests: XCTestCase {
         }
     }
 
+    func testSIMDLineBoundariesMatchLegacy() {
+        let body = String(repeating: "正文风雪。", count: 40)
+        // Cover both SIMD halves, block ends, scalar remainders and CRLF crossing a block.
+        for length in 0...65 {
+            for separator in ["\n", "\r", "\r\n", "\u{0085}", "\u{2028}", "\u{2029}"] {
+                let prefix = String(repeating: "字", count: length)
+                let book = prefix + separator + "第一章 起风" + separator + body + separator + "第二章 入城"
+                assertMatchesLegacy(book)
+                assertMatchesLegacy(prefix + separator)
+            }
+        }
+        for length in 0...32 {
+            // Multiple different terminators in one block must still pick the earliest.
+            assertMatchesLegacy(String(repeating: "字", count: length) + "\u{2029}序章\r\n正文\u{0085}第一章\n" + body)
+        }
+    }
+
+    func testTitlePositionSetsAndTailLimitsMatchLegacy() {
+        let heads = ["第一章", "第十二卷 第三章", "正文 第两部 12篇", "第1卷", "12章",
+                     "番外", "番外篇 十二", "序言", "作品相关", "第", "第第1章", "正文正文 第一章"]
+        for head in heads {
+            for separator in ["", " ", "：", "\t—\t", "\u{000B}", "\u{200B}"] {
+                for length in [0, 1, 35, 36, 37, 47, 48, 49] {
+                    assertMatchesLegacy(head + separator + String(repeating: "字", count: length) + "\n正文")
+                }
+            }
+        }
+    }
+
     // Opt in with OTHER_SWIFT_FLAGS='$(inherited) -DPOREADER_PROFILE_CHAPTERS'.
     // Measures chapter parsing only; disk reads, decoding and pagination are excluded.
     func testChapterParsingPerformance() throws {

@@ -2,7 +2,7 @@ import UIKit
 import GCDWebServerSPM
 
 extension UploaderViewController {
-    enum UploadType {
+    nonisolated enum UploadType: Sendable {
         case txt
         case audio
         
@@ -92,7 +92,7 @@ class UploaderViewController: BaseViewController {
 extension UploaderViewController: GCDWebUploaderDelegate {
     
     /// 将上传的文件信息存入本地数据库
-    func webUploader(_ uploader: GCDWebUploader, didUploadFileAtPath path: String) {
+    nonisolated func webUploader(_ uploader: GCDWebUploader, didUploadFileAtPath path: String) {
         let fileName = (path as NSString).lastPathComponent
         do {
             switch uploadType {
@@ -107,7 +107,7 @@ extension UploaderViewController: GCDWebUploaderDelegate {
     }
     
     /// 在浏览器端删除文件
-    func webUploader(_ uploader: GCDWebUploader, didDeleteItemAtPath path: String) {
+    nonisolated func webUploader(_ uploader: GCDWebUploader, didDeleteItemAtPath path: String) {
         let fileName = (path as NSString).lastPathComponent
         do {
             switch uploadType {

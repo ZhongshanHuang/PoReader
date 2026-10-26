@@ -1,6 +1,7 @@
 import XCTest
 @testable import PoReader
 
+@MainActor
 final class ChineseNovelChapterParserTests: XCTestCase {
     private func assertMatchesLegacy(_ value: String, file: StaticString = #filePath, line: UInt = #line) {
         let text = value as NSString
@@ -191,6 +192,7 @@ final class ChineseNovelChapterParserTests: XCTestCase {
 // Frozen pre-optimization implementation: independent oracle for title and UTF-16
 // range equivalence, including catalog filtering and fallback chapter splitting.
 
+@MainActor
 private enum LegacyChapterParser {
     private struct Marker {
         let title: String

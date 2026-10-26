@@ -1,6 +1,7 @@
 import Foundation
 
 /* 此解析功能对编译优化非常敏感，真实性能请使用release测试，可能会相差几十倍 */
+@MainActor
 enum ChineseNovelChapterParser {
     private struct Marker {
         let location: Int
@@ -315,6 +316,7 @@ enum ChineseNovelChapterParser {
     // to the next, and the title is accepted if some position reached after the head leaves a
     // valid tail. Because all alternatives are explored at once, the result is identical to
     // what a backtracking regex would return.
+    @MainActor
     private struct TitleMatcher {
         static let tailLimit = 36
         static let prefixWord = Array("正文".utf16)
@@ -531,6 +533,7 @@ enum ChineseNovelChapterParser {
 
     // MARK: - Chapter building
 
+    @MainActor
     private struct ChapterBuilder {
         let text: NSString
         let units: UnsafeBufferPointer<unichar>

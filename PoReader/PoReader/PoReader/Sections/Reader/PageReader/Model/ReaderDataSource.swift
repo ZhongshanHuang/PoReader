@@ -1,5 +1,6 @@
 import UIKit
 
+@MainActor
 final class ReaderDataSource {
     
     // MARK: - Properties

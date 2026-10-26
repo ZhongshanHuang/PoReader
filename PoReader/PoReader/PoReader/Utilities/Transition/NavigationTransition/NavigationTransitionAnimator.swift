@@ -1,5 +1,6 @@
 import UIKit
 
+@MainActor
 final class NavigationTransitionAnimator: NSObject {
     private let config: TransitionAnimationConfigurable
     private var animator: UIViewPropertyAnimator?
@@ -10,6 +11,7 @@ final class NavigationTransitionAnimator: NSObject {
 }
 
 // MARK: - UIViewControllerAnimatedTransitioning
+@MainActor
 extension NavigationTransitionAnimator: UIViewControllerAnimatedTransitioning {
     
     public func transitionDuration(using transitionContext: (any UIViewControllerContextTransitioning)?) -> TimeInterval {

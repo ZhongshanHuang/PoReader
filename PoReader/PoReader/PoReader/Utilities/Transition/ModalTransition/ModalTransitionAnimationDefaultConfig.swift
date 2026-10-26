@@ -1,5 +1,6 @@
 import UIKit
 
+@MainActor
 class ModalTransitionAnimationDefaultConfig: TransitionAnimationConfigurable {
     var duration: TimeInterval { 0.35 }
     

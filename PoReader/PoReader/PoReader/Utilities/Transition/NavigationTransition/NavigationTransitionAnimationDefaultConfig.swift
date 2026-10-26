@@ -1,5 +1,6 @@
 import UIKit
 
+@MainActor
 class NavigationTransitionAnimationDefaultConfig: TransitionAnimationConfigurable {
     var duration: TimeInterval { 0.35 }
     

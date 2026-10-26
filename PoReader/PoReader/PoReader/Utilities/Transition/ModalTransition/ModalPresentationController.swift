@@ -1,5 +1,6 @@
 import UIKit
 
+@MainActor
 class ModalPresentationController: UIPresentationController {
     
     var percentHeight: CGFloat = 0.8

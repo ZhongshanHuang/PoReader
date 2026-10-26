@@ -1,6 +1,7 @@
 import UIKit
 
-struct Appearance {
+@MainActor
+enum Appearance {
     
     // MARK: - 全局
     

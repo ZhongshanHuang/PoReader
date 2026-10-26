@@ -1,8 +1,8 @@
 import Foundation
 import PoSQLite
-import UIKit
 
-final class Database {
+/// Immutable facade over PoSQLite's internally synchronized connection pool.
+final class Database: Sendable {
     
     static let shared = Database()
     
@@ -21,7 +21,7 @@ final class Database {
 }
 
 // MARK: - Book
-struct PageLocation {
+struct PageLocation: Equatable, Sendable {
     var chapterIndex: Int = 0
     var subrangeIndex: Int = 0
     var progress: Double = 0

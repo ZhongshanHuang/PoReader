@@ -6,15 +6,15 @@ extension SettingsItem {
     static let allCasesWidgets: [SettingsCellProtocol.Type] = [SettingsSwitchCell.self, SettingsSelectCell.self]
 }
 
-struct SettingsItem: Hashable {
+struct SettingsItem: Hashable, Sendable {
     
-    enum ItemType: String {
+    enum ItemType: String, Sendable {
         case appearanceMode = "观看模式"
         case autoOpenBook = "自动打开最近浏览书籍"
         case transitionStyle = "翻页风格"
     }
     
-    enum DataType {
+    enum DataType: Sendable {
         case switchVal(isOn: Bool)
         case selectVal(value: String)
     }
@@ -29,6 +29,7 @@ struct SettingsItem: Hashable {
         self.dataType = dataType
     }
     
+    @MainActor
     var widget: SettingsCellProtocol.Type {
         switch dataType {
         case .switchVal:
@@ -39,10 +40,10 @@ struct SettingsItem: Hashable {
     }
     
     func hash(into hasher: inout Hasher) {
-        hasher.combine(title)
+        hasher.combine(itemType)
     }
     
     static func == (lhs: SettingsItem, rhs: SettingsItem) -> Bool {
-        lhs.hashValue == rhs.hashValue
+        lhs.itemType == rhs.itemType
     }
 }

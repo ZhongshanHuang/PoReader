@@ -20,7 +20,7 @@ class AudioPlayerView: UIView {
     
     var progressValue: Float { progress.sliderValue }
     
-    deinit {
+    isolated deinit {
         if let terminationObserver { NotificationCenter.default.removeObserver(terminationObserver) }
         remoteTargets.forEach { $0.0.removeTarget($0.1) }
     }
@@ -121,8 +121,10 @@ class AudioPlayerView: UIView {
         }
         
         terminationObserver = NotificationCenter.default.addObserver(forName: UIApplication.willTerminateNotification, object: nil, queue: .main) { [weak self] _ in
-            guard let self else { return }
-            onStop?(currentModel, progressValue)
+            MainActor.assumeIsolated {
+                guard let self else { return }
+                self.onStop?(self.currentModel, self.progressValue)
+            }
         }
     }
     

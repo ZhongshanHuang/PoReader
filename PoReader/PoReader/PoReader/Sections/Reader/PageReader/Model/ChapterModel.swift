@@ -1,11 +1,12 @@
 import UIKit
 
 extension ChapterModel: CustomStringConvertible {
-    var description: String {
+    nonisolated var description: String {
         "idx: \(idx), range: \(range), title: \(title, default: "nil")"
     }
 }
 
+@MainActor
 final class ChapterModel {
     private struct LayoutSignature: Equatable {
         let constraintSize: CGSize

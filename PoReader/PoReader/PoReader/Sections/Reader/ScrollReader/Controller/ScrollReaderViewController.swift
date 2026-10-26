@@ -12,7 +12,7 @@ extension ScrollReaderViewController {
 class ScrollReaderViewController: BaseViewController {
     
     // MARK: - Properties
-    var book: (any BookResourceProtocal)?
+    var book: (any BookResource)?
     var onDeinit: (() -> Void)?
 
     private let dataSource = ReaderDataSource()
@@ -46,8 +46,8 @@ class ScrollReaderViewController: BaseViewController {
         return collectionView
     }()
     
-    deinit {
-        if let observer {
+    isolated deinit {
+        for observer in observers {
             NotificationCenter.default.removeObserver(observer)
         }
         onDeinit?()
@@ -126,14 +126,14 @@ class ScrollReaderViewController: BaseViewController {
     }
     
     // 观察应用事件，保存当前文章页码
-    private var observer: (any NSObjectProtocol)?
+    private var observers: [any NSObjectProtocol] = []
     private func registerForNotification() {
-        observer = NotificationCenter.default.addObserver(forName: UIApplication.willResignActiveNotification, object: nil, queue: nil) { [weak self] _ in
-            self?.savePageLocation()
-        }
-        
-        NotificationCenter.default.addObserver(forName: UIApplication.willTerminateNotification, object: nil, queue: nil) { [weak self] _ in
-            self?.savePageLocation()
+        observers = [UIApplication.willResignActiveNotification, UIApplication.willTerminateNotification].map { name in
+            NotificationCenter.default.addObserver(forName: name, object: nil, queue: .main) { [weak self] _ in
+                MainActor.assumeIsolated {
+                    self?.savePageLocation()
+                }
+            }
         }
     }
     

@@ -2,6 +2,7 @@ import UIKit
 
 public typealias AuxAnimation = (closure: () -> Void, relativeStartTime: TimeInterval, relativeDuration: TimeInterval)
 
+@MainActor
 public protocol TransitionAnimationConfigurable {
     var duration: TimeInterval { get }
     

@@ -370,9 +370,13 @@ final class PoAVPlayerTests: XCTestCase {
 }
 
 private final class ReadyItem: AVPlayerItem {
-    var testDuration = CMTime(seconds: 20, preferredTimescale: 600)
+    private nonisolated let durationStorage = LockedValue(CMTime(seconds: 20, preferredTimescale: 600))
+    var testDuration: CMTime {
+        get { durationStorage.read { $0 } }
+        set { durationStorage.update { $0 = newValue } }
+    }
     override var status: AVPlayerItem.Status { .readyToPlay }
-    override var duration: CMTime { testDuration }
+    override var duration: CMTime { durationStorage.read { $0 } }
     init() { super.init(asset: AVMutableComposition(), automaticallyLoadedAssetKeys: nil) }
 }
 
@@ -381,22 +385,56 @@ private final class ControlledPlayer: AVPlayer {
         let time: CMTime
         let completion: (Bool) -> Void
     }
-    var seeks: [Seek] = []
-    private var item: AVPlayerItem?
-    private var testRate: Float = 0
-    override var currentItem: AVPlayerItem? { item }
-    override var rate: Float {
-        get { testRate }
-        set { testRate = newValue }
+
+    private struct State {
+        var seeks: [Seek] = []
+        var item: AVPlayerItem?
+        var rate: Float = 0
     }
-    override var timeControlStatus: AVPlayer.TimeControlStatus { testRate > 0 ? .playing : .paused }
-    override func pause() { testRate = 0 }
-    override func replaceCurrentItem(with item: AVPlayerItem?) { self.item = item }
+
+    private nonisolated let state = LockedValue(State())
+
+    var seeks: [Seek] { state.read(\.seeks) }
+    override var currentItem: AVPlayerItem? { state.read(\.item) }
+    override var rate: Float {
+        get { state.read(\.rate) }
+        set { state.update { $0.rate = newValue } }
+    }
+    override var timeControlStatus: AVPlayer.TimeControlStatus {
+        state.read { $0.rate > 0 ? .playing : .paused }
+    }
+    override func pause() { state.update { $0.rate = 0 } }
+    override func replaceCurrentItem(with item: AVPlayerItem?) { state.update { $0.item = item } }
     override func seek(to time: CMTime, toleranceBefore: CMTime, toleranceAfter: CMTime,
                        completionHandler: @escaping (Bool) -> Void) {
-        seeks.append(Seek(time: time, completion: completionHandler))
+        state.update { $0.seeks.append(Seek(time: time, completion: completionHandler)) }
     }
-    func completeSeek(_ index: Int, success: Bool = true) { seeks[index].completion(success) }
+    func completeSeek(_ index: Int, success: Bool = true) {
+        let completion = state.read { $0.seeks[index].completion }
+        completion(success)
+    }
+}
+
+// All access to the mutable test double state stays under this lock.
+private final class LockedValue<Value>: @unchecked Sendable {
+    private let lock = NSLock()
+    private var value: Value
+
+    init(_ value: Value) {
+        self.value = value
+    }
+
+    func read<Result>(_ body: (Value) -> Result) -> Result {
+        lock.lock()
+        defer { lock.unlock() }
+        return body(value)
+    }
+
+    func update<Result>(_ body: (inout Value) -> Result) -> Result {
+        lock.lock()
+        defer { lock.unlock() }
+        return body(&value)
+    }
 }
 
 @MainActor

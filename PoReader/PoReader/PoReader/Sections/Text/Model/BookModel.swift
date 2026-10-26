@@ -1,7 +1,7 @@
 import Foundation
 
 nonisolated
-struct BookModel: BookResourceProtocal, Identifiable {
+struct BookModel: BookResource, Identifiable, Sendable {
     static let tableName: String = "book_list"
     /// 创建好表格和索引
     static let scheme: String = "CREATE TABLE IF NOT EXISTS \(tableName) (name TEXT PRIMARY KEY, last_access REAL DEFAULT 0, chapter_index INTEGER DEFAULT 0, subrange_index INTEGER DEFAULT 0, progress REAL DEFAULT 0); CREATE INDEX IF NOT EXISTS \(tableName)_index ON \(tableName) (name, last_access);"

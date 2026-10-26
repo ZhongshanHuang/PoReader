@@ -8,6 +8,7 @@
 
 import UIKit
 
+@MainActor
 public func PoNavigationBarConfigInit() {
     UINavigationController.poNavigationControllerMethodExchange()
     UIViewController.poViewControllerMehtodExchange()
@@ -17,6 +18,7 @@ public protocol PoNavigationBarConfigurable: UINavigationController {
     var defaultNavigationBarConfig: PoNavigationBarConfiguration { get }
 }
 
+@MainActor
 private var kDefaultNavigationBarConfigKey: UInt8 = 0
 public extension PoNavigationBarConfigurable {
     var defaultNavigationBarConfig: PoNavigationBarConfiguration {

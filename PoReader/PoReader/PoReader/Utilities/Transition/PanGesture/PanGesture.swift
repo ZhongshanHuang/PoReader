@@ -12,6 +12,7 @@ public enum PanGestureType {
     case edge(UIRectEdge)
 }
 
+@MainActor
 protocol TransitionPanGestureProtocol: AnyObject {
     var type: PanGestureType { get }
     init(type: PanGestureType)
@@ -85,6 +86,7 @@ extension TransitionPanGestureProtocol where Self: UIPanGestureRecognizer {
     }
 }
 
+@MainActor
 class TransitionPanGestureRecognizer: UIPanGestureRecognizer, TransitionPanGestureProtocol {
     let type: PanGestureType
     
@@ -94,6 +96,7 @@ class TransitionPanGestureRecognizer: UIPanGestureRecognizer, TransitionPanGestu
     }
 }
 
+@MainActor
 class TransitionEdgePanGestureRecognizer: UIScreenEdgePanGestureRecognizer, TransitionPanGestureProtocol {
     let type: PanGestureType
     
@@ -103,6 +106,7 @@ class TransitionEdgePanGestureRecognizer: UIScreenEdgePanGestureRecognizer, Tran
     }
 }
 
+@MainActor
 struct TransitionPanGestureFactory {
     
     static func create(with panType: PanGestureType) -> UIPanGestureRecognizer {

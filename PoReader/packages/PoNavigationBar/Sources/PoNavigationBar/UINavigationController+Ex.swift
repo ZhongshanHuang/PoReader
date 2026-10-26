@@ -9,6 +9,7 @@ import UIKit
 
 extension UINavigationController {
     
+    @MainActor
     private struct AssociatedObjectKeys {
         static var fullScreenPopGestureRecognizer: UInt8 = 0
         static var fullScreenPopGestureRecognizerDelegate: UInt8 = 0
@@ -81,8 +82,9 @@ extension UINavigationController {
     
 }
 
+@MainActor
 private final class FullScreenPopGestureRecognizerDelegate: NSObject, UIGestureRecognizerDelegate {
-    unowned(unsafe) let navigationController: UINavigationController
+    unowned let navigationController: UINavigationController
     
     init(navigationController: UINavigationController) {
         self.navigationController = navigationController

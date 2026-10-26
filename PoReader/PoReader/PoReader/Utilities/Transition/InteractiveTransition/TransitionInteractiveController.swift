@@ -1,5 +1,6 @@
 import UIKit
 
+@MainActor
 open class TransitionInteractiveController: UIPercentDrivenInteractiveTransition {
 
     // MARK: - Private
@@ -24,7 +25,7 @@ open class TransitionInteractiveController: UIPercentDrivenInteractiveTransition
     open var shouldBeginTransition: () -> Bool = { return true }
     open weak var gestureRecognizerDelegate: (any UIGestureRecognizerDelegate)?
     
-    deinit {
+    isolated deinit {
         if let gestureRecognizer = gestureRecognizer {
             gestureRecognizer.view?.removeGestureRecognizer(gestureRecognizer)
         }

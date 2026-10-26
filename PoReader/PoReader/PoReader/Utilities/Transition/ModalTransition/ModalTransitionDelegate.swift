@@ -1,5 +1,6 @@
 import UIKit
 
+@MainActor
 public class ModalTransitionDelegate: NSObject {
     public enum ModalOperation {
         case present

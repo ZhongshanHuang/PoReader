@@ -1,5 +1,6 @@
 import UIKit
 
+@MainActor
 final class ModalTransitionAnimator: NSObject {
     private let config: any TransitionAnimationConfigurable
     private var animator: UIViewPropertyAnimator?
@@ -10,6 +11,7 @@ final class ModalTransitionAnimator: NSObject {
 }
 
 // MARK: - UIViewControllerAnimatedTransitioning
+@MainActor
 extension ModalTransitionAnimator: UIViewControllerAnimatedTransitioning {
     public func transitionDuration(using transitionContext: UIViewControllerContextTransitioning?) -> TimeInterval {
         return config.duration

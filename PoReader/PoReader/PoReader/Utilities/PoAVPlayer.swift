@@ -155,10 +155,18 @@ final class PoAVPlayer: NSObject {
     private var itemNotificationObservers: [NSObjectProtocol] = []
     private var appNotificationObservers: [NSObjectProtocol] = []
 
-    private struct PendingSeek {
+    private struct PendingSeek: Sendable {
         let id: UUID
-        let completion: ((Bool) -> Void)?
+        let completion: (@MainActor @Sendable (Bool) -> Void)?
     }
+
+    private enum NotificationEvent: Sendable {
+        case interruption(type: UInt?, options: UInt?)
+        case routeChange(reason: UInt?)
+        case playbackFailure((any Error)?)
+        case none
+    }
+
     private var pendingSeek: PendingSeek?
 
     override convenience init() {
@@ -240,7 +248,8 @@ final class PoAVPlayer: NSObject {
 
     /// Seeking preserves the latest playback intent. Superseded requests complete
     /// once with false and can never change the current item or its playback state.
-    func seekToTime(_ timeInterval: TimeInterval, isAccurateSeek: Bool = false, completionHandler: ((Bool) -> Void)? = nil) {
+    func seekToTime(_ timeInterval: TimeInterval, isAccurateSeek: Bool = false,
+                    completionHandler: (@MainActor @Sendable (Bool) -> Void)? = nil) {
         guard timeInterval.isFinite, timeInterval >= 0, isReadyToPlay,
               let item = player.currentItem, !hasFailed else {
             completionHandler?(false)
@@ -398,11 +407,25 @@ final class PoAVPlayer: NSObject {
     }
 
     private func observe(_ name: Notification.Name, object: Any? = nil,
-                         handler: @escaping @MainActor (PoAVPlayer, Notification) -> Void) -> NSObjectProtocol {
+                         handler: @escaping @MainActor (PoAVPlayer, NotificationEvent) -> Void) -> NSObjectProtocol {
         NotificationCenter.default.addObserver(forName: name, object: object, queue: .main) { [weak self] note in
+            let event: NotificationEvent
+            switch name {
+            case AVAudioSession.interruptionNotification:
+                event = .interruption(
+                    type: note.userInfo?[AVAudioSessionInterruptionTypeKey] as? UInt,
+                    options: note.userInfo?[AVAudioSessionInterruptionOptionKey] as? UInt
+                )
+            case AVAudioSession.routeChangeNotification:
+                event = .routeChange(reason: note.userInfo?[AVAudioSessionRouteChangeReasonKey] as? UInt)
+            case .AVPlayerItemFailedToPlayToEndTime:
+                event = .playbackFailure(note.userInfo?[AVPlayerItemFailedToPlayToEndTimeErrorKey] as? any Error)
+            default:
+                event = .none
+            }
             MainActor.assumeIsolated {
                 guard let self else { return }
-                handler(self, note)
+                handler(self, event)
             }
         }
     }
@@ -410,8 +433,9 @@ final class PoAVPlayer: NSObject {
     private func observeAudioSession() {
         let session = AVAudioSession.sharedInstance()
         notificationObservers = [
-            observe(AVAudioSession.interruptionNotification, object: session) { owner, note in
-                guard let value = note.userInfo?[AVAudioSessionInterruptionTypeKey] as? UInt,
+            observe(AVAudioSession.interruptionNotification, object: session) { owner, event in
+                guard case let .interruption(value, options) = event,
+                      let value,
                       let type = AVAudioSession.InterruptionType(rawValue: value) else { return }
                 switch type {
                 case .began:
@@ -419,16 +443,16 @@ final class PoAVPlayer: NSObject {
                 case .ended:
                     guard owner.isInterrupted else { return }
                     owner.isInterrupted = false
-                    let options = (note.userInfo?[AVAudioSessionInterruptionOptionKey] as? UInt) ?? 0
-                    if !AVAudioSession.InterruptionOptions(rawValue: options).contains(.shouldResume) {
+                    if !AVAudioSession.InterruptionOptions(rawValue: options ?? 0).contains(.shouldResume) {
                         owner.wantsToPlay = false
                     }
                 @unknown default: return
                 }
                 owner.applyPlaybackIntent()
             },
-            observe(AVAudioSession.routeChangeNotification, object: session) { owner, note in
-                guard let value = note.userInfo?[AVAudioSessionRouteChangeReasonKey] as? UInt,
+            observe(AVAudioSession.routeChangeNotification, object: session) { owner, event in
+                guard case let .routeChange(reason) = event,
+                      let value = reason,
                       AVAudioSession.RouteChangeReason(rawValue: value) == .oldDeviceUnavailable else { return }
                 owner.pause()
             }
@@ -469,9 +493,10 @@ final class PoAVPlayer: NSObject {
                 owner.audioSession.deactivate(owner: owner.sessionOwner)
                 owner.setStatus(.finished)
             },
-            observe(.AVPlayerItemFailedToPlayToEndTime, object: item) { owner, note in
+            observe(.AVPlayerItemFailedToPlayToEndTime, object: item) { owner, event in
                 guard owner.itemGeneration == generation, owner.player.currentItem === item else { return }
-                owner.fail(.playbackFailed(note.userInfo?[AVPlayerItemFailedToPlayToEndTimeErrorKey] as? Error))
+                guard case let .playbackFailure(error) = event else { return }
+                owner.fail(.playbackFailed(error))
             }
         ]
     }

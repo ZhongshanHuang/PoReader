@@ -1,6 +1,6 @@
 import Foundation
 
-struct PageItem {
+struct PageItem: Sendable {
     /// 章节索引
     let chapterIndex: Int
     /// 章节内部分页索引

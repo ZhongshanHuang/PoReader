@@ -8,6 +8,7 @@
 
 import UIKit
 
+@MainActor
 public class PoNavigationBarConfiguration {
     
     /* 自定义便利属性 */

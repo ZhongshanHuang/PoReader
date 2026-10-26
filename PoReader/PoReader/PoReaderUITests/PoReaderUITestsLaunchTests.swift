@@ -7,6 +7,7 @@
 
 import XCTest
 
+@MainActor
 final class PoReaderUITestsLaunchTests: XCTestCase {
 
     override class var runsForEachTargetApplicationUIConfiguration: Bool {

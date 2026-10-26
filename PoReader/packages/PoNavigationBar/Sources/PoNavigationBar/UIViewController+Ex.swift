@@ -11,6 +11,7 @@ import UIKit
 // MARK: - UIViewController + Extension
 extension UIViewController {
     
+    @MainActor
     private struct AssociatedObjectKeys {
         static var navigationBarConfigKey: UInt8 = 0
         static var interactivePopDisabledKey: UInt8 = 0

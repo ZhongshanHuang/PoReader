@@ -9,6 +9,7 @@ import XCTest
 import UIKit
 @testable import PoReader
 
+@MainActor
 final class PoReaderTests: XCTestCase {
 
     override func setUpWithError() throws {

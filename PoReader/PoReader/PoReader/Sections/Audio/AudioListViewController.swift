@@ -69,16 +69,6 @@ class AudioListViewController: BaseViewController {
             guard let self, let model else { return }
             currentIndexPath = nil
             viewModel.updateProgress(TimeInterval(progress), forAudio: model.name)
-            var snapshot = dataSource.snapshot()
-            if let idx = snapshot.itemIdentifiers.firstIndex(where: { $0.id == model.id }) {
-                snapshot.itemIdentifiers[idx].progress = TimeInterval(progress)
-                if #available(iOS 15.0, *) {
-                    snapshot.reconfigureItems([snapshot.itemIdentifiers[idx]])
-                } else {
-                    snapshot.reloadItems([snapshot.itemIdentifiers[idx]])
-                }
-                dataSource.apply(snapshot, animatingDifferences: true)
-            }
             showPlayer(false)
         }
     }

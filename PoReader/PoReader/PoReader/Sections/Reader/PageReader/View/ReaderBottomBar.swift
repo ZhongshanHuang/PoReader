@@ -1,5 +1,6 @@
 import UIKit
 
+@MainActor
 protocol ReaderBottomBarDelegate: AnyObject {
     /// click button
     func readerBottomBar(_ bottomBar: ReaderBottomBar, didClickButton type: ReaderBottomBar.TouchEventType)

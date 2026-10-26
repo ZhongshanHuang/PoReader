@@ -1,5 +1,6 @@
 import UIKit
 
+@MainActor
 public class NavigationTransitionDelegate: NSObject {
     private var animationConfigs = [UINavigationController.Operation: any TransitionAnimationConfigurable]()
     private let interactiveController = TransitionInteractiveController()

@@ -7,6 +7,7 @@
 
 import XCTest
 
+@MainActor
 final class PoReaderUITests: XCTestCase {
 
     override func setUpWithError() throws {

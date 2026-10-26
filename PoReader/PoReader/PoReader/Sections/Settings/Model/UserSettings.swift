@@ -1,6 +1,7 @@
 import UIKit
 
-struct UserSettings {
+@MainActor
+enum UserSettings {
     /// 观看模式
     enum AppearanceMode: Codable, CaseIterable, CustomStringConvertible {
         /// 白天

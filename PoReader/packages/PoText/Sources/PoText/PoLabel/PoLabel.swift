@@ -16,7 +16,7 @@ public final class PoLabel: UIView {
         set {
             let newText = newValue ?? ""
             if _innerText.isEmpty && newText.isEmpty { return }
-            if !_innerText.isEmpty && _innerText.string == newText { return }
+            if !_innerText.isEmpty && _innerText.string == newText && !_innerText.po.hasDiscontinuousAttributes { return }
 
             let isNeededAddAttributes = _innerText.isEmpty && !newText.isEmpty
             _innerText.replaceCharacters(in: _innerText.allRange, with: newText)
@@ -29,24 +29,28 @@ public final class PoLabel: UIView {
                     make.alignment = _textAlignment
                 }
             }
-            if !isIgnoredCommonProperties {
-                _invalidateTextDisplay(invalidateIntrinsicContentSize: true)
-            }
+            _invalidateTextContent(invalidateIntrinsicContentSize: true)
         }
     }
 
     /// The styled text displayed by the label.
     /// Set a new value to this property also replaces the value of the 'text', 'font', 'textColor', 'textAlignment' and so on.
     public var attributedText: NSAttributedString? {
-        get { return _innerText.isEmpty ? nil : _innerText }
+        get {
+            guard !_innerText.isEmpty else { return nil }
+            if let _attributedTextSnapshot { return _attributedTextSnapshot }
+            let snapshot = _innerText.copy() as? NSAttributedString ?? NSAttributedString(attributedString: _innerText)
+            _attributedTextSnapshot = snapshot
+            return snapshot
+        }
         set {
             guard let newValue, newValue.length > 0 else {
                 if _innerText.isEmpty { return }
                 _innerText = NSMutableAttributedString()
                 if !isIgnoredCommonProperties {
                     _updateOuterTextProperties()
-                    _invalidateTextDisplay(invalidateIntrinsicContentSize: true)
                 }
+                _invalidateTextContent(invalidateIntrinsicContentSize: true)
                 return
             }
 
@@ -58,8 +62,8 @@ public final class PoLabel: UIView {
 
             if !isIgnoredCommonProperties {
                 _updateOuterTextProperties()
-                _invalidateTextDisplay(invalidateIntrinsicContentSize: true)
             }
+            _invalidateTextContent(invalidateIntrinsicContentSize: true)
         }
     }
 
@@ -71,28 +75,19 @@ public final class PoLabel: UIView {
             if _font == newValue { return }
             _font = newValue
             _innerText.po.font = newValue
-            if !_innerText.isEmpty && !isIgnoredCommonProperties {
-                _invalidateTextDisplay(invalidateIntrinsicContentSize: true)
-            }
+            _invalidateTextContentIfNeeded(invalidateIntrinsicContentSize: true)
         }
     }
 
     /// The color of the text.
-    var _textColor: UIColor = {
-        if #available(iOS 13.0, *) {
-            return .label
-        }
-        return .black
-    }()
+    var _textColor: UIColor = .label
     public var textColor: UIColor {
         get { return _textColor }
         set {
             if _textColor == newValue { return }
             _textColor = newValue
             _innerText.po.foregroundColor = newValue
-            if !_innerText.isEmpty && !isIgnoredCommonProperties {
-                _invalidateTextDisplay(endTouch: false)
-            }
+            _invalidateTextContentIfNeeded(endTouch: false, preservingMeasurement: true)
         }
     }
 
@@ -104,9 +99,7 @@ public final class PoLabel: UIView {
             if _shadowColor == newValue { return }
             _shadowColor = newValue
             _innerText.po.shadow = _shadowFromProperties()
-            if !_innerText.isEmpty && !isIgnoredCommonProperties {
-                _invalidateTextDisplay(endTouch: false)
-            }
+            _invalidateTextContentIfNeeded(endTouch: false)
         }
     }
 
@@ -118,9 +111,7 @@ public final class PoLabel: UIView {
             if _shadowOffset == newValue { return }
             _shadowOffset = newValue
             _innerText.po.shadow = _shadowFromProperties()
-            if !_innerText.isEmpty && !isIgnoredCommonProperties {
-                _invalidateTextDisplay(endTouch: false)
-            }
+            _invalidateTextContentIfNeeded(endTouch: false)
         }
     }
 
@@ -132,9 +123,7 @@ public final class PoLabel: UIView {
             if _shadowBlurRadius == newValue { return }
             _shadowBlurRadius = newValue
             _innerText.po.shadow = _shadowFromProperties()
-            if !_innerText.isEmpty && !isIgnoredCommonProperties {
-                _invalidateTextDisplay(endTouch: false)
-            }
+            _invalidateTextContentIfNeeded(endTouch: false)
         }
     }
 
@@ -146,9 +135,7 @@ public final class PoLabel: UIView {
             if _textAlignment == newValue { return }
             _textAlignment = newValue
             _innerText.po.alignment = newValue
-            if !_innerText.isEmpty && !isIgnoredCommonProperties {
-                _invalidateTextDisplay(invalidateIntrinsicContentSize: true)
-            }
+            _invalidateTextContentIfNeeded(invalidateIntrinsicContentSize: true)
         }
     }
 
@@ -159,8 +146,10 @@ public final class PoLabel: UIView {
         set {
             if _textVerticalAlignment == newValue { return }
             _textVerticalAlignment = newValue
-            if !_innerText.isEmpty && !isIgnoredCommonProperties {
-                _invalidateTextDisplay(invalidateIntrinsicContentSize: true)
+            // Alignment changes only the drawing origin. The glyph layout itself
+            // remains valid, so avoid rebuilding TextLayout.
+            if _innerLayout != nil || (!_innerText.isEmpty && !isIgnoredCommonProperties) {
+                _setLayoutNeedRedraw()
             }
         }
     }
@@ -174,9 +163,7 @@ public final class PoLabel: UIView {
             _lineBreakMode = newValue
 
             _innerContainer.lineBreakMode = newValue
-            if !_innerText.isEmpty && !isIgnoredCommonProperties {
-                _invalidateTextDisplay(invalidateIntrinsicContentSize: true)
-            }
+            _invalidateTextIfNeeded(invalidateIntrinsicContentSize: true)
         }
     }
 
@@ -188,9 +175,7 @@ public final class PoLabel: UIView {
             if _tailTruncationToken === newValue { return }
             _tailTruncationToken = newValue
             _innerContainer.tailTruncationToken = newValue
-            if !_innerText.isEmpty && !isIgnoredCommonProperties {
-                _invalidateTextDisplay(invalidateIntrinsicContentSize: true)
-            }
+            _invalidateTextIfNeeded(invalidateIntrinsicContentSize: true)
         }
     }
 
@@ -204,9 +189,7 @@ public final class PoLabel: UIView {
             if _numberOfLines == value { return }
             _numberOfLines = value
             _innerContainer.maximumNumberOfLines = value
-            if !_innerText.isEmpty && !isIgnoredCommonProperties {
-                _invalidateTextDisplay(invalidateIntrinsicContentSize: true)
-            }
+            _invalidateTextIfNeeded(invalidateIntrinsicContentSize: true)
         }
     }
 
@@ -217,7 +200,13 @@ public final class PoLabel: UIView {
             return _innerLayout
         }
         set {
+            if let newValue, _innerLayout === newValue { return }
+            if newValue == nil, _innerLayout == nil, _innerText.isEmpty { return }
+            _layoutRevision &+= 1
+            _geometryRevision &+= 1
             _innerLayout = newValue
+            _clearMeasurementLayout()
+            _attributedTextSnapshot = nil
             _innerText = (newValue?.attributedString.mutableCopy() as? NSMutableAttributedString) ?? NSMutableAttributedString()
             _innerContainer = newValue?.container ?? TextContainer(size: bounds.size)
             if !isIgnoredCommonProperties {
@@ -228,7 +217,7 @@ public final class PoLabel: UIView {
             _clearContentsIfNeeded()
             _setLayoutNeedRedraw()
             _endTouch()
-            invalidateIntrinsicContentSize()
+            _requestIntrinsicContentSizeInvalidation()
         }
     }
 
@@ -242,9 +231,7 @@ public final class PoLabel: UIView {
             if _exclusionPaths == newValue { return }
             _exclusionPaths = newValue
             _innerContainer.exclusionPaths = newValue
-            if !_innerText.isEmpty && !isIgnoredCommonProperties {
-                _invalidateTextDisplay(invalidateIntrinsicContentSize: true)
-            }
+            _invalidateTextIfNeeded(invalidateIntrinsicContentSize: true)
         }
     }
 
@@ -253,47 +240,96 @@ public final class PoLabel: UIView {
     public var textContainerInsets: UIEdgeInsets {
         get { return _textContainerInsets }
         set {
-            if _textContainerInsets == newValue { return }
-            _textContainerInsets = newValue
-            _innerContainer.insets = newValue
-            if !_innerText.isEmpty && !isIgnoredCommonProperties {
-                _invalidateTextDisplay(invalidateIntrinsicContentSize: true)
-            }
+            var container = _innerContainer
+            container.insets = newValue
+            let value = container.insets
+            if _textContainerInsets == value { return }
+            _textContainerInsets = value
+            _innerContainer = container
+            _invalidateTextIfNeeded(invalidateIntrinsicContentSize: true)
         }
     }
 
-    /// The preferred maximum width for a multiple line label.(it is valid in autolayout)
-    public var preferredMaxLayoutWidth: CGFloat = 0 {
-        didSet { invalidateIntrinsicContentSize() }
+    /// A concise alias for ``textContainerInsets``.
+    public var textInsets: UIEdgeInsets {
+        get { textContainerInsets }
+        set { textContainerInsets = newValue }
+    }
+
+    /// The preferred maximum width for a multiple line label (used by Auto Layout).
+    private var _preferredMaxLayoutWidth: CGFloat = 0
+    public var preferredMaxLayoutWidth: CGFloat {
+        get { _preferredMaxLayoutWidth }
+        set {
+            let value = newValue.isFinite && newValue > 0 ? newValue : 0
+            guard _preferredMaxLayoutWidth != value else { return }
+            _preferredMaxLayoutWidth = value
+            _layoutRevision &+= 1
+            _clearMeasurementLayout()
+            _requestIntrinsicContentSizeInvalidation()
+        }
     }
 
 
     /******************************************* text display *******************************************/
 
-    /// A Boolean value indicating whether the layout and rendering codes are running asynchronously on back background threads.
+    /// A Boolean value indicating whether layout and rendering run on background threads.
     public var isDisplayedAsynchronously: Bool = true {
-        didSet { (layer as! PoAsyncLayer).isDisplayedAsynchronously = isDisplayedAsynchronously }
+        didSet {
+            guard oldValue != isDisplayedAsynchronously else { return }
+            (layer as? PoAsyncLayer)?.isDisplayedAsynchronously = isDisplayedAsynchronously
+            _setLayoutNeedRedraw()
+        }
     }
 
-    /// If the value is true, and the layer is rendered asynchronously, then it will set label.layer.contents to nil before display.
+    /// UIKit-style spelling for asynchronous rendering.
+    public var displaysAsynchronously: Bool {
+        get { isDisplayedAsynchronously }
+        set { isDisplayedAsynchronously = newValue }
+    }
+
+    /// Clears the previous bitmap and hosted attachments before asynchronous display.
     public var isClearedContentsBeforeAsynchronouslyDisplay: Bool = true
 
-    /// If the value is ture, and the layer is rendered asynchronously, then it will add a fade animation on layer when the contents of layer changed.
+    /// If true and the layer is rendered asynchronously, adds a fade animation when contents change.
     public var isFadedOnAsynchronouslyDisplay: Bool = true
 
-    /// If the value is ture, then it will add a fade animation on layer when some range of text become highlighted.
+    /// If true, adds a fade animation when a text range becomes highlighted.
     public var isFadedHighlighted: Bool = true
 
-    /// Ignore common properties (such as text, font, textColor, attributedtext...) and only use 'textLayout' to display content.
-    public var isIgnoredCommonProperties: Bool = false
+    /// Ignore common properties (such as text, font, textColor, attributedText)
+    /// and only use `textLayout` to display content.
+    public var isIgnoredCommonProperties: Bool = false {
+        didSet {
+            guard oldValue != isIgnoredCommonProperties else { return }
+            if isIgnoredCommonProperties {
+                _endTouch()
+                _setLayoutNeedRedraw()
+            } else {
+                _updateOuterTextProperties()
+                _updateOuterContainerProperties()
+                _invalidateTextDisplay(invalidateIntrinsicContentSize: true)
+            }
+        }
+    }
 
 
 
     // MARK: - Properties - [private]
 
     lazy var _innerText: NSMutableAttributedString = NSMutableAttributedString()
+    var _attributedTextSnapshot: NSAttributedString?
     var _innerContainer: TextContainer = TextContainer()
     var _innerLayout: TextLayout?
+    /// Only exact-width measurement candidates retain a layout for sizeToFit.
+    /// Other measurement queries cache a scalar size, leaving rendering intact.
+    var _measurementLayout: TextLayout?
+    var _measurementLayoutWidth: CGFloat?
+    var _measurementLayoutFittingSize: CGSize?
+    var _measurementLayoutRevision: UInt64 = 0
+    var _measurementGeometryRevision: UInt64 = 0
+    var _layoutRevision: UInt64 = 0
+    var _geometryRevision: UInt64 = 0
 
     lazy var _attachmentViews: [UIView] = []
     lazy var _attachmentLayers: [CALayer] = []
@@ -305,6 +341,8 @@ public final class PoLabel: UIView {
     var _longPressTimer: Timer?
     var _touchBeganPoint: CGPoint = .zero
     var _state: State = State()
+    var _configurationDepth = 0
+    var _pendingInvalidation: PendingInvalidation = []
 
 
     //MARK: - Override
@@ -339,69 +377,36 @@ public final class PoLabel: UIView {
     public override var frame: CGRect {
         willSet {
             if frame.size == newValue.size { return }
-            if _state.updatedSizeThatFits {
-                _state.updatedSizeThatFits = false
-                return
-            }
-            _innerContainer.size = newValue.size
-            if !isIgnoredCommonProperties {
-                _state.isLayoutNeedUpdate = true
-            }
-            _clearContentsIfNeeded()
-            _setLayoutNeedRedraw()
+            _handleGeometryChange(to: newValue.size)
         }
     }
 
     public override var bounds: CGRect {
         willSet {
             if bounds.size == newValue.size { return }
-
-            _innerContainer.size = newValue.size
-            if !isIgnoredCommonProperties {
-                _state.isLayoutNeedUpdate = true
-            }
-            _clearContentsIfNeeded()
-            _setLayoutNeedRedraw()
+            _handleGeometryChange(to: newValue.size)
         }
     }
 
-    /// 调用sizeToFit时调用此方法
-    /// 此方法调用后系统会自动调用frame的set，记住状态这样可以减少一次layout计算
+    /// Returns the fitted size without replacing the layout used for rendering.
     public override func sizeThatFits(_ size: CGSize) -> CGSize {
         if isIgnoredCommonProperties { return _innerLayout?.suggestedFitsSize() ?? .zero }
 
-        if preferredMaxLayoutWidth > 0 {
-            _innerContainer.size.width = preferredMaxLayoutWidth
-        } else {
-            _innerContainer.size.width = size.width > 0 ? size.width : TextContainer.maxSize.width
-        }
-        _innerContainer.size.height = TextContainer.maxSize.height
-
-        _updateIfNeeded()
-        _state.updatedSizeThatFits = true
-
-        return _innerLayout?.suggestedFitsSize() ?? .zero
+        return _measurementSize(forProposedWidth: size.width)
     }
 
     /// 只有在使用autolayout时才会调用此方法，否则就算调用invalidateIntrinsicContentSize也不会触发
     public override var intrinsicContentSize: CGSize {
-        if preferredMaxLayoutWidth > 0 {
-            _innerContainer.size.width = preferredMaxLayoutWidth
-        } else {
-            _innerContainer.size.width = bounds.size.width > 0 ? bounds.size.width : TextContainer.maxSize.width
-        }
-        _innerContainer.size.height = TextContainer.maxSize.height
+        if isIgnoredCommonProperties { return _innerLayout?.suggestedFitsSize() ?? .zero }
 
-        _updateIfNeeded()
-        return _innerLayout?.suggestedFitsSize() ?? .zero
+        let proposedWidth = bounds.size.width > 0 ? bounds.size.width : TextContainer.maxSize.width
+        return _measurementSize(forProposedWidth: proposedWidth)
     }
 
     public override func traitCollectionDidChange(_ previousTraitCollection: UITraitCollection?) {
         super.traitCollectionDidChange(previousTraitCollection)
-        if #available(iOS 13, *) {
-            if traitCollection.hasDifferentColorAppearance(comparedTo: previousTraitCollection) {
-                _setLayoutNeedRedraw()
-            }
+        if traitCollection.hasDifferentColorAppearance(comparedTo: previousTraitCollection) {
+            _setLayoutNeedRedraw()
         }
     }
 

@@ -228,6 +228,10 @@ public enum SQLiteStepResult: Int32, Sendable {
         try _withColumnBlob(position: checkedColumnPosition(position), body)
     }
 
+    public func withColumnTextUTF8<R>(position: Int, _ body: (Span<UInt8>) throws -> R) throws -> R {
+        try _withColumnTextUTF8(position: checkedColumnPosition(position), body)
+    }
+
     func columnName(sqlitePosition: Int32) -> String {
         _columnName(position: sqlitePosition)
     }
@@ -388,6 +392,22 @@ public enum SQLiteStepResult: Int32, Sendable {
             }
         }
         let buffer = unsafe UnsafeBufferPointer(start: bytes.assumingMemoryBound(to: UInt8.self), count: byteCount)
+        return try body(unsafe Span(_unsafeElements: buffer))
+    }
+
+    private func _withColumnTextUTF8<R>(position: Int32, _ body: (Span<UInt8>) throws -> R) rethrows -> R {
+        guard let stat = unsafe stat else {
+            return try [UInt8]().withUnsafeBufferPointer {
+                try body(unsafe Span(_unsafeElements: $0))
+            }
+        }
+        let byteCount = unsafe Int(sqlite3_column_bytes(stat, position))
+        guard byteCount > 0, let text = unsafe sqlite3_column_text(stat, position) else {
+            return try [UInt8]().withUnsafeBufferPointer {
+                try body(unsafe Span(_unsafeElements: $0))
+            }
+        }
+        let buffer = unsafe UnsafeBufferPointer(start: text, count: byteCount)
         return try body(unsafe Span(_unsafeElements: buffer))
     }
 

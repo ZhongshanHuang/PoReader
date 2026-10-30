@@ -25,7 +25,7 @@ extension TextLayout {
             set { if newValue { insert(.isNeedDrawAttachment) } else { remove(.isNeedDrawAttachment) } }
         }
         
-        /// Has highlight attibute
+        /// Has highlight attribute
         public static let isContainsHighlight = State(rawValue: 1 << 0)
         /// Has block border attribute
         public static let isNeedDrawBlockBorder = State(rawValue: 1 << 1)
@@ -104,7 +104,10 @@ extension TextLayout {
     }
 }
 
+/// Public layouts finish their metadata before publication. Drawing, hit
+/// testing, and the initial attributed-string snapshot serialize TextKit access.
 public final class TextLayout: @unchecked Sendable {
+    let textKitLock = NSLock()
     private(set) var state: State = State()
 
     private var attributedStringSnapshot: NSAttributedString?
@@ -113,7 +116,9 @@ public final class TextLayout: @unchecked Sendable {
         attributedStringSnapshotLock.lock()
         defer { attributedStringSnapshotLock.unlock() }
         if let attributedStringSnapshot { return attributedStringSnapshot }
-        let snapshot = textStorage.copy() as? NSAttributedString ?? NSAttributedString(attributedString: textStorage)
+        textKitLock.lock()
+        defer { textKitLock.unlock() }
+        let snapshot = NSAttributedString(attributedString: textStorage)
         attributedStringSnapshot = snapshot
         return snapshot
     }
@@ -136,7 +141,17 @@ public final class TextLayout: @unchecked Sendable {
     var borderInfos: [TextBorder: [CGRect]] = [:]
     var blockBorderInfos: [TextBorder: [CGRect]] = [:]
     
-    public init(attributedString: NSAttributedString, container: TextContainer) {
+    private var isDrawingPrepared = false
+
+    public convenience init(attributedString: NSAttributedString, container: TextContainer) {
+        self.init(attributedString: attributedString, container: container, preparesDrawing: true)
+    }
+
+    static func measurementLayout(attributedString: NSAttributedString, container: TextContainer) -> TextLayout {
+        TextLayout(attributedString: attributedString, container: container, preparesDrawing: false)
+    }
+
+    private init(attributedString: NSAttributedString, container: TextContainer, preparesDrawing: Bool) {
         let container = container.snapshot()
         self.textStorage = NSTextStorage()
         self.container = container
@@ -168,6 +183,15 @@ public final class TextLayout: @unchecked Sendable {
         
         textBoundingSize = layoutManager.usedRect(for: textContainer).size
         
+        if preparesDrawing { prepareForDrawing() }
+    }
+
+    /// A measurement candidate is private to the label until promotion. Finish
+    /// its drawing metadata before publishing it as a reusable render layout.
+    func prepareForDrawing() {
+        guard !isDrawingPrepared else { return }
+        isDrawingPrepared = true
+        guard visibleCharacterRange.location != NSNotFound, visibleCharacterRange.length > 0 else { return }
         let attributeRuns = collectAttributeRuns(in: visibleCharacterRange)
         
         // line
@@ -184,6 +208,8 @@ public final class TextLayout: @unchecked Sendable {
     
     /// 点击位置的字符index
     public func textPositionForPoint(_ point: CGPoint) -> Int? {
+        textKitLock.lock()
+        defer { textKitLock.unlock() }
         var fractionOfDistance: CGFloat = 0
         let index = layoutManager.characterIndex(for: point, in: textContainer, fractionOfDistanceBetweenInsertionPoints: &fractionOfDistance)
         if fractionOfDistance > 0 && fractionOfDistance < 1 {
@@ -229,24 +255,23 @@ public final class TextLayout: @unchecked Sendable {
 
         for attributeRun in attributeRuns {
             guard let attachment = attributeRun.attachment else { continue }
-            let range = attributeRun.range
-            let glyphRange = layoutManager.glyphRange(forCharacterRange: range, actualCharacterRange: nil)
-            var rect = layoutManager.boundingRect(forGlyphRange: glyphRange, in: textContainer)
-            let location = layoutManager.location(forGlyphAt: glyphRange.location)
-            if !isInLastLine(for: range.location),
-                let paragraphStyle = textStorage.attribute(.paragraphStyle, at: range.location, effectiveRange: nil) as? NSParagraphStyle,
-               paragraphStyle.lineSpacing > .leastNonzeroMagnitude {
-                rect.size.height -= paragraphStyle.lineSpacing
-            }
-            rect.origin.y += location.y
-            rect.origin.y -= attachment.bounds.height
-            rect.size.height = attachment.bounds.height
-            let info = AttachmentDrawingInfo(attachment: attachment, proposedRect: rect)
-            switch attachment.content {
-            case .image:
-                imageAttachmentInfos.append(info)
-            case .view, .layer:
-                hostedAttachmentInfos.append(info)
+            // Foundation can coalesce adjacent occurrences of the same
+            // attachment into one attribute run. Each still needs its own rect.
+            for characterIndex in attributeRun.range.location..<attributeRun.range.upperBound {
+                let range = NSRange(location: characterIndex, length: 1)
+                let glyphRange = layoutManager.glyphRange(forCharacterRange: range, actualCharacterRange: nil)
+                guard glyphRange.location != NSNotFound, glyphRange.length > 0 else { continue }
+                var rect = layoutManager.boundingRect(forGlyphRange: glyphRange, in: textContainer)
+                let location = layoutManager.location(forGlyphAt: glyphRange.location)
+                rect.origin.y += location.y - attachment.bounds.height
+                rect.size.height = attachment.bounds.height
+                let info = AttachmentDrawingInfo(attachment: attachment, proposedRect: rect)
+                switch attachment.content {
+                case .image:
+                    imageAttachmentInfos.append(info)
+                case .view, .layer:
+                    hostedAttachmentInfos.append(info)
+                }
             }
         }
     }

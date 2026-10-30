@@ -232,33 +232,4 @@ extension PoLabel {
         return point
     }
 
-    func _convertPointFromLayout(_ point: CGPoint) -> CGPoint {
-        guard let boundingSize = _innerLayout?.textBoundingSize else { return .zero }
-        var point = point
-        point.x += _textContainerInsets.left
-        if boundingSize.height < bounds.height {
-            switch textVerticalAlignment {
-            case .center:
-                point.y += (bounds.height - boundingSize.height) * 0.5 - (_textContainerInsets.top - _textContainerInsets.bottom) / 2
-            case .bottom:
-                point.y += (bounds.height - boundingSize.height) + _textContainerInsets.bottom
-            case .top:
-                point.y += _textContainerInsets.top
-            }
-        }
-        return point
-    }
-
-    func _convertRectToLayout(_ rect: CGRect) -> CGRect {
-        var rect = rect
-        rect.origin = _convertPointToLayout(rect.origin)
-        return rect
-    }
-
-    func _convertRectFromLayout(_ rect: CGRect) -> CGRect {
-        var rect = rect
-        rect.origin = _convertPointFromLayout(rect.origin)
-        return rect
-    }
-
 }

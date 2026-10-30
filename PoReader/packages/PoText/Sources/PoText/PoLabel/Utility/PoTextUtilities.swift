@@ -104,7 +104,7 @@ struct PoTextUtilities {
 
 extension CGFloat {
     
-    var toPiexl: CGFloat {
+    var toPixel: CGFloat {
         return self * poScale
     }
     
@@ -271,7 +271,7 @@ extension CGRect {
         case .scaleToFill, .redraw:
             break
         @unknown default:
-            fatalError("UIView.ContentMode: \(mode) has not implement!")
+            break
         }
         return stdRect
     }

@@ -2,141 +2,98 @@ import UIKit
 
 @MainActor
 protocol PoAsyncLayerDelegate: CALayerDelegate {
-    func asyncLayerPrepareForRenderContext() -> PoAsyncLayerRenderContext
-    func asyncLayerWillDisplay(_ layer: CALayer, renderContext: PoAsyncLayerRenderContext)
-    func asyncLayerDidDisplay(_ layer: CALayer, renderContext: PoAsyncLayerRenderContext, finished: Bool)
+    func asyncLayerPrepare(_ layer: CALayer) -> PoTextRenderRequest
+    func asyncLayerWillDisplay(_ layer: CALayer, request: PoTextRenderRequest)
+    func asyncLayerDidDisplay(_ layer: CALayer, request: PoTextRenderRequest, result: PoTextRenderResult)
 }
 
+/// CALayer's nonisolated entry points bridge into MainActor. All mutable layer
+/// state stays there; only immutable requests/results pass to the render worker.
+@MainActor
 final class PoAsyncLayer: CALayer, @unchecked Sendable {
+    var isDisplayedAsynchronously = true
+    private lazy var renderer = PoTextRenderer()
+    private var asyncTask: Task<Void, Never>?
+    private var generation: UInt64 = 0
 
-    // MARK: - Properties - [public]
-    var isDisplayedAsynchronously: Bool = true
-
-    // MARK: - Methods - [override]
-
-    override class func defaultAction(forKey event: String) -> (any CAAction)? {
-        nil
+    private struct MainActorReference: Sendable {
+        let layer: PoAsyncLayer
     }
 
-    override class func defaultValue(forKey key: String) -> Any? {
-        if key == "isDisplayedAsynchronously" {
-            true
-        } else {
-            super.defaultValue(forKey: key)
-        }
-    }
+    nonisolated override class func defaultAction(forKey event: String) -> (any CAAction)? { nil }
 
-    override func setNeedsDisplay() {
-        _cancelAsyncDisplay()
+    nonisolated override func setNeedsDisplay() {
+        let reference = MainActorReference(layer: self)
+        MainActor.assumeIsolated { reference.layer.cancelDisplay() }
         super.setNeedsDisplay()
     }
 
-    override func setNeedsDisplay(_ r: CGRect) {
-        _cancelAsyncDisplay()
+    nonisolated override func setNeedsDisplay(_ r: CGRect) {
+        let reference = MainActorReference(layer: self)
+        MainActor.assumeIsolated { reference.layer.cancelDisplay() }
         super.setNeedsDisplay(r)
     }
 
-    override func setNeedsLayout() {
-        _cancelAsyncDisplay()
+    nonisolated override func setNeedsLayout() {
+        let reference = MainActorReference(layer: self)
+        MainActor.assumeIsolated { reference.layer.cancelDisplay() }
         super.setNeedsLayout()
     }
 
-    override func display() {
-        super.contents = super.contents
-
-        struct SafeCarrier: Sendable {
-            let layer: PoAsyncLayer
-        }
-        let carrier = SafeCarrier(layer: self)
-        let isDisplayedAsynchronously = isDisplayedAsynchronously
-        MainActor.assumeIsolated {
-            carrier.layer.displayAsync(isDisplayedAsynchronously)
-        }
+    nonisolated override func display() {
+        let reference = MainActorReference(layer: self)
+        MainActor.assumeIsolated { reference.layer.displayOnMainActor() }
     }
 
-    private var asyncTask: Task<Void, Never>?
-    private var displayGeneration: UInt64 = 0
+    private func displayOnMainActor() {
+        cancelDisplay()
+        guard let delegate = delegate as? any PoAsyncLayerDelegate else { return }
+        let delegateID = ObjectIdentifier(delegate)
+        let request = delegate.asyncLayerPrepare(self)
+        delegate.asyncLayerWillDisplay(self, request: request)
+        let currentGeneration = generation
 
-    @MainActor
-    private func displayAsync(_ isAsync: Bool) {
-        asyncTask?.cancel()
-        guard let asyncDelegate = delegate as? (any PoAsyncLayerDelegate) else { return }
-        displayGeneration &+= 1
-        let displayGeneration = displayGeneration
-        let renderContext = asyncDelegate.asyncLayerPrepareForRenderContext()
-
-        asyncDelegate.asyncLayerWillDisplay(self, renderContext: renderContext)
-        let size = bounds.size
-        if size.width < 1 || size.height < 1 {
-            clearContentsIfNeeded()
-            asyncDelegate.asyncLayerDidDisplay(self, renderContext: renderContext, finished: true)
-            return
-        }
-        if !renderContext.hasRenderableContent {
-            clearContentsIfNeeded()
-            asyncDelegate.asyncLayerDidDisplay(self, renderContext: renderContext, finished: true)
-            return
-        }
-
-        if isAsync {
-            asyncTask = Task(priority: .userInitiated) { [weak self, renderContext, size, displayGeneration] in
+        // Empty/zero-size display clears synchronously, without a worker hop.
+        if request.size.width < 1 || request.size.height < 1 || request.isEmpty {
+            commit(PoTextRenderResult(image: nil, layout: nil, drawingPoint: .zero), request: request)
+        } else if isDisplayedAsynchronously {
+            let worker = renderer
+            asyncTask = Task(priority: .userInitiated) { [weak self, worker, request] in
                 do {
-                    let image = try await Self.drawDisplay(renderContext: renderContext, inSize: size)
                     try Task.checkCancellation()
-                    guard let self, self.displayGeneration == displayGeneration else { return }
-                    self.contents = image.cgImage
+                    let result = try await worker.render(request)
+                    try Task.checkCancellation()
+                    guard let self, self.generation == currentGeneration,
+                          self.delegate.map(ObjectIdentifier.init) == delegateID else { return }
                     self.asyncTask = nil
-                    guard let asyncDelegate = self.delegate as? (any PoAsyncLayerDelegate) else { return }
-                    asyncDelegate.asyncLayerDidDisplay(self, renderContext: renderContext, finished: true)
+                    self.commit(result, request: request)
+                } catch is CancellationError {
+                    // A cancelled request owns no UI objects and has nothing to
+                    // undo. Its result must never touch a newer display.
                 } catch {
-                    guard let self, self.displayGeneration == displayGeneration else { return }
-                    self.asyncTask = nil
-                    guard let asyncDelegate = self.delegate as? (any PoAsyncLayerDelegate) else { return }
-                    asyncDelegate.asyncLayerDidDisplay(self, renderContext: renderContext, finished: false)
+                    assertionFailure("Unexpected text rendering failure: \(error)")
                 }
             }
-        } else {
-            if let image = try? Self.makeImage(renderContext: renderContext, inSize: size) {
-                contents = image.cgImage
-                asyncDelegate.asyncLayerDidDisplay(self, renderContext: renderContext, finished: true)
-            } else {
-                asyncDelegate.asyncLayerDidDisplay(self, renderContext: renderContext, finished: false)
-            }
+        } else if let result = try? PoTextRenderer.renderImmediately(request) {
+            commit(result, request: request)
         }
-
     }
 
-#if swift(>=6.1)
-    @concurrent
-#endif
-    nonisolated
-    private static func drawDisplay(renderContext: PoAsyncLayerRenderContext, inSize size: CGSize) async throws -> UIImage {
-        try makeImage(renderContext: renderContext, inSize: size)
+    private func commit(_ result: PoTextRenderResult, request: PoTextRenderRequest) {
+        contents = result.image?.cgImage
+        (delegate as? any PoAsyncLayerDelegate)?.asyncLayerDidDisplay(self, request: request, result: result)
     }
 
-    nonisolated
-    private static func makeImage(renderContext: PoAsyncLayerRenderContext, inSize size: CGSize) throws -> UIImage {
-        try Task.checkCancellation()
-
-        let format = UIGraphicsImageRendererFormat.preferred()
-        let renderer = UIGraphicsImageRenderer(size: size, format: format)
-        let image = renderer.image { (ctx) in
-            let context = ctx.cgContext
-            renderContext.draw(in: context, size: size)
-        }
-        return image
-    }
-
-    private func _cancelAsyncDisplay() {
-        guard asyncTask != nil else { return }
+    private func cancelDisplay() {
+        generation &+= 1
         asyncTask?.cancel()
         asyncTask = nil
-        displayGeneration &+= 1
     }
+}
 
-    private func clearContentsIfNeeded() {
-        if contents != nil {
-            contents = nil
-        }
+private extension PoTextRenderRequest {
+    var isEmpty: Bool {
+        if case .empty = source { return true }
+        return false
     }
 }

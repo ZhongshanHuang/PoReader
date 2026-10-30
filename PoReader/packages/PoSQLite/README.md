@@ -414,6 +414,7 @@ let fileSizes = try database.fetchBorrowed("SELECT id, payload FROM files") { ro
 `SQLiteBorrowedRow` provides `count`, `columnName(at:)`, `columnIndex(named:)`, `value`, `string`, `int64`, `int`, `double`, `bool`, `data`, `get`, and `require`, each with positional or named access where applicable. It also provides:
 
 - `withBlob(at:_:)` and `withBlob(named:_:)`, which pass a temporary `Span<UInt8>` and return `nil` for SQL `NULL`.
+- `withTextUTF8(at:_:)` and `withTextUTF8(named:_:)`, which pass SQLite's borrowed UTF-8 bytes without allocating a `String` and return `nil` for SQL `NULL`.
 - `SQLiteBorrowedValueDecodable`, which lets custom types decode directly from a borrowed row when copying is avoidable.
 
 Use `SQLiteRow` rather than a borrowed row whenever the result needs to outlive the callback or cross a concurrency boundary.
@@ -454,7 +455,7 @@ The statement API is:
 | Value binding | `bind(position:_:)` and `bind(name:_:)` accept any `SQLiteValueConvertible`. `bind(_ values: [SQLiteValue])` requires the exact positional count. `bind(_ values: [String: SQLiteValue])` requires all parameters to be named and the dictionary to match the unique names exactly. |
 | Blob and null binding | `bindBlob`, `bindZeroBlob`, and `bindNull`, each available by `position:` or `name:`. `bindBlob` takes a `Span<UInt8>`. |
 | Parameter inspection | `bindParameterCount()`, `bindParameterName(position:)`, and `bindParameterIndex(name:)`. |
-| Column inspection | `columnCount()`, `columnName(position:)`, `columnDeclaredType(position:)`, `columnType(position:)`, `columnValue(position:)`, and `withColumnBlob(position:_:)`. Read columns only after `step()` returns `.row`. |
+| Column inspection | `columnCount()`, `columnName(position:)`, `columnDeclaredType(position:)`, `columnType(position:)`, `columnValue(position:)`, `withColumnBlob(position:_:)`, and `withColumnTextUTF8(position:_:)`. Read columns only after `step()` returns `.row`. |
 
 `SQLiteType` has `.integer`, `.float`, `.text`, `.blob`, and `.null`. `SQLiteStepResult` has `.row` and `.done`.
 

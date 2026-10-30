@@ -1,11 +1,3 @@
-//
-//  UIViewController+Extension.swift
-//  NavigationBar
-//
-//  Created by 黄中山 on 2020/4/1.
-//  Copyright © 2020 potato. All rights reserved.
-//
-
 import UIKit
 
 // MARK: - UIViewController + Extension

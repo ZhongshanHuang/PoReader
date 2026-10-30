@@ -252,6 +252,23 @@ public protocol SQLiteBorrowedValueDecodable: SQLiteValueDecodable {
         let position = try columnIndexOrThrow(named: name)
         return try withBlob(at: position, body)
     }
+
+    public func withTextUTF8<R>(at position: Int, _ body: (Span<UInt8>) throws -> R) throws -> R? {
+        let position = try checkedColumnPosition(position)
+        switch columnType(at: position) {
+        case .null:
+            return nil
+        case .text:
+            return try withTextUTF8Bytes(at: position, body)
+        default:
+            throw mismatch(column: "\(position)", expected: "TEXT", actual: try value(at: Int(position)))
+        }
+    }
+
+    public func withTextUTF8<R>(named name: String, _ body: (Span<UInt8>) throws -> R) throws -> R? {
+        let position = try columnIndexOrThrow(named: name)
+        return try withTextUTF8(at: position, body)
+    }
 }
 
 private extension SQLiteBorrowedRow {
@@ -297,6 +314,18 @@ private extension SQLiteBorrowedRow {
         }
 
         let buffer = unsafe UnsafeBufferPointer(start: bytes.assumingMemoryBound(to: UInt8.self), count: byteCount)
+        return try body(unsafe Span(_unsafeElements: buffer))
+    }
+
+    func withTextUTF8Bytes<R>(at position: Int32, _ body: (Span<UInt8>) throws -> R) throws -> R {
+        let byteCount = unsafe Int(sqlite3_column_bytes(statement, position))
+        guard byteCount > 0, let text = unsafe sqlite3_column_text(statement, position) else {
+            return try [UInt8]().withUnsafeBufferPointer {
+                try body(unsafe Span(_unsafeElements: $0))
+            }
+        }
+
+        let buffer = unsafe UnsafeBufferPointer(start: text, count: byteCount)
         return try body(unsafe Span(_unsafeElements: buffer))
     }
 

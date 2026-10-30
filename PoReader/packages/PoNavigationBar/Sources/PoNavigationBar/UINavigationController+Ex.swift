@@ -1,10 +1,3 @@
-//
-//  File.swift
-//  
-//
-//  Created by HzS on 2024/3/8.
-//
-
 import UIKit
 
 extension UINavigationController {
@@ -49,7 +42,7 @@ extension UINavigationController {
         defer { navigationBar_pushViewController(viewController, animated: animated) }
         guard self is PoNavigationBarConfigurable else { return }
         
-        let contain =  interactivePopGestureRecognizer?.view?.gestureRecognizers?.contains(where: { $0 == fullScreenPopGestureRecognizer }) == true
+        let contain = interactivePopGestureRecognizer?.view?.gestureRecognizers?.contains(where: { $0 == fullScreenPopGestureRecognizer }) == true
         if !contain {
             interactivePopGestureRecognizer?.view?.addGestureRecognizer(fullScreenPopGestureRecognizer)
             fullScreenPopGestureRecognizer.delegate = fullScreenPopGestureRecognizerDelegate
@@ -82,9 +75,8 @@ extension UINavigationController {
     
 }
 
-@MainActor
 private final class FullScreenPopGestureRecognizerDelegate: NSObject, UIGestureRecognizerDelegate {
-    unowned let navigationController: UINavigationController
+    unowned(unsafe) let navigationController: UINavigationController
     
     init(navigationController: UINavigationController) {
         self.navigationController = navigationController

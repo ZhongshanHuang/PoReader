@@ -11,13 +11,24 @@ extension NameSpaceWrapper where Base: NSAttributedString {
     }
     
     public func attributes(at index: Int) -> Dictionary<NSAttributedString.Key, Any>? {
-        if base.length == 0 || index >= base.length { return nil }
+        if base.length == 0 || index < 0 || index >= base.length { return nil }
         return base.attributes(at: index, effectiveRange: nil)
     }
     
     public func attribute(_ attrName: NSAttributedString.Key, at index: Int) -> Any? {
-        if base.length == 0 || index >= base.length { return nil }
+        if base.length == 0 || index < 0 || index >= base.length { return nil }
         return base.attribute(attrName, at: index, effectiveRange: nil)
+    }
+
+    var hasDiscontinuousAttributes: Bool {
+        var found = false
+        base.enumerateAttributes(in: base.allRange, options: .longestEffectiveRangeNotRequired) { attributes, _, stop in
+            if NSAttributedString.Key.allDiscontinuousAttributeKeys.contains(where: { attributes[$0] != nil }) {
+                found = true
+                stop.pointee = true
+            }
+        }
+        return found
     }
     
     /* ======================================================================= */
@@ -739,7 +750,7 @@ extension NameSpaceWrapper where Base: NSMutableAttributedString {
 
     /// 段落样式
     public func setParagraphStyle(_ style: NSParagraphStyle?, range: NSRange) {
-        addAttribute(.paragraphStyle, value: style, range: range)
+        addAttribute(.paragraphStyle, value: style?.copy() as? NSParagraphStyle, range: range)
     }
 
     // MARK: - alignment
@@ -750,21 +761,8 @@ extension NameSpaceWrapper where Base: NSMutableAttributedString {
 
     /// 文字对齐方向
     public func setAlignment(_ alignment: NSTextAlignment, range: NSRange) {
-        base.enumerateAttribute(.paragraphStyle, in: range, options: []) { (value, subRange, _) in
-            var paragraphStyle: NSMutableParagraphStyle?
-            if let style = value as? NSParagraphStyle {
-                if style.alignment == alignment { return }
-                if style is NSMutableParagraphStyle {
-                    paragraphStyle = style as? NSMutableParagraphStyle
-                } else {
-                    paragraphStyle = style.mutableCopy() as? NSMutableParagraphStyle
-                }
-            } else {
-                if NSParagraphStyle.default.alignment == alignment { return }
-                paragraphStyle = NSParagraphStyle.default.mutableCopy() as? NSMutableParagraphStyle
-            }
-            paragraphStyle?.alignment = alignment
-            setParagraphStyle(paragraphStyle, range: subRange)
+        updateParagraphStyles(in: range, needsUpdate: { $0.alignment != alignment }) {
+            $0.alignment = alignment
         }
     }
 
@@ -776,21 +774,8 @@ extension NameSpaceWrapper where Base: NSMutableAttributedString {
     
     /// 文字书写方向(与alignment效果类似)
     public func setBaseWritingDirection(_ direction: NSWritingDirection, range: NSRange) {
-        base.enumerateAttribute(.paragraphStyle, in: range, options: []) { (value, subRange, _) in
-            var paragraphStyle: NSMutableParagraphStyle?
-            if let style = value as? NSParagraphStyle {
-                if style.baseWritingDirection == direction { return }
-                if style is NSMutableParagraphStyle {
-                    paragraphStyle = style as? NSMutableParagraphStyle
-                } else {
-                    paragraphStyle = style.mutableCopy() as? NSMutableParagraphStyle
-                }
-            } else {
-                if NSParagraphStyle.default.baseWritingDirection == direction { return }
-                paragraphStyle = NSParagraphStyle.default.mutableCopy() as? NSMutableParagraphStyle
-            }
-            paragraphStyle?.baseWritingDirection = direction
-            setParagraphStyle(paragraphStyle, range: subRange)
+        updateParagraphStyles(in: range, needsUpdate: { $0.baseWritingDirection != direction }) {
+            $0.baseWritingDirection = direction
         }
     }
 
@@ -802,21 +787,8 @@ extension NameSpaceWrapper where Base: NSMutableAttributedString {
     
     /// 行间距
     public func setLineSpacing(_ spacing: CGFloat, range: NSRange) {
-        base.enumerateAttribute(.paragraphStyle, in: range, options: []) { (value, subRange, _) in
-            var paragraphStyle: NSMutableParagraphStyle?
-            if let style = value as? NSParagraphStyle {
-                if style.lineSpacing == spacing { return }
-                if style is NSMutableParagraphStyle {
-                    paragraphStyle = style as? NSMutableParagraphStyle
-                } else {
-                    paragraphStyle = style.mutableCopy() as? NSMutableParagraphStyle
-                }
-            } else {
-                if NSParagraphStyle.default.lineSpacing == spacing { return }
-                paragraphStyle = NSParagraphStyle.default.mutableCopy() as? NSMutableParagraphStyle
-            }
-            paragraphStyle?.lineSpacing = spacing
-            setParagraphStyle(paragraphStyle, range: subRange)
+        updateParagraphStyles(in: range, needsUpdate: { $0.lineSpacing != spacing }) {
+            $0.lineSpacing = spacing
         }
     }
 
@@ -828,21 +800,8 @@ extension NameSpaceWrapper where Base: NSMutableAttributedString {
     
     /// 本段的尾部与下一段头部的距离(文章以\r or \n or \r\n分割段落)(好像与paragraphSpacingBefore没什么区别)
     public func setParagraphSpacing(_ spacing: CGFloat, range: NSRange) {
-        base.enumerateAttribute(.paragraphStyle, in: range, options: []) { (value, subRange, _) in
-            var paragraphStyle: NSMutableParagraphStyle?
-            if let style = value as? NSParagraphStyle {
-                if style.paragraphSpacing == spacing { return }
-                if style is NSMutableParagraphStyle {
-                    paragraphStyle = style as? NSMutableParagraphStyle
-                } else {
-                    paragraphStyle = style.mutableCopy() as? NSMutableParagraphStyle
-                }
-            } else {
-                if NSParagraphStyle.default.paragraphSpacing == spacing { return }
-                paragraphStyle = NSParagraphStyle.default.mutableCopy() as? NSMutableParagraphStyle
-            }
-            paragraphStyle?.paragraphSpacing = spacing
-            setParagraphStyle(paragraphStyle, range: subRange)
+        updateParagraphStyles(in: range, needsUpdate: { $0.paragraphSpacing != spacing }) {
+            $0.paragraphSpacing = spacing
         }
     }
 
@@ -854,21 +813,8 @@ extension NameSpaceWrapper where Base: NSMutableAttributedString {
     
     /// 本段的头部与上一段尾部的距离(好像与paragraphSpacing没什么区别)
     public func setParagraphSpacingBefore(_ spacing: CGFloat, range: NSRange) {
-        base.enumerateAttribute(.paragraphStyle, in: range, options: []) { (value, subRange, _) in
-            var paragraphStyle: NSMutableParagraphStyle?
-            if let style = value as? NSParagraphStyle {
-                if style.paragraphSpacingBefore == spacing { return }
-                if style is NSMutableParagraphStyle {
-                    paragraphStyle = style as? NSMutableParagraphStyle
-                } else {
-                    paragraphStyle = style.mutableCopy() as? NSMutableParagraphStyle
-                }
-            } else {
-                if NSParagraphStyle.default.paragraphSpacingBefore == spacing { return }
-                paragraphStyle = NSParagraphStyle.default.mutableCopy() as? NSMutableParagraphStyle
-            }
-            paragraphStyle?.paragraphSpacingBefore = spacing
-            setParagraphStyle(paragraphStyle, range: subRange)
+        updateParagraphStyles(in: range, needsUpdate: { $0.paragraphSpacingBefore != spacing }) {
+            $0.paragraphSpacingBefore = spacing
         }
     }
 
@@ -880,21 +826,8 @@ extension NameSpaceWrapper where Base: NSMutableAttributedString {
     
     /// 每个段落第一行的缩进
     public func setFirstLineHeadIndent(_ indent: CGFloat, range: NSRange) {
-        base.enumerateAttribute(.paragraphStyle, in: range, options: []) { (value, subRange, _) in
-            var paragraphStyle: NSMutableParagraphStyle?
-            if let style = value as? NSParagraphStyle {
-                if style.firstLineHeadIndent == indent { return }
-                if style is NSMutableParagraphStyle {
-                    paragraphStyle = style as? NSMutableParagraphStyle
-                } else {
-                    paragraphStyle = style.mutableCopy() as? NSMutableParagraphStyle
-                }
-            } else {
-                if NSParagraphStyle.default.firstLineHeadIndent == indent { return }
-                paragraphStyle = NSParagraphStyle.default.mutableCopy() as? NSMutableParagraphStyle
-            }
-            paragraphStyle?.firstLineHeadIndent = indent
-            setParagraphStyle(paragraphStyle, range: subRange)
+        updateParagraphStyles(in: range, needsUpdate: { $0.firstLineHeadIndent != indent }) {
+            $0.firstLineHeadIndent = indent
         }
     }
 
@@ -906,21 +839,8 @@ extension NameSpaceWrapper where Base: NSMutableAttributedString {
     
     /// 首行除外的整体缩进(正数向右边缩进，s负数向左边缩进)
     public func setHeadIndent(_ indent: CGFloat, range: NSRange) {
-        base.enumerateAttribute(.paragraphStyle, in: range, options: []) { (value, subRange, _) in
-            var paragraphStyle: NSMutableParagraphStyle?
-            if let style = value as? NSParagraphStyle {
-                if style.headIndent == indent { return }
-                if style is NSMutableParagraphStyle {
-                    paragraphStyle = style as? NSMutableParagraphStyle
-                } else {
-                    paragraphStyle = style.mutableCopy() as? NSMutableParagraphStyle
-                }
-            } else {
-                if NSParagraphStyle.default.headIndent == indent { return }
-                paragraphStyle = NSParagraphStyle.default.mutableCopy() as? NSMutableParagraphStyle
-            }
-            paragraphStyle?.headIndent = indent
-            setParagraphStyle(paragraphStyle, range: subRange)
+        updateParagraphStyles(in: range, needsUpdate: { $0.headIndent != indent }) {
+            $0.headIndent = indent
         }
     }
 
@@ -932,21 +852,8 @@ extension NameSpaceWrapper where Base: NSMutableAttributedString {
     
     /// 尾部缩进(负数向左边缩进，正数表示文字整体的宽度)
     public func setTailIndent(_ indent: CGFloat, range: NSRange) {
-        base.enumerateAttribute(.paragraphStyle, in: range, options: []) { (value, subRange, _) in
-            var paragraphStyle: NSMutableParagraphStyle?
-            if let style = value as? NSParagraphStyle {
-                if style.tailIndent == indent { return }
-                if style is NSMutableParagraphStyle {
-                    paragraphStyle = style as? NSMutableParagraphStyle
-                } else {
-                    paragraphStyle = style.mutableCopy() as? NSMutableParagraphStyle
-                }
-            } else {
-                if NSParagraphStyle.default.tailIndent == indent { return }
-                paragraphStyle = NSParagraphStyle.default.mutableCopy() as? NSMutableParagraphStyle
-            }
-            paragraphStyle?.tailIndent = indent
-            setParagraphStyle(paragraphStyle, range: subRange)
+        updateParagraphStyles(in: range, needsUpdate: { $0.tailIndent != indent }) {
+            $0.tailIndent = indent
         }
     }
 
@@ -958,21 +865,8 @@ extension NameSpaceWrapper where Base: NSMutableAttributedString {
 
     /// 文字截断模式
     public func setLineBreakMode(_ mode: NSLineBreakMode, range: NSRange) {
-        base.enumerateAttribute(.paragraphStyle, in: range, options: []) { (value, subRange, _) in
-            var paragraphStyle: NSMutableParagraphStyle?
-            if let style = value as? NSParagraphStyle {
-                if style.lineBreakMode == mode { return }
-                if style is NSMutableParagraphStyle {
-                    paragraphStyle = style as? NSMutableParagraphStyle
-                } else {
-                    paragraphStyle = style.mutableCopy() as? NSMutableParagraphStyle
-                }
-            } else {
-                if NSParagraphStyle.default.lineBreakMode == mode { return }
-                paragraphStyle = NSParagraphStyle.default.mutableCopy() as? NSMutableParagraphStyle
-            }
-            paragraphStyle?.lineBreakMode = mode
-            setParagraphStyle(paragraphStyle, range: subRange)
+        updateParagraphStyles(in: range, needsUpdate: { $0.lineBreakMode != mode }) {
+            $0.lineBreakMode = mode
         }
     }
 
@@ -984,21 +878,8 @@ extension NameSpaceWrapper where Base: NSMutableAttributedString {
     
     /// 最小行高
     public func setMinimumLineHeight(_ height: CGFloat, range: NSRange) {
-        base.enumerateAttribute(.paragraphStyle, in: range, options: []) { (value, subRange, _) in
-            var paragraphStyle: NSMutableParagraphStyle?
-            if let style = value as? NSParagraphStyle {
-                if style.minimumLineHeight == height { return }
-                if style is NSMutableParagraphStyle {
-                    paragraphStyle = style as? NSMutableParagraphStyle
-                } else {
-                    paragraphStyle = style.mutableCopy() as? NSMutableParagraphStyle
-                }
-            } else {
-                if NSParagraphStyle.default.minimumLineHeight == height { return }
-                paragraphStyle = NSParagraphStyle.default.mutableCopy() as? NSMutableParagraphStyle
-            }
-            paragraphStyle?.minimumLineHeight = height
-            setParagraphStyle(paragraphStyle, range: subRange)
+        updateParagraphStyles(in: range, needsUpdate: { $0.minimumLineHeight != height }) {
+            $0.minimumLineHeight = height
         }
     }
 
@@ -1010,21 +891,8 @@ extension NameSpaceWrapper where Base: NSMutableAttributedString {
     
     /// 最大行高
     public func setMaximumLineHeight(_ height: CGFloat, range: NSRange) {
-        base.enumerateAttribute(.paragraphStyle, in: range, options: []) { (value, subRange, _) in
-            var paragraphStyle: NSMutableParagraphStyle?
-            if let style = value as? NSParagraphStyle {
-                if style.maximumLineHeight == height { return }
-                if style is NSMutableParagraphStyle {
-                    paragraphStyle = style as? NSMutableParagraphStyle
-                } else {
-                    paragraphStyle = style.mutableCopy() as? NSMutableParagraphStyle
-                }
-            } else {
-                if NSParagraphStyle.default.maximumLineHeight == height { return }
-                paragraphStyle = NSParagraphStyle.default.mutableCopy() as? NSMutableParagraphStyle
-            }
-            paragraphStyle?.maximumLineHeight = height
-            setParagraphStyle(paragraphStyle, range: subRange)
+        updateParagraphStyles(in: range, needsUpdate: { $0.maximumLineHeight != height }) {
+            $0.maximumLineHeight = height
         }
     }
 
@@ -1036,21 +904,8 @@ extension NameSpaceWrapper where Base: NSMutableAttributedString {
     
     /// 行高相乘系数
     public func setLineHeightMultiple(_ multiple: CGFloat, range: NSRange) {
-        base.enumerateAttribute(.paragraphStyle, in: range, options: []) { (value, subRange, _) in
-            var paragraphStyle: NSMutableParagraphStyle?
-            if let style = value as? NSParagraphStyle {
-                if style.lineHeightMultiple == multiple { return }
-                if style is NSMutableParagraphStyle {
-                    paragraphStyle = style as? NSMutableParagraphStyle
-                } else {
-                    paragraphStyle = style.mutableCopy() as? NSMutableParagraphStyle
-                }
-            } else {
-                if NSParagraphStyle.default.lineHeightMultiple == multiple { return }
-                paragraphStyle = NSParagraphStyle.default.mutableCopy() as? NSMutableParagraphStyle
-            }
-            paragraphStyle?.lineHeightMultiple = multiple
-            setParagraphStyle(paragraphStyle, range: subRange)
+        updateParagraphStyles(in: range, needsUpdate: { $0.lineHeightMultiple != multiple }) {
+            $0.lineHeightMultiple = multiple
         }
     }
 
@@ -1061,21 +916,8 @@ extension NameSpaceWrapper where Base: NSMutableAttributedString {
     }
     
     public func setHyphenationFactor(_ factor: Float, range: NSRange) {
-        base.enumerateAttribute(.paragraphStyle, in: range, options: []) { (value, subRange, _) in
-            var paragraphStyle: NSMutableParagraphStyle?
-            if let style = value as? NSParagraphStyle {
-                if style.hyphenationFactor == factor { return }
-                if style is NSMutableParagraphStyle {
-                    paragraphStyle = style as? NSMutableParagraphStyle
-                } else {
-                    paragraphStyle = style.mutableCopy() as? NSMutableParagraphStyle
-                }
-            } else {
-                if NSParagraphStyle.default.hyphenationFactor == factor { return }
-                paragraphStyle = NSParagraphStyle.default.mutableCopy() as? NSMutableParagraphStyle
-            }
-            paragraphStyle?.hyphenationFactor = factor
-            setParagraphStyle(paragraphStyle, range: subRange)
+        updateParagraphStyles(in: range, needsUpdate: { $0.hyphenationFactor != factor }) {
+            $0.hyphenationFactor = factor
         }
     }
 
@@ -1086,21 +928,8 @@ extension NameSpaceWrapper where Base: NSMutableAttributedString {
     }
     
     public func setDefaultTabInterval(_ interval: CGFloat, range: NSRange) {
-        base.enumerateAttribute(.paragraphStyle, in: range, options: []) { (value, subRange, _) in
-            var paragraphStyle: NSMutableParagraphStyle?
-            if let style = value as? NSParagraphStyle {
-                if style.defaultTabInterval == interval { return }
-                if style is NSMutableParagraphStyle {
-                    paragraphStyle = style as? NSMutableParagraphStyle
-                } else {
-                    paragraphStyle = style.mutableCopy() as? NSMutableParagraphStyle
-                }
-            } else {
-                if NSParagraphStyle.default.defaultTabInterval == interval { return }
-                paragraphStyle = NSParagraphStyle.default.mutableCopy() as? NSMutableParagraphStyle
-            }
-            paragraphStyle?.defaultTabInterval = interval
-            setParagraphStyle(paragraphStyle, range: subRange)
+        updateParagraphStyles(in: range, needsUpdate: { $0.defaultTabInterval != interval }) {
+            $0.defaultTabInterval = interval
         }
     }
 
@@ -1111,21 +940,29 @@ extension NameSpaceWrapper where Base: NSMutableAttributedString {
     }
     
     public func setTabStops(_ tabStops: [NSTextTab], range: NSRange) {
-        base.enumerateAttribute(.paragraphStyle, in: range, options: []) { (value, subRange, _) in
-            var paragraphStyle: NSMutableParagraphStyle?
-            if let style = value as? NSParagraphStyle {
-                if style.tabStops == tabStops { return }
-                if style is NSMutableParagraphStyle {
-                    paragraphStyle = style as? NSMutableParagraphStyle
-                } else {
-                    paragraphStyle = style.mutableCopy() as? NSMutableParagraphStyle
-                }
-            } else {
-                if NSParagraphStyle.default.tabStops == tabStops { return }
-                paragraphStyle = NSParagraphStyle.default.mutableCopy() as? NSMutableParagraphStyle
-            }
-            paragraphStyle?.tabStops = tabStops
-            setParagraphStyle(paragraphStyle, range: subRange)
+        updateParagraphStyles(in: range, needsUpdate: { $0.tabStops != tabStops }) {
+            $0.tabStops = tabStops
+        }
+    }
+
+    /// Attribute values may be shared with other strings or ranges. Always
+    /// edit a separate paragraph style, then apply the updates after enumeration.
+    private func updateParagraphStyles(in range: NSRange,
+                                       needsUpdate: (NSParagraphStyle) -> Bool,
+                                       update: (NSMutableParagraphStyle) -> Void) {
+        var updates: [(range: NSRange, style: NSMutableParagraphStyle)] = []
+        base.enumerateAttribute(.paragraphStyle, in: range, options: []) { value, subRange, _ in
+            let current = (value as? NSParagraphStyle) ?? .default
+            guard needsUpdate(current),
+                  let style = current.mutableCopy() as? NSMutableParagraphStyle else { return }
+            update(style)
+            updates.append((subRange, style))
+        }
+        guard !updates.isEmpty else { return }
+        base.beginEditing()
+        defer { base.endEditing() }
+        for update in updates {
+            setParagraphStyle(update.style, range: update.range)
         }
     }
 
@@ -1213,4 +1050,3 @@ extension NameSpaceWrapper where Base: NSMutableAttributedString {
     }
     
 }
-

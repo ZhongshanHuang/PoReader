@@ -2,9 +2,15 @@ import UIKit
 
 // MARK: - PoAttributedStringKey
 
+/// A strongly typed key that can be used with ``PoAttributeContainer`` and
+/// ``PoAttributedString`` dynamic member lookup.
+///
+/// The built-in keys are exposed through ``PoTextAttributesScopes``. Apps can
+/// define their own keys when a custom attribute should be carried through the
+/// builder without falling back to stringly-typed dictionary access.
 public protocol PoAttributedStringKey {
-    associatedtype Value : Hashable
-    static var name : NSAttributedString.Key { get }
+    associatedtype Value
+    static var name: NSAttributedString.Key { get }
 }
 
 public extension PoAttributedStringKey {
@@ -27,7 +33,10 @@ public enum PoAttributeDynamicLookup: Sendable {
 
 // MARK: - PoTextAttributesScopes
 
+/// The namespace of built-in rich-text attribute keys.
 public struct PoTextAttributesScopes: Sendable {
+    public init() {}
+
     /// 字体
     public let font: PoTextAttributesScopes.FontAttribute = FontAttribute()
     /// 文字间隔(负数缩紧，正数散开)

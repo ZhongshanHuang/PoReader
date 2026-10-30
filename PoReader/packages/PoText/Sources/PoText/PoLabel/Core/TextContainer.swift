@@ -17,7 +17,7 @@ public struct TextContainer: @unchecked Sendable {
         let container = NSTextContainer(size: newSize)
         container.lineFragmentPadding = 0
         container.maximumNumberOfLines = maximumNumberOfLines
-        if lineBreakMode.isNeedTruncation { // 发生这几种截断的时候NSlayoutManager glyphRange计算不准确
+        if lineBreakMode.isNeedTruncation { // Truncation modes need custom glyph-range handling.
             container.lineBreakMode = .byWordWrapping
         } else {
             container.lineBreakMode = lineBreakMode
@@ -28,45 +28,34 @@ public struct TextContainer: @unchecked Sendable {
         return container
     }
 
-    /// The constrained size. (if the size is larger than maxSize, it will be clipped.)
+    /// The constrained size. Values are clamped to the supported TextKit range.
     private var _size: CGSize = .zero
-    public var size : CGSize {
+    public var size: CGSize {
         get { _size }
-        set {
-            _size = newValue
-            if newValue.width > TextContainer.maxSize.width {
-                _size.width = TextContainer.maxSize.width
-            }
-            if newValue.height > TextContainer.maxSize.height {
-                _size.height = TextContainer.maxSize.height
-            }
-        }
+        set { _size = Self.clampedSize(newValue) }
     }
 
     /// The insets for constrained size. The inset value should not be negative.
     private var _insets: UIEdgeInsets = .zero
     public var insets: UIEdgeInsets {
         get { _insets }
-        set {
-            var value = newValue
-            if value.top < 0 { value.top = 0 }
-            if value.left < 0 { value.left = 0 }
-            if value.bottom < 0 { value.bottom = 0 }
-            if value.right < 0 { value.right = 0 }
-            _insets = value
-        }
+        set { _insets = Self.clampedInsets(newValue) }
     }
 
     /// An array of UIBezierPath for path exclusion. Default is nil.
-    var exclusionPaths: [UIBezierPath]?
+    public var exclusionPaths: [UIBezierPath]?
 
     /// Maximum number of rows, 0 means no limit.
-    public var maximumNumberOfLines: Int = 0
+    private var _maximumNumberOfLines = 0
+    public var maximumNumberOfLines: Int {
+        get { _maximumNumberOfLines }
+        set { _maximumNumberOfLines = max(0, newValue) }
+    }
 
     /// The line truncation type.
     public var lineBreakMode: NSLineBreakMode = .byTruncatingTail
 
-    /// The truncation token. If nil, the layout will use '...'instead.
+    /// The truncation token. If nil, the layout uses an ellipsis.
     public var tailTruncationToken: NSAttributedString?
 
     // MARK: - Initializers
@@ -75,7 +64,8 @@ public struct TextContainer: @unchecked Sendable {
         self.insets = insets
     }
 
-    func snapshot() -> TextContainer {
+    /// Returns an independent snapshot suitable for layout work.
+    public func snapshot() -> TextContainer {
         if exclusionPaths == nil && tailTruncationToken == nil { return self }
 
         var container = self
@@ -84,6 +74,23 @@ public struct TextContainer: @unchecked Sendable {
         }
         container.tailTruncationToken = tailTruncationToken?.copy() as? NSAttributedString
         return container
+    }
+
+    private static func clampedSize(_ size: CGSize) -> CGSize {
+        CGSize(width: clampedDimension(size.width, maximum: maxSize.width),
+               height: clampedDimension(size.height, maximum: maxSize.height))
+    }
+
+    private static func clampedInsets(_ insets: UIEdgeInsets) -> UIEdgeInsets {
+        UIEdgeInsets(top: clampedDimension(insets.top, maximum: .greatestFiniteMagnitude),
+                     left: clampedDimension(insets.left, maximum: .greatestFiniteMagnitude),
+                     bottom: clampedDimension(insets.bottom, maximum: .greatestFiniteMagnitude),
+                     right: clampedDimension(insets.right, maximum: .greatestFiniteMagnitude))
+    }
+
+    private static func clampedDimension(_ value: CGFloat, maximum: CGFloat) -> CGFloat {
+        guard value.isFinite else { return 0 }
+        return min(max(0, value), maximum)
     }
 
 }

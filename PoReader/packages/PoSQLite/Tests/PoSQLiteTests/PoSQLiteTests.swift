@@ -788,20 +788,25 @@ final class PoSQLiteTests: XCTestCase {
         defer { cleanup(database: database, url: url) }
 
         let payload: [UInt8] = [3, 1, 4, 1, 5, 9]
-        try database.execute("CREATE TABLE blobs (payload BLOB NOT NULL);")
-        try database.withPreparedStatement("INSERT INTO blobs (payload) VALUES (?)") { statement in
+        try database.execute("CREATE TABLE blobs (name TEXT NOT NULL, payload BLOB NOT NULL);")
+        try database.withPreparedStatement("INSERT INTO blobs (name, payload) VALUES (?, ?)") { statement in
+            try statement.bind(position: 1, "blob")
             try payload.withUnsafeBufferPointer { buffer in
-                try statement.bindBlob(position: 1, bytes: unsafe Span(_unsafeElements: buffer))
+                try statement.bindBlob(position: 2, bytes: unsafe Span(_unsafeElements: buffer))
             }
             try statement.step()
         }
 
-        try database.withPreparedStatement("SELECT payload FROM blobs") { statement in
+        try database.withPreparedStatement("SELECT name, payload FROM blobs") { statement in
             var result = try statement.step()
             while result == .row {
-                let borrowed = try statement.withColumnBlob(position: 0) { span in
+                let nameBytes = try statement.withColumnTextUTF8(position: 0) { span in
                     span.withUnsafeBufferPointer { unsafe Array($0) }
                 }
+                let borrowed = try statement.withColumnBlob(position: 1) { span in
+                    span.withUnsafeBufferPointer { unsafe Array($0) }
+                }
+                XCTAssertEqual(nameBytes, Array("blob".utf8))
                 XCTAssertEqual(borrowed, payload)
                 result = try statement.step()
             }
@@ -925,6 +930,9 @@ final class PoSQLiteTests: XCTestCase {
 
         let rows = try database.fetchBorrowed("SELECT id, name, payload FROM blobs ORDER BY id") { row in
             XCTAssertEqual(try row.columnName(at: 0), "id")
+            let nameBytes = try row.withTextUTF8(named: "name") { span in
+                span.withUnsafeBufferPointer { unsafe Array($0) }
+            }
             let payload = try row.withBlob(named: "payload") { span in
                 span.withUnsafeBufferPointer { unsafe Array($0) }
             }
@@ -932,6 +940,7 @@ final class PoSQLiteTests: XCTestCase {
             return (
                 id: try row.require("id", as: Int.self),
                 name: try row.require("name", as: String.self),
+                nameBytes: try XCTUnwrap(nameBytes),
                 payload: try XCTUnwrap(payload),
                 payloadData: try XCTUnwrap(payloadData),
                 payloadBytes: try row.require("payload", as: [UInt8].self)
@@ -940,9 +949,18 @@ final class PoSQLiteTests: XCTestCase {
 
         XCTAssertEqual(rows.map(\.id), [1, 2])
         XCTAssertEqual(rows.map(\.name), ["first", "empty"])
+        XCTAssertEqual(rows.map(\.nameBytes), [Array("first".utf8), Array("empty".utf8)])
         XCTAssertEqual(rows.map(\.payload), [[1, 2, 3], []])
         XCTAssertEqual(rows.map(\.payloadData), [Data([1, 2, 3]), Data()])
         XCTAssertEqual(rows.map(\.payloadBytes), [[1, 2, 3], []])
+
+        let nullText = try database.fetchOneBorrowed("SELECT NULL AS name") { row in
+            try row.withTextUTF8(named: "name") { span in
+                span.withUnsafeBufferPointer { unsafe Array($0) }
+            }
+        }
+        let nullTextValue = try XCTUnwrap(nullText)
+        XCTAssertNil(nullTextValue)
 
         let nullPayload = try database.fetchOneBorrowed("SELECT NULL AS payload") { row in
             try row.withBlob(named: "payload") { span in

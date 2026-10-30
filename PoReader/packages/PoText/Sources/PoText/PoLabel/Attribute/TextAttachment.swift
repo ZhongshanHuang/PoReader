@@ -59,6 +59,51 @@ public final class TextAttachment: NSTextAttachment {
     public let alignToFont: UIFont
     
     // MARK: - Initializer
+
+    /// Creates an attachment containing an image.
+    public convenience init(image: UIImage,
+                            size: CGSize? = nil,
+                            alignToFont: UIFont = .systemFont(ofSize: 17),
+                            contentInsets: UIEdgeInsets = .zero,
+                            verticalAlignment: TextVerticalAlignment = .center,
+                            contentMode: UIView.ContentMode = .scaleAspectFit) {
+        self.init(content: .image(image),
+                  size: size,
+                  alignToFont: alignToFont,
+                  contentInsets: contentInsets,
+                  verticalAlignment: verticalAlignment,
+                  contentMode: contentMode)
+    }
+
+    /// Creates an attachment hosting a view.
+    public convenience init(view: UIView,
+                            size: CGSize? = nil,
+                            alignToFont: UIFont = .systemFont(ofSize: 17),
+                            contentInsets: UIEdgeInsets = .zero,
+                            verticalAlignment: TextVerticalAlignment = .center,
+                            contentMode: UIView.ContentMode = .scaleAspectFit) {
+        self.init(content: .view(view),
+                  size: size,
+                  alignToFont: alignToFont,
+                  contentInsets: contentInsets,
+                  verticalAlignment: verticalAlignment,
+                  contentMode: contentMode)
+    }
+
+    /// Creates an attachment hosting a Core Animation layer.
+    public convenience init(layer: CALayer,
+                            size: CGSize? = nil,
+                            alignToFont: UIFont = .systemFont(ofSize: 17),
+                            contentInsets: UIEdgeInsets = .zero,
+                            verticalAlignment: TextVerticalAlignment = .center,
+                            contentMode: UIView.ContentMode = .scaleAspectFit) {
+        self.init(content: .layer(layer),
+                  size: size,
+                  alignToFont: alignToFont,
+                  contentInsets: contentInsets,
+                  verticalAlignment: verticalAlignment,
+                  contentMode: contentMode)
+    }
     
     /// size为容器大小，如果不设置则会使用content的size作为容器大小
     public init(content: TextAttachment.Content, size: CGSize? = nil, alignToFont: UIFont, contentInsets: UIEdgeInsets = .zero, verticalAlignment: TextVerticalAlignment = .bottom, contentMode: UIView.ContentMode = .scaleAspectFit) {
@@ -68,9 +113,7 @@ public final class TextAttachment: NSTextAttachment {
         self.verticalAlignment = verticalAlignment
         self.contentMode = contentMode
         super.init(data: nil, ofType: nil)
-        if #available(iOS 13.0, *) {
-            self.image = UIImage()
-        }
+        self.image = UIImage()
         self.bounds = CGRect(origin: .zero, size: size ?? content.contentSize)
     }
     
@@ -93,4 +136,3 @@ public final class TextAttachment: NSTextAttachment {
     }
     
 }
-

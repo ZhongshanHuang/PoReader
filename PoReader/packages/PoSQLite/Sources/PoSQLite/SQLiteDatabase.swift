@@ -145,6 +145,13 @@ private extension SQLiteDatabase {
         }
     }
 
+    func retainThreadedHandle(_ handleLease: SQLitePooledHandleLease) {
+        handleLease.refCount += 1
+        if handleLease.refCount == 1 {
+            Self.threadedHandles.value[identity] = handleLease
+        }
+    }
+
     func releaseThreadedHandle(_ handleLease: SQLitePooledHandleLease) {
         handleLease.refCount -= 1
         if handleLease.refCount == 0 {
@@ -168,23 +175,23 @@ private extension SQLiteDatabase {
 // MARK: - Base Operations
 extension SQLiteDatabase {
     
-    private func makeStatement(_ statement: String, cached: Bool) throws -> SQLiteStmt {
-        let handleLease = try flowOut()
+    private func makeStatement(
+        _ statement: String,
+        cached: Bool,
+        handleLease: SQLitePooledHandleLease
+    ) throws -> SQLiteStmt {
         var stat = cached
             ? try handleLease.handle.prepareCached(statement: statement)
             : try handleLease.handle.prepare(statement: statement)
-        let identity = identity
-        handleLease.refCount += 1
-        if handleLease.refCount == 1 {
-            Self.threadedHandles.value[identity] = handleLease
-        }
+        retainThreadedHandle(handleLease)
         stat.lease = SQLiteStatementLease {
-            handleLease.refCount -= 1
-            if handleLease.refCount == 0 {
-                Self.threadedHandles.value.removeValue(forKey: identity)
-            }
+            self.releaseThreadedHandle(handleLease)
         }
         return stat
+    }
+
+    private func makeStatement(_ statement: String, cached: Bool) throws -> SQLiteStmt {
+        try makeStatement(statement, cached: cached, handleLease: flowOut())
     }
 
     /// Prepare a statement for manual lifetime management.
@@ -192,7 +199,7 @@ extension SQLiteDatabase {
     /// This is an advanced escape hatch. Prefer `withPreparedStatement(_:_:)`,
     /// `execute(_:)`, and `fetch` APIs so PoSQLite can serialize writes and
     /// reuse cached statements safely.
-    public func unsafePrepare(_ sql: SQL) throws -> SQLiteStmt {
+    public func unsafePrepare(_ sql: borrowing SQL) throws -> SQLiteStmt {
         let statement = try makeStatement(sql.statement, cached: false)
         if sql.hasBoundParameters {
             try sql.bind(to: statement)
@@ -200,29 +207,32 @@ extension SQLiteDatabase {
         return statement
     }
 
-    private func prepareBound(_ sql: SQL) throws -> SQLiteStmt {
-        let statement = try makeStatement(sql.statement, cached: true)
+    private func prepareBound(
+        _ sql: borrowing SQL,
+        handleLease: SQLitePooledHandleLease
+    ) throws -> SQLiteStmt {
+        let statement = try makeStatement(sql.statement, cached: true, handleLease: handleLease)
         try sql.bind(to: statement)
         return statement
     }
-    
-    private func begin(_ transaction: SQLiteTransactionMode) throws {
-        let handleLease = try flowOut()
-        try handleLease.handle.begin(transaction)
-        handleLease.refCount += 1
-        if handleLease.refCount == 1 {
-            Self.threadedHandles.value[identity] = handleLease
-        }
+
+    private func prepareBound(_ sql: borrowing SQL) throws -> SQLiteStmt {
+        try prepareBound(sql, handleLease: flowOut())
     }
     
-    private func commit() throws {
+    private func begin(_ transaction: SQLiteTransactionMode) throws -> SQLitePooledHandleLease {
         let handleLease = try flowOut()
+        try handleLease.handle.begin(transaction)
+        retainThreadedHandle(handleLease)
+        return handleLease
+    }
+    
+    private func commit(handleLease: SQLitePooledHandleLease) throws {
         try handleLease.handle.commit()
         releaseThreadedHandle(handleLease)
     }
     
-    private func rollback() throws {
-        let handleLease = try flowOut()
+    private func rollback(handleLease: SQLitePooledHandleLease) throws {
         defer {
             releaseThreadedHandle(handleLease)
         }
@@ -234,14 +244,43 @@ extension SQLiteDatabase {
 // MARK: - Convenience Operations
 extension SQLiteDatabase {
     public func withPreparedStatement<T>(
-        _ sql: SQL,
+        _ sql: borrowing SQL,
         _ body: (_ statement: borrowing SQLiteStmt) throws -> T
     ) throws -> T {
-        var statement = try makeStatement(sql.statement, cached: true)
+        try withPreparedStatement(sql, serializeWrites: true, body)
+    }
+
+    func withPreparedStatement<T>(
+        _ sql: borrowing SQL,
+        handleLease: SQLitePooledHandleLease,
+        _ body: (_ statement: borrowing SQLiteStmt) throws -> T
+    ) throws -> T {
+        try withPreparedStatement(sql, handleLease: handleLease, serializeWrites: false, body)
+    }
+
+    private func withPreparedStatement<T>(
+        _ sql: borrowing SQL,
+        serializeWrites: Bool,
+        _ body: (_ statement: borrowing SQLiteStmt) throws -> T
+    ) throws -> T {
+        try withPreparedStatement(sql, handleLease: flowOut(), serializeWrites: serializeWrites, body)
+    }
+
+    private func withPreparedStatement<T>(
+        _ sql: borrowing SQL,
+        handleLease: SQLitePooledHandleLease,
+        serializeWrites: Bool,
+        _ body: (_ statement: borrowing SQLiteStmt) throws -> T
+    ) throws -> T {
+        var statement = try makeStatement(sql.statement, cached: true, handleLease: handleLease)
         if sql.hasBoundParameters {
             try sql.bind(to: statement)
         }
         defer { try? statement.finalize() }
+
+        if !serializeWrites {
+            return try body(statement)
+        }
 
         if try statement.isReadOnly() {
             return try body(statement)
@@ -253,18 +292,31 @@ extension SQLiteDatabase {
     }
 
     private func withBoundPreparedStatement<T>(
-        _ sql: SQL,
-        _ body: (_ statement: borrowing SQLiteStmt) throws -> T
+        _ sql: borrowing SQL,
+        _ body: (_ statement: borrowing SQLiteStmt, _ handle: SQLiteHandle) throws -> T
     ) throws -> T {
-        var statement = try prepareBound(sql)
+        try withBoundPreparedStatement(sql, handleLease: flowOut(), serializeWrites: true, body)
+    }
+
+    private func withBoundPreparedStatement<T>(
+        _ sql: borrowing SQL,
+        handleLease: SQLitePooledHandleLease,
+        serializeWrites: Bool,
+        _ body: (_ statement: borrowing SQLiteStmt, _ handle: SQLiteHandle) throws -> T
+    ) throws -> T {
+        var statement = try prepareBound(sql, handleLease: handleLease)
         defer { try? statement.finalize() }
 
+        if !serializeWrites {
+            return try body(statement, handleLease.handle)
+        }
+
         if try statement.isReadOnly() {
-            return try body(statement)
+            return try body(statement, handleLease.handle)
         }
 
         return try withWriteLock {
-            try body(statement)
+            try body(statement, handleLease.handle)
         }
     }
 
@@ -276,10 +328,35 @@ extension SQLiteDatabase {
     }
 
     private func executeStatement<Result>(
-        _ sql: SQL,
-        result: () throws -> Result
+        _ sql: borrowing SQL,
+        result: (_ handle: SQLiteHandle) throws -> Result
     ) throws -> Result {
-        try withBoundPreparedStatement(sql) { statement in
+        try executeStatement(sql, serializeWrites: true, result: result)
+    }
+
+    private func executeStatement<Result>(
+        _ sql: borrowing SQL,
+        handleLease: SQLitePooledHandleLease,
+        result: (_ handle: SQLiteHandle) throws -> Result
+    ) throws -> Result {
+        try executeStatement(sql, handleLease: handleLease, serializeWrites: false, result: result)
+    }
+
+    private func executeStatement<Result>(
+        _ sql: borrowing SQL,
+        serializeWrites: Bool,
+        result: (_ handle: SQLiteHandle) throws -> Result
+    ) throws -> Result {
+        try executeStatement(sql, handleLease: flowOut(), serializeWrites: serializeWrites, result: result)
+    }
+
+    private func executeStatement<Result>(
+        _ sql: borrowing SQL,
+        handleLease: SQLitePooledHandleLease,
+        serializeWrites: Bool,
+        result: (_ handle: SQLiteHandle) throws -> Result
+    ) throws -> Result {
+        try withBoundPreparedStatement(sql, handleLease: handleLease, serializeWrites: serializeWrites) { statement, handle in
             guard statement.columnCount() == 0 else {
                 throw SQLiteError(
                     code: SQLITE_MISUSE,
@@ -299,49 +376,72 @@ extension SQLiteDatabase {
                 )
             }
 
-            return try result()
+            return try result(handle)
         }
     }
 
-    public func execute(_ sql: SQL) throws {
-        try executeStatement(sql) {}
+    public func execute(_ sql: borrowing SQL) throws {
+        try executeStatement(sql) { _ in }
     }
 
-    public func executeResult(_ sql: SQL) throws -> SQLiteExecutionResult {
-        try executeStatement(sql) {
-            // The active statement keeps this lease thread-local until finalization.
-            let handleLease = try flowOut()
+    func execute(
+        _ sql: borrowing SQL,
+        handleLease: SQLitePooledHandleLease
+    ) throws {
+        try executeStatement(sql, handleLease: handleLease) { _ in }
+    }
+
+    public func executeResult(_ sql: borrowing SQL) throws -> SQLiteExecutionResult {
+        try executeStatement(sql) { handle in
             return SQLiteExecutionResult(
-                changes: handleLease.handle.changes(),
-                lastInsertRowID: handleLease.handle.lastInsertRowID()
+                changes: handle.changes(),
+                lastInsertRowID: handle.lastInsertRowID()
+            )
+        }
+    }
+
+    func executeResult(
+        _ sql: borrowing SQL,
+        handleLease: SQLitePooledHandleLease
+    ) throws -> SQLiteExecutionResult {
+        try executeStatement(sql, handleLease: handleLease) { handle in
+            SQLiteExecutionResult(
+                changes: handle.changes(),
+                lastInsertRowID: handle.lastInsertRowID()
             )
         }
     }
 
     @discardableResult
-    public func withTransaction<T>(_ mode: SQLiteTransactionMode = .immediate, _ body: (_ transaction: borrowing SQLiteTransactionContext) throws -> T) throws -> T {
-        try _withTransaction(mode) {
-            try body(SQLiteTransactionContext(database: self))
+    public func withTransaction<T>(
+        _ mode: SQLiteTransactionMode = .immediate,
+        _ body: (_ transaction: borrowing SQLiteTransactionContext) throws -> T
+    ) throws -> T {
+        if isInTransactionOnCurrentThread, let handleLease = Self.threadedHandles.value[identity] {
+            return try _savepoint(handleLease: handleLease) {
+                try body(SQLiteTransactionContext(database: self, handleLease: handleLease))
+            }
         }
+
+        return try _withTransaction(mode, body)
     }
 
-    private func _withTransaction<T>(_ mode: SQLiteTransactionMode, _ body: () throws -> T) throws -> T {
-        if isInTransactionOnCurrentThread {
-            return try _savepoint(body)
-        }
-
+    private func _withTransaction<T>(
+        _ mode: SQLiteTransactionMode,
+        _ body: (_ transaction: borrowing SQLiteTransactionContext) throws -> T
+    ) throws -> T {
         return try handlePool.withWriteLock {
-            try begin(mode)
+            let handleLease = try begin(mode)
             incrementTransactionDepth()
             do {
-                let result = try body()
-                try commit()
+                let result = try body(SQLiteTransactionContext(database: self, handleLease: handleLease))
+                try commit(handleLease: handleLease)
                 decrementTransactionDepth()
                 return result
             } catch {
                 let rollbackError: (any Error)?
                 do {
-                    try rollback()
+                    try rollback(handleLease: handleLease)
                     rollbackError = nil
                 } catch {
                     rollbackError = error
@@ -355,9 +455,20 @@ extension SQLiteDatabase {
         }
     }
 
-    private func _savepoint<T>(_ body: () throws -> T) throws -> T {
+    func withSavepoint<T>(
+        handleLease: SQLitePooledHandleLease,
+        _ body: (_ transaction: borrowing SQLiteTransactionContext) throws -> T
+    ) throws -> T {
+        try _savepoint(handleLease: handleLease) {
+            try body(SQLiteTransactionContext(database: self, handleLease: handleLease))
+        }
+    }
+
+    private func _savepoint<T>(
+        handleLease: SQLitePooledHandleLease,
+        _ body: () throws -> T
+    ) throws -> T {
         let savepointName = Self.makeSavepointName()
-        let handleLease = try flowOut()
 
         try handleLease.handle.savepoint(savepointName)
         incrementTransactionDepth()

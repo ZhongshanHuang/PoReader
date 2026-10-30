@@ -7,7 +7,11 @@ extension NSAttributedString.Key {
     public static let poBlockBorder      = NSAttributedString.Key(rawValue: "PoTextBlockBorder")
     public static let poHighlight        = NSAttributedString.Key(rawValue: "PoTextHighlight")
     
-    public static let allDiscontinuousAttributeKeys: [NSAttributedString.Key] = [.poBackedString]
+    /// Attributes tied to particular characters that must not transfer to new
+    /// plain text when inserting, appending, or replacing a label's content.
+    public static let allDiscontinuousAttributeKeys: [NSAttributedString.Key] = [
+        .attachment, .link, .poBackedString, .poHighlight
+    ]
 }
 
 // MARK: - TextLineStyle
@@ -202,6 +206,10 @@ public struct TextHighlight: Hashable, @unchecked Sendable {
     }
     
     public init() {}
+
+    public init(attributes: [NSAttributedString.Key: Any]) {
+        self.attributes = attributes
+    }
     
     public init(foregroundColor: UIColor, tapAction: @escaping TextAction) {
         self.foregroundColor = foregroundColor
@@ -260,7 +268,7 @@ public typealias TextAction = (_ containerView: PoLabel, _ text: NSAttributedStr
 
 // MARK: - TextVerticalAlignment
 
-public enum TextVerticalAlignment: Sendable {
+public enum TextVerticalAlignment: CaseIterable, Sendable {
     case top
     case center
     case bottom
@@ -275,5 +283,7 @@ public struct TextToken: RawRepresentable, Sendable {
 
 //    public static let attachment: TextToken = TextToken(rawValue: String(UnicodeScalar(0xFFFC)!)) // 空白占位符,16进制
     public static let truncation: TextToken = TextToken(rawValue: String(unicodeScalarLiteral: "\u{2026}")) // 省略号… ，16进制
-}
 
+    /// A Foundation-style alias for the default truncation token.
+    public static let ellipsis: TextToken = .truncation
+}

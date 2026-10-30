@@ -36,6 +36,7 @@
 #import <SystemConfiguration/SystemConfiguration.h>
 #endif
 #import <CommonCrypto/CommonDigest.h>
+#import <UniformTypeIdentifiers/UniformTypeIdentifiers.h>
 
 #import <ifaddrs.h>
 #import <net/if.h>
@@ -176,10 +177,18 @@ NSString* GCDWebServerGetMimeTypeForExtension(NSString* extension, NSDictionary<
       mimeType = [builtInOverrides objectForKey:extension];
     }
     if (mimeType == nil) {
-      CFStringRef uti = UTTypeCreatePreferredIdentifierForTag(kUTTagClassFilenameExtension, (__bridge CFStringRef)extension, NULL);
-      if (uti) {
-        mimeType = CFBridgingRelease(UTTypeCopyPreferredTagWithClass(uti, kUTTagClassMIMEType));
-        CFRelease(uti);
+      if (@available(iOS 14.0, macOS 11.0, tvOS 14.0, watchOS 7.0, *)) {
+        mimeType = [UTType typeWithFilenameExtension:extension].preferredMIMEType;
+      } else {
+        // Older systems do not provide the UTType class.
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
+        CFStringRef uti = UTTypeCreatePreferredIdentifierForTag(kUTTagClassFilenameExtension, (__bridge CFStringRef)extension, NULL);
+        if (uti) {
+          mimeType = CFBridgingRelease(UTTypeCopyPreferredTagWithClass(uti, kUTTagClassMIMEType));
+          CFRelease(uti);
+        }
+#pragma clang diagnostic pop
       }
     }
   }

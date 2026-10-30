@@ -4,19 +4,19 @@ public protocol SQLiteExecutor: ~Copyable {
     var path: String { get }
 
     /// Executes one statement that does not return rows.
-    func execute(_ sql: SQL) throws
+    func execute(_ sql: borrowing SQL) throws
 
     /// Executes one statement that does not return rows and returns its connection-local result.
-    func executeResult(_ sql: SQL) throws -> SQLiteExecutionResult
+    func executeResult(_ sql: borrowing SQL) throws -> SQLiteExecutionResult
 
     func withPreparedStatement<T>(
-        _ sql: SQL,
+        _ sql: borrowing SQL,
         _ body: (_ statement: borrowing SQLiteStmt) throws -> T
     ) throws -> T
 }
 
 public extension SQLiteExecutor where Self: ~Copyable {
-    func fetch<T>(_ sql: SQL, map: (SQLiteRow) throws -> T) throws -> [T] {
+    func fetch<T>(_ sql: borrowing SQL, map: (SQLiteRow) throws -> T) throws -> [T] {
         var rows: [T] = []
         try forEachRow(sql) { row in
             rows.append(try map(row))
@@ -24,11 +24,11 @@ public extension SQLiteExecutor where Self: ~Copyable {
         return rows
     }
 
-    func fetch(_ sql: SQL) throws -> [SQLiteRow] {
+    func fetch(_ sql: borrowing SQL) throws -> [SQLiteRow] {
         try fetch(sql) { $0 }
     }
 
-    func forEachRow(_ sql: SQL, _ body: (SQLiteRow) throws -> Void) throws {
+    func forEachRow(_ sql: borrowing SQL, _ body: (SQLiteRow) throws -> Void) throws {
         try withPreparedStatement(SQL(sql.statement)) { statement in
             try sql.bind(to: statement)
             var result = try statement.step()
@@ -47,7 +47,7 @@ public extension SQLiteExecutor where Self: ~Copyable {
         }
     }
 
-    func forEachBorrowedRow(_ sql: SQL, _ body: (_ row: borrowing SQLiteBorrowedRow) throws -> Void) throws {
+    func forEachBorrowedRow(_ sql: borrowing SQL, _ body: (_ row: borrowing SQLiteBorrowedRow) throws -> Void) throws {
         try withPreparedStatement(SQL(sql.statement)) { statement in
             try sql.bind(to: statement)
             var result = try statement.step()
@@ -66,7 +66,7 @@ public extension SQLiteExecutor where Self: ~Copyable {
         }
     }
 
-    func fetchBorrowed<T>(_ sql: SQL, map: (_ row: borrowing SQLiteBorrowedRow) throws -> T) throws -> [T] {
+    func fetchBorrowed<T>(_ sql: borrowing SQL, map: (_ row: borrowing SQLiteBorrowedRow) throws -> T) throws -> [T] {
         var rows: [T] = []
         try forEachBorrowedRow(sql) { row in
             rows.append(try map(row))
@@ -74,7 +74,7 @@ public extension SQLiteExecutor where Self: ~Copyable {
         return rows
     }
 
-    func fetchOneBorrowed<T>(_ sql: SQL, map: (_ row: borrowing SQLiteBorrowedRow) throws -> T) throws -> T? {
+    func fetchOneBorrowed<T>(_ sql: borrowing SQL, map: (_ row: borrowing SQLiteBorrowedRow) throws -> T) throws -> T? {
         try withPreparedStatement(SQL(sql.statement)) { statement in
             try sql.bind(to: statement)
             guard try statement.step() == .row else {
@@ -84,7 +84,7 @@ public extension SQLiteExecutor where Self: ~Copyable {
         }
     }
 
-    func fetchOne(_ sql: SQL) throws -> SQLiteRow? {
+    func fetchOne(_ sql: borrowing SQL) throws -> SQLiteRow? {
         try withPreparedStatement(SQL(sql.statement)) { statement in
             try sql.bind(to: statement)
             guard try statement.step() == .row else {
@@ -94,7 +94,7 @@ public extension SQLiteExecutor where Self: ~Copyable {
         }
     }
 
-    func scalar(_ sql: SQL) throws -> SQLiteValue? {
+    func scalar(_ sql: borrowing SQL) throws -> SQLiteValue? {
         try withPreparedStatement(SQL(sql.statement)) { statement in
             try sql.bind(to: statement)
             guard try statement.step() == .row else {

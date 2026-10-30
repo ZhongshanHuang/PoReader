@@ -1,11 +1,3 @@
-//
-//  PoNavigationBarConfigurable.swift
-//  HZSCustomTransition
-//
-//  Created by HzS on 16/4/6.
-//  Copyright © 2016年 HzS. All rights reserved.
-//
-
 import UIKit
 
 @MainActor
@@ -18,8 +10,7 @@ public protocol PoNavigationBarConfigurable: UINavigationController {
     var defaultNavigationBarConfig: PoNavigationBarConfiguration { get }
 }
 
-@MainActor
-private var kDefaultNavigationBarConfigKey: UInt8 = 0
+@MainActor private var kDefaultNavigationBarConfigKey: UInt8 = 0
 public extension PoNavigationBarConfigurable {
     var defaultNavigationBarConfig: PoNavigationBarConfiguration {
         if let configure = objc_getAssociatedObject(self, &kDefaultNavigationBarConfigKey) as? PoNavigationBarConfiguration {

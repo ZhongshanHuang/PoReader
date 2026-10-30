@@ -25,7 +25,7 @@ final class ThreadLocal<Value>: @unchecked Sendable {
     
     var value: Value {
         @inline(__always)
-        _read {
+        yielding borrow {
             guard let pointer = unsafe pthread_getspecific(key) else {
                 yield defaultValue
                 return
@@ -35,7 +35,7 @@ final class ThreadLocal<Value>: @unchecked Sendable {
         }
 
         @inline(__always)
-        _modify {
+        yielding mutate {
             let wrapper: Wrapper
             if let pointer = unsafe pthread_getspecific(key) {
                 wrapper = unsafe Unmanaged<Wrapper>.fromOpaque(pointer).takeUnretainedValue()
